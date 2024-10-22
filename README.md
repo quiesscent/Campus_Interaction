@@ -54,7 +54,7 @@ This project is a web-based platform designed to engage university students, fac
 - **Victor:** Discussion Forums & Student Communities
 
 ### Backend
-- **Fidel:** Live Charts & Messaging, Feeds, Discussion Forums, Student Profiles & Networking  
+- **Fidel:** Live Charts & Messaging, Feeds, Discussion Forums
 - **Victor:** Polls, Marketplace  
 - **Incognito:** Event Calendar  
 - **Mato:** News and Updates  
@@ -66,6 +66,7 @@ This project is a web-based platform designed to engage university students, fac
 - **Peter:** Maps  
 - **Samtech:** Resource Sharing & Academic Tools  
 - **Victor:** Marketplace
+- **Fidel:** Student Profiles & Networking  
 
 # How to Git Commit and Push
 
