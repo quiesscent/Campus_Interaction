@@ -37,7 +37,7 @@ This project is a web-based platform designed to engage university students, fac
    - Both Frontend and Backend: Victor  
 
 10. **Student Profiles & Networking**  
-    - Backend: Fidel
+    - Both Frontend and Backend: Fidel
 
 ## Technology Stack
 - **Frontend:** HTML, CSS, JavaScript (React, Vue, or Angular based on the developer's choice)
