@@ -3,5 +3,5 @@ venv/
 db.sqlite3
 */migrations
 media/
-event/__pycache__
-event/migrations
+events/__pycache__
+events/migrations/
