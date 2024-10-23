@@ -1,2 +1,59 @@
-.venv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.db
+db.sqlite3
+# If using PostgreSQL or MySQL, include any development databases:
+*.psql
+*.sqlite
+*.mysql
+
+# Local environment variables
 .env
+.env.*
+
+# Django migrations
+**/migrations/*
+!**/migrations/__init__.py  # keep the init file, ignore other migrations
+
+# Media (uploaded files)
+media/
+
+# Static files
+staticfiles/
+static/
+
+# Cache and pip stuff
+*.lock
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE and Editor-specific files
+.idea/
+.vscode/
+*.swp
+*~
+
+
+venv/
+
+db.sqlite3
+
+media/
