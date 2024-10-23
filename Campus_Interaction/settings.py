@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "profiles",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -82,8 +83,9 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_REDIRECT_URL = "profile"
-LOGOUT_REDIRECT_URL = "login"
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_URL = 'login'
+LOGOUT_REDIRECT_URL = 'home'
 
 
 STATIC_URL = "/static/"

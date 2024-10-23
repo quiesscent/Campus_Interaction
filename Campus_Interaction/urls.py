@@ -5,8 +5,9 @@ from django.views.static import serve
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", include('core.urls')),
     path("profile/", include("profiles.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] 
 
 
 if not settings.DEBUG:
