@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Event{% endblock %}
+
+{% block extra_css %}
+    <style>
+        /* Drag-and-Drop Styling */
+        .drag-drop-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .drag-drop-area.dragover {
+            background-color: #e0e0e0;
+        }
+
+        .drag-drop-area p {
+            margin: 0;
+            color: #555;
+        }
+
+        /* Larger textarea styling */
+        textarea {
+            min-height: 150px;
+            resize: vertical;  /* Allow vertical resizing */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2 class="text-center mb-4">Create Event</h2>
+            <form method="POST" enctype="multipart/form-data" id="event-form" class="needs-validation" novalidate>
+                {% csrf_token %}
+
+                <!-- Title Field -->
+                <div class="mb-3">
+                    <label for="id_title" class="form-label">Title</label>
+                    {{ form.title }}
+                    <div class="invalid-feedback">{{ form.title.errors }}</div>
+                </div>
+                
+                <!-- Description Field -->
+                <div class="mb-3">
+                    <label for="id_description" class="form-label">Description</label>
+                    {{ form.description }}
+                    <textarea id="id_description" class="form-control">{{ form.description.value }}</textarea>
+                    <div class="invalid-feedback">{{ form.description.errors }}</div>
+                </div>
+                
+                <!-- Start Date Field -->
+                <div class="mb-3">
+                    <label for="id_start_date" class="form-label">Start Date</label>
+                    {{ form.start_date }}
+                    <div class="invalid-feedback">{{ form.start_date.errors }}</div>
+                </div>
+                
+                <!-- End Date Field -->
+                <div class="mb-3">
+                    <label for="id_end_date" class="form-label">End Date</label>
+                    {{ form.end_date }}
+                    <div class="invalid-feedback">{{ form.end_date.errors }}</div>
+                </div>
+                
+                <!-- Location Field -->
+                <div class="mb-3">
+                    <label for="id_location" class="form-label">Location</label>
+                    {{ form.location }}
+                    <div class="invalid-feedback">{{ form.location.errors }}</div>
+                </div>
+                
+                <!-- Max Participants Field -->
+                <div class="mb-3">
+                    <label for="id_max_participants" class="form-label">Max Participants</label>
+                    {{ form.max_participants }}
+                    <div class="invalid-feedback">{{ form.max_participants.errors }}</div>
+                </div>
+                
+                <!-- Is Public Checkbox Field -->
+                <div class="mb-3">
+                    <label for="id_is_public" class="form-label">Is Public?</label>
+                    {{ form.is_public }}
+                    <div class="invalid-feedback">{{ form.is_public.errors }}</div>
+                </div>
+                
+                <!-- Image Upload with Drag-and-Drop -->
+                <div class="mb-4">
+                    <label for="id_image" class="form-label">Image</label>
+                    <div id="drag-drop-area" class="drag-drop-area">
+                        <p>Drag and drop your image here, or click to upload</p>
+                    </div>
+                    <input type="file" id="id_image" name="image" class="form-control d-none">
+                    <div class="invalid-feedback">{{ form.image.errors }}</div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="text-center mb-3">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                        <i class="fas fa-plus-circle me-2"></i>Create Event
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Back to Events Button -->
+            <div class="text-center">
+                <a href="{% url 'event_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Events
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Add Bootstrap classes to form fields
+            $('#id_title').addClass('form-control');
+            $('#id_description').addClass('form-control');
+            $('#id_start_date').addClass('form-control');
+            $('#id_end_date').addClass('form-control');
+            $('#id_location').addClass('form-control');
+            $('#id_max_participants').addClass('form-control');
+            $('#id_is_public').addClass('form-check-input');
+            $('#id_image').addClass('form-control');
+
+            // Drag-and-Drop functionality for image upload
+            var dragDropArea = document.getElementById('drag-drop-area');
+            var fileInput = document.getElementById('id_image');
+            
+            dragDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dragDropArea.classList.add('dragover');
+            });
+
+            dragDropArea.addEventListener('dragleave', function() {
+                dragDropArea.classList.remove('dragover');
+            });
+
+            dragDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dragDropArea.classList.remove('dragover');
+                
+                var files = e.dataTransfer.files;
+                fileInput.files = files;  // Set the dropped files to the input
+            });
+
+            dragDropArea.addEventListener('click', function() {
+                fileInput.click();  // Trigger file input on click
+            });
+
+            fileInput.addEventListener('change', function() {
+                dragDropArea.querySelector('p').textContent = this.files[0].name;
+            });
+        });
+    </script>
+{% endblock %}

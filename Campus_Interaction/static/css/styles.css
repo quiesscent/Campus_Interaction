@@ -1,0 +1,5 @@
+.mb-3 i {
+    cursor: pointer;
+    margin-left: 10px;
+    color: #007bff; /* Bootstrap primary color */
+}
