@@ -1,29 +1,9 @@
-{% extends 'base.html' %}
+{% extends 'events/base.html' %}
 
 {% block title %}Create Event{% endblock %}
 
 {% block extra_css %}
     <style>
-        /* Drag-and-Drop Styling */
-        .drag-drop-area {
-            border: 2px dashed #007bff;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            background-color: #f8f9fa;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .drag-drop-area.dragover {
-            background-color: #e0e0e0;
-        }
-
-        .drag-drop-area p {
-            margin: 0;
-            color: #555;
-        }
-
         /* Larger textarea styling */
         textarea {
             min-height: 150px;
@@ -50,8 +30,7 @@
                 <!-- Description Field -->
                 <div class="mb-3">
                     <label for="id_description" class="form-label">Description</label>
-                    {{ form.description }}
-                    <textarea id="id_description" class="form-control">{{ form.description.value }}</textarea>
+                    {{ form.description }}  <!-- This will render the textarea field automatically -->
                     <div class="invalid-feedback">{{ form.description.errors }}</div>
                 </div>
                 
@@ -90,13 +69,10 @@
                     <div class="invalid-feedback">{{ form.is_public.errors }}</div>
                 </div>
                 
-                <!-- Image Upload with Drag-and-Drop -->
+                <!-- Image Upload Field -->
                 <div class="mb-4">
                     <label for="id_image" class="form-label">Image</label>
-                    <div id="drag-drop-area" class="drag-drop-area">
-                        <p>Drag and drop your image here, or click to upload</p>
-                    </div>
-                    <input type="file" id="id_image" name="image" class="form-control d-none">
+                    <input type="file" id="id_image" name="image" class="form-control" accept="image/*">
                     <div class="invalid-feedback">{{ form.image.errors }}</div>
                 </div>
                 
@@ -133,33 +109,13 @@
             $('#id_is_public').addClass('form-check-input');
             $('#id_image').addClass('form-control');
 
-            // Drag-and-Drop functionality for image upload
-            var dragDropArea = document.getElementById('drag-drop-area');
-            var fileInput = document.getElementById('id_image');
-            
-            dragDropArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                dragDropArea.classList.add('dragover');
-            });
-
-            dragDropArea.addEventListener('dragleave', function() {
-                dragDropArea.classList.remove('dragover');
-            });
-
-            dragDropArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                dragDropArea.classList.remove('dragover');
-                
-                var files = e.dataTransfer.files;
-                fileInput.files = files;  // Set the dropped files to the input
-            });
-
-            dragDropArea.addEventListener('click', function() {
-                fileInput.click();  // Trigger file input on click
-            });
-
-            fileInput.addEventListener('change', function() {
-                dragDropArea.querySelector('p').textContent = this.files[0].name;
+            // Optional: Update filename display on file selection
+            $('#id_image').on('change', function() {
+                var fileName = $(this).val().split('\\').pop();  // Get the file name
+                if (fileName) {
+                    $(this).next('.form-control').remove();  // Remove the default text
+                    $(this).after('<div class="form-control">' + fileName + '</div>');
+                }
             });
         });
     </script>
