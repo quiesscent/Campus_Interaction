@@ -20,19 +20,26 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
+    .nav-pills .nav-link {
+        color: #6a11cb;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-pills .nav-link:hover {
+        background-color: rgba(106, 17, 203, 0.1);
+    }
+
     .nav-pills .nav-link.active {
         background-color: #6a11cb;
+        color: white;
     }
 
-    .form-card {
-        margin-top: 0;
-    }
-
-    .profile-stats {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+    .delete-account-section {
+        border-top: 1px solid #dee2e6;
+        margin-top: 2rem;
+        padding-top: 2rem;
     }
 </style>
 {% endblock %}
@@ -43,7 +50,7 @@
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                 {{ message }}
-                <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
     {% endif %}
@@ -55,7 +62,7 @@
                 <img src="{{ request.user.profile.profile_pic.url }}" alt="Profile Picture" class="profile-pic">
             </div>
             <div class="col">
-                <h2 class="mb-1">{{ request.user.username }}</h2>
+                <h2 class="mb-1">{{ request.user.get_full_name|default:request.user.username }}</h2>
                 <p class="mb-0">{{ request.user.email }}</p>
                 {% if request.user.profile.student_id %}
                     <span class="badge bg-light text-dark">Student ID: {{ request.user.profile.student_id }}</span>
@@ -68,103 +75,98 @@
     <div class="row">
         <!-- Left Column - Profile Stats -->
         <div class="col-md-4">
-            <div class="profile-stats">
-                <h5 class="mb-3">Profile Information</h5>
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <strong>Course:</strong> 
-                        {{ request.user.profile.course|default:"Not set" }}
-                    </li>
-                    <li class="mb-2">
-                        <strong>Year of Study:</strong> 
-                        {{ request.user.profile.year_of_study|default:"Not set" }}
-                    </li>
-                    <li class="mb-2">
-                        <strong>Member Since:</strong> 
-                        {{ request.user.profile.date_joined|date:"F j, Y" }}
-                    </li>
-                </ul>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Profile Information</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>Course:</strong> 
+                            {{ request.user.profile.course|default:"Not set" }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Year of Study:</strong> 
+                            {{ request.user.profile.year_of_study|default:"Not set" }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Member Since:</strong> 
+                            {{ request.user.profile.date_joined|date:"F j, Y" }}
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 
         <!-- Right Column - Edit Forms -->
         <div class="col-md-8">
-            <div class="form-card p-4">
-                <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" data-mdb-toggle="pill" data-mdb-target="#profile" type="button">
-                            Profile Details
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" data-mdb-toggle="pill" data-mdb-target="#account" type="button">
-                            Account Settings
-                        </button>
-                    </li>
-                </ul>
-
-                <div class="tab-content">
-                    <!-- Profile Update Form -->
-                    <div class="tab-pane fade show active" id="profile">
-                        <form method="POST" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            
-                            <div class="form-outline mb-4">
-                                <input type="text" id="student_id" name="student_id" 
-                                       class="form-control" value="{{ p_form.student_id.value|default:'' }}" />
-                                <label class="form-label" for="student_id">Student ID</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="text" id="course" name="course" 
-                                       class="form-control" value="{{ p_form.course.value|default:'' }}" />
-                                <label class="form-label" for="course">Course</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="number" id="year_of_study" name="year_of_study" 
-                                       class="form-control" value="{{ p_form.year_of_study.value|default:'' }}" />
-                                <label class="form-label" for="year_of_study">Year of Study</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <textarea id="bio" name="bio" class="form-control" 
-                                          rows="4">{{ p_form.bio.value|default:'' }}</textarea>
-                                <label class="form-label" for="bio">Bio</label>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label" for="profile_pic">Profile Picture</label>
-                                <input type="file" class="form-control" id="profile_pic" name="profile_pic" />
-                            </div>
-
-                            <button type="submit" class="btn btn-primary btn-block rounded-pill">
-                                Update Profile
+            <div class="card">
+                <div class="card-body">
+                    <!-- Tabs -->
+                    <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="profile-tab" data-mdb-toggle="tab" data-mdb-target="#profile" 
+                                    type="button" role="tab" aria-controls="profile" aria-selected="true">
+                                Profile Details
                             </button>
-                        </form>
-                    </div>
-
-                    <!-- Account Settings Form -->
-                    <div class="tab-pane fade" id="account">
-                        <form method="POST">
-                            {% csrf_token %}
-                            
-                            <div class="form-outline mb-4">
-                                <input type="text" id="username" name="username" 
-                                       class="form-control" value="{{ u_form.username.value }}" />
-                                <label class="form-label" for="username">Username</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="email" id="email" name="email" 
-                                       class="form-control" value="{{ u_form.email.value }}" />
-                                <label class="form-label" for="email">Email</label>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary btn-block rounded-pill">
-                                Update Account
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="account-tab" data-mdb-toggle="tab" data-mdb-target="#account" 
+                                    type="button" role="tab" aria-controls="account" aria-selected="false">
+                                Account Settings
                             </button>
-                        </form>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="profileTabsContent">
+                        <!-- Profile Tab -->
+                        <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                            <form method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                {% for field in p_form %}
+                                    <div class="form-outline mb-4">
+                                        {{ field }}
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                <button type="submit" class="btn btn-primary btn-block">Update Profile</button>
+                            </form>
+                        </div>
+
+                        <!-- Account Settings Tab -->
+                        <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+                            <form method="POST">
+                                {% csrf_token %}
+                                {% for field in u_form %}
+                                    <div class="form-outline mb-4">
+                                        {{ field }}
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {% if field.errors %}
+                                            {% for error in field.errors %}
+                                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                <button type="submit" class="btn btn-primary btn-block">Update Account</button>
+                            </form>
+
+                            <!-- Delete Account Section -->
+                            <div class="delete-account-section">
+                                <h5 class="text-danger mb-3">Delete Account</h5>
+                                <p class="text-muted">Once you delete your account, there is no going back. Please be certain.</p>
+                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
+                                    {% csrf_token %}
+                                    <button type="submit" name="delete_account" class="btn btn-danger">
+                                        Delete My Account
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,8 +183,27 @@ document.addEventListener('DOMContentLoaded', function() {
         new mdb.Input(formOutline).init();
     });
 
+    // Initialize tabs
+    const tabs = document.querySelectorAll('.nav-link');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('data-mdb-target'));
+            
+            // Remove active class from all tabs and content
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => {
+                p.classList.remove('show', 'active');
+            });
+            
+            // Add active class to clicked tab and its content
+            this.classList.add('active');
+            target.classList.add('show', 'active');
+        });
+    });
+
     // File input preview
-    const profilePicInput = document.getElementById('profile_pic');
+    const profilePicInput = document.getElementById('id_profile_pic');
     if (profilePicInput) {
         profilePicInput.addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
