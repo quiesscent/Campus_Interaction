@@ -7,7 +7,7 @@ SECRET_KEY = "django-insecure-j5%7qx2o4e*6!dk1h(490(4a&%_a-osywak(-*mqgreg-@wyn8
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["0.0.0.0"]
+ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1"]
 
 
 INSTALLED_APPS = [
@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "profiles",
     "core",
+    "marketplace",
 ]
 
 MIDDLEWARE = [
