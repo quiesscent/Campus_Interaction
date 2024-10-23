@@ -95,6 +95,11 @@ mkdir  static staticfiles
 python manage.py runserver
 ```
 
+## 5. Create a new app
+```bash
+django-admin startapp your_app
+```
+
 # How to Git Commit and Push
 
 Follow these steps to commit your changes and push them to the remote repository:
