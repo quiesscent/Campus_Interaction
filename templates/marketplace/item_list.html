@@ -1,0 +1,7 @@
+<h1>Marketplace</h1>
+<a href="{% url 'add_item' %}">Add New Item</a>
+<ul>
+    {% for item in items %}
+        <li><a href="{% url 'item_detail' item.id %}">{{ item.title }}</a> - ${{ item.price }}</li>
+    {% endfor %}
+</ul>
