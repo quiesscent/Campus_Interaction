@@ -68,6 +68,33 @@ This project is a web-based platform designed to engage university students, fac
 - **Victor:** Marketplace
 - **Fidel:** Student Profiles & Networking  
 
+# How to setup the project for dev
+
+## 1. Clone the repo
+
+```bash
+git clone https://github.com/KenyanAudo03/Campus_Interaction.git
+cd Campus_Interaction
+```
+
+## 2.  Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+## 3. Initialize the database and other dirs
+```bash
+python makemigrations
+python makemigrations profiles
+python migrate
+mkdir  static staticfiles
+```
+
+## 4.  Run the project
+```bash
+python manage.py runserver
+```
+
 # How to Git Commit and Push
 
 Follow these steps to commit your changes and push them to the remote repository:
