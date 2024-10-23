@@ -1,9 +1,10 @@
-# models.py
+# events/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from profiles.models import Profile  # Import the Profile model
 
 class University(models.Model):
     name = models.CharField(max_length=100)
@@ -12,16 +13,15 @@ class University(models.Model):
     def __str__(self):
         return self.name
 
-
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True)
     university = models.ForeignKey(University, on_delete=models.SET_NULL, null=True, blank=True)
-    bio = models.TextField(blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     is_event_organizer = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username} - {self.university or 'No University'}"
+        return f"{self.profile.user.username} - {self.university or 'No University'}"
+
+# (Rest of the code remains the same)
 
 class EventCategory(models.Model):
     name = models.CharField(max_length=100, help_text="Enter the event category name.")
@@ -44,8 +44,7 @@ class Event(models.Model):
     title = models.CharField(max_length=200, help_text="Enter the event title.")
     description = models.TextField(help_text="Include the university details in this description.")
     category = models.ForeignKey(EventCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    # Removed university field
-    organizer = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    organizer = models.ForeignKey(User, on_delete=models.CASCADE)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     location = models.CharField(max_length=200, help_text="Event location.")
