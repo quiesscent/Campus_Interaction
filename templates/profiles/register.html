@@ -1,0 +1,186 @@
+{% extends 'core/base.html' %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="form-card p-4">
+                <h2 class="text-center mb-4">Create Account</h2>
+                
+                <form method="POST" id="registerForm" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Username field -->
+                    <div class="form-outline mb-4">
+                        <input type="text" id="username" name="username" class="form-control" placeholder=" " required />
+                        <label class="form-label" for="username">Username</label>
+                        <div class="error-message" id="username-error"></div>
+                    </div>
+
+                    <!-- Email field -->
+                    <div class="form-outline mb-4">
+                        <input type="email" id="email" name="email" class="form-control" placeholder=" " required />
+                        <label class="form-label" for="email">Email</label>
+                        <div class="error-message" id="email-error"></div>
+                    </div>
+
+                    <!-- Password field -->
+                    <div class="form-outline mb-4">
+                        <input type="password" id="password1" name="password1" class="form-control" placeholder=" " required />
+                        <label class="form-label" for="password1">Password</label>
+                        <div class="error-message" id="password1-error"></div>
+                    </div>
+
+                    <!-- Confirm Password field -->
+                    <div class="form-outline mb-4">
+                        <input type="password" id="password2" name="password2" class="form-control" placeholder=" " required />
+                        <label class="form-label" for="password2">Confirm Password</label>
+                        <div class="error-message" id="password2-error"></div>
+                    </div>
+
+                    <!-- Django form errors -->
+                    {% if form.errors %}
+                        <div class="alert alert-danger" role="alert">
+                            Please correct the errors below.
+                        </div>
+                    {% endif %}
+
+                    <!-- Submit button -->
+                    <button type="submit" class="btn btn-primary btn-block mb-4 w-100 rounded-pill">
+                        Register
+                    </button>
+
+                    <!-- Login link -->
+                    <div class="text-center">
+                        <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Initialize MDB inputs
+    document.querySelectorAll('.form-outline').forEach((formOutline) => {
+        new mdb.Input(formOutline).init();
+    });
+
+    // Add 'active' class to inputs with values
+    document.querySelectorAll('.form-outline .form-control').forEach(input => {
+        if (input.value) {
+            input.classList.add('active');
+        }
+
+        input.addEventListener('input', function() {
+            if (this.value) {
+                this.classList.add('active');
+            } else {
+                this.classList.remove('active');
+            }
+        });
+    });
+
+    const form = document.getElementById('registerForm');
+    const fields = {
+        username: {
+            element: document.getElementById('username'),
+            error: document.getElementById('username-error'),
+            validate: (value) => {
+                if (value.length < 3) return 'Username must be at least 3 characters';
+                if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
+                return '';
+            }
+        },
+        email: {
+            element: document.getElementById('email'),
+            error: document.getElementById('email-error'),
+            validate: (value) => {
+                if (!/\S+@\S+\.\S+/.test(value)) return 'Please enter a valid email address';
+                return '';
+            }
+        },
+        password1: {
+            element: document.getElementById('password1'),
+            error: document.getElementById('password1-error'),
+            validate: (value) => {
+                if (value.length < 8) return 'Password must be at least 8 characters';
+                if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+                if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+                if (!/[0-9]/.test(value)) return 'Password must contain at least one number';
+                return '';
+            }
+        },
+        password2: {
+            element: document.getElementById('password2'),
+            error: document.getElementById('password2-error'),
+            validate: (value) => {
+                if (value !== document.getElementById('password1').value) return 'Passwords do not match';
+                return '';
+            }
+        }
+    };
+
+    // Real-time validation
+    Object.keys(fields).forEach(fieldName => {
+        const field = fields[fieldName];
+        field.element.addEventListener('input', () => validateField(fieldName));
+        field.element.addEventListener('blur', () => validateField(fieldName));
+    });
+
+    function validateField(fieldName) {
+        const field = fields[fieldName];
+        const error = field.validate(field.element.value);
+        
+        if (error) {
+            field.element.parentElement.classList.add('invalid-field');
+            field.error.textContent = error;
+            field.error.classList.add('visible');
+            return false;
+        } else {
+            field.element.parentElement.classList.remove('invalid-field');
+            field.error.classList.remove('visible');
+            return true;
+        }
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        Object.keys(fields).forEach(fieldName => {
+            if (!validateField(fieldName)) {
+                isValid = false;
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            // Add shake animation to invalid fields
+            document.querySelectorAll('.invalid-field').forEach(field => {
+                field.style.animation = 'none';
+                field.offsetHeight; // Trigger reflow
+                field.style.animation = 'shake 0.5s';
+            });
+        }
+    });
+
+    // Django form errors handling
+    {% if form.errors %}
+        Object.keys({{ form.errors.as_json|safe }}).forEach(fieldName => {
+            const errors = {{ form.errors.as_json|safe }}[fieldName];
+            if (fields[fieldName]) {
+                fields[fieldName].error.textContent = errors[0].message;
+                fields[fieldName].error.classList.add('visible');
+                fields[fieldName].element.parentElement.classList.add('invalid-field');
+            }
+        });
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Portal{% endblock %}</title>
+
+    <!-- MDB CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.1.0/mdb.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        .form-outline.invalid-field .form-control {
+            border-color: #dc3545;
+            animation: shake 0.5s;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .error-message.visible {
+            opacity: 1;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .form-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-outline .form-control:focus~.form-label,
+        .form-outline .form-control.active~.form-label,
+        .form-outline .form-control:not(:placeholder-shown)~.form-label {
+            transform: translateY(-1rem) translateY(0.1rem) scale(0.8);
+            background: white;
+            padding: 0 0.5rem;
+            color: #1266f1;
+        }
+
+        .form-outline .form-control {
+
+            font-size: 1rem;
+        }
+
+        .form-outline .form-control::placeholder {
+            color: transparent;
+        }
+
+        .form-outline .form-label {
+            transition: transform 0.2s ease-out, background 0.2s ease-out;
+            transform-origin: 0 0;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-light">
+    {% block content %}{% endblock %}
+
+    <!-- MDB JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.1.0/mdb.umd.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,71 @@
+<h1>{{ item.title }}</h1>
+<img src="{{ item.image.url }}" alt="{{ item.title }}">
+<p>{{ item.description }}</p>
+<p>Price: ${{ item.price }}</p>
+<p>Seller: {{ item.seller.username }}</p>
+
+<h3>Average Rating: {{ item.average_rating|floatformat:1 }} / 5</h3>
+
+<h3>Ratings:</h3>
+<ul>
+    {% for rating in item.ratings.all %}
+        <li>
+            <span>
+                {% for i in "12345" %}
+                    <span class="{% if rating.stars >= i|add:0 %}rated{% else %}unrated{% endif %}">★</span>
+                {% endfor %}
+            </span>
+            
+            <span>{{ rating.user.username }}</span>
+            {% if rating.comment %}
+                - Comment: {{ rating.comment }}
+            {% endif %}
+        </li>
+    {% empty %}
+        <li>No ratings yet.</li>
+    {% endfor %}
+</ul>
+
+
+{% if request.user != item.seller %}
+    <h3>Rate this item</h3>
+    <form method="post" id="rating-form">
+        {% csrf_token %}
+        <div class="stars">
+            <input type="hidden" name="stars" id="rating-value" value="0">
+            {% for i in "12345" %}
+                <span class="star" data-value="{{ i }}">★</span>
+            {% endfor %}
+        </div>
+        <button type="submit">Submit Rating</button>
+    </form>
+{% else %}
+    <p>You cannot rate your own item.</p>
+{% endif %}
+
+<script>
+    document.querySelectorAll('.star').forEach(star => {
+        star.addEventListener('click', function() {
+            const ratingValue = this.getAttribute('data-value');
+            document.getElementById('rating-value').value = ratingValue;
+            document.querySelectorAll('.star').forEach(s => {
+                s.classList.remove('rated');
+                if (s.getAttribute('data-value') <= ratingValue) {
+                    s.classList.add('rated');
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+.rated {
+    color: gold; 
+}
+
+.unrated {
+    color: rgb(110, 19, 19); 
+    opacity: 0.5; 
+}
+
+</style>
