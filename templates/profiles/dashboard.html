@@ -108,36 +108,19 @@
                     <div class="tab-pane fade show active" id="profile">
                         <form method="POST" enctype="multipart/form-data">
                             {% csrf_token %}
-                            
-                            <div class="form-outline mb-4">
-                                <input type="text" id="student_id" name="student_id" 
-                                       class="form-control" value="{{ p_form.student_id.value|default:'' }}" />
-                                <label class="form-label" for="student_id">Student ID</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="text" id="course" name="course" 
-                                       class="form-control" value="{{ p_form.course.value|default:'' }}" />
-                                <label class="form-label" for="course">Course</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="number" id="year_of_study" name="year_of_study" 
-                                       class="form-control" value="{{ p_form.year_of_study.value|default:'' }}" />
-                                <label class="form-label" for="year_of_study">Year of Study</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <textarea id="bio" name="bio" class="form-control" 
-                                          rows="4">{{ p_form.bio.value|default:'' }}</textarea>
-                                <label class="form-label" for="bio">Bio</label>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label" for="profile_pic">Profile Picture</label>
-                                <input type="file" class="form-control" id="profile_pic" name="profile_pic" />
-                            </div>
-
+                            {% for field in p_form %}
+                                <div class="form-outline mb-4">
+                                    {{ field }}
+                                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
                             <button type="submit" class="btn btn-primary btn-block rounded-pill">
                                 Update Profile
                             </button>
@@ -148,19 +131,19 @@
                     <div class="tab-pane fade" id="account">
                         <form method="POST">
                             {% csrf_token %}
-                            
-                            <div class="form-outline mb-4">
-                                <input type="text" id="username" name="username" 
-                                       class="form-control" value="{{ u_form.username.value }}" />
-                                <label class="form-label" for="username">Username</label>
-                            </div>
-
-                            <div class="form-outline mb-4">
-                                <input type="email" id="email" name="email" 
-                                       class="form-control" value="{{ u_form.email.value }}" />
-                                <label class="form-label" for="email">Email</label>
-                            </div>
-
+                            {% for field in u_form %}
+                                <div class="form-outline mb-4">
+                                    {{ field }}
+                                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
                             <button type="submit" class="btn btn-primary btn-block rounded-pill">
                                 Update Account
                             </button>
@@ -182,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // File input preview
-    const profilePicInput = document.getElementById('profile_pic');
+    const profilePicInput = document.getElementById('id_profile_pic');
     if (profilePicInput) {
         profilePicInput.addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
