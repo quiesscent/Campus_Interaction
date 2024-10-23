@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .profile-pic {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #6a11cb;
+    }
+
+    .form-card {
+        margin-top: 0;
+    }
+
+    .profile-stats {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Profile Header -->
+    <div class="profile-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <img src="{{ request.user.profile.profile_pic.url }}" alt="Profile Picture" class="profile-pic">
+            </div>
+            <div class="col">
+                <h2 class="mb-1">{{ request.user.username }}</h2>
+                <p class="mb-0">{{ request.user.email }}</p>
+                {% if request.user.profile.student_id %}
+                    <span class="badge bg-light text-dark">Student ID: {{ request.user.profile.student_id }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Left Column - Profile Stats -->
+        <div class="col-md-4">
+            <div class="profile-stats">
+                <h5 class="mb-3">Profile Information</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <strong>Course:</strong> 
+                        {{ request.user.profile.course|default:"Not set" }}
+                    </li>
+                    <li class="mb-2">
+                        <strong>Year of Study:</strong> 
+                        {{ request.user.profile.year_of_study|default:"Not set" }}
+                    </li>
+                    <li class="mb-2">
+                        <strong>Member Since:</strong> 
+                        {{ request.user.profile.date_joined|date:"F j, Y" }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column - Edit Forms -->
+        <div class="col-md-8">
+            <div class="form-card p-4">
+                <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-mdb-toggle="pill" data-mdb-target="#profile" type="button">
+                            Profile Details
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-mdb-toggle="pill" data-mdb-target="#account" type="button">
+                            Account Settings
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Profile Update Form -->
+                    <div class="tab-pane fade show active" id="profile">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="form-outline mb-4">
+                                <input type="text" id="student_id" name="student_id" 
+                                       class="form-control" value="{{ p_form.student_id.value|default:'' }}" />
+                                <label class="form-label" for="student_id">Student ID</label>
+                            </div>
+
+                            <div class="form-outline mb-4">
+                                <input type="text" id="course" name="course" 
+                                       class="form-control" value="{{ p_form.course.value|default:'' }}" />
+                                <label class="form-label" for="course">Course</label>
+                            </div>
+
+                            <div class="form-outline mb-4">
+                                <input type="number" id="year_of_study" name="year_of_study" 
+                                       class="form-control" value="{{ p_form.year_of_study.value|default:'' }}" />
+                                <label class="form-label" for="year_of_study">Year of Study</label>
+                            </div>
+
+                            <div class="form-outline mb-4">
+                                <textarea id="bio" name="bio" class="form-control" 
+                                          rows="4">{{ p_form.bio.value|default:'' }}</textarea>
+                                <label class="form-label" for="bio">Bio</label>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label" for="profile_pic">Profile Picture</label>
+                                <input type="file" class="form-control" id="profile_pic" name="profile_pic" />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block rounded-pill">
+                                Update Profile
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Account Settings Form -->
+                    <div class="tab-pane fade" id="account">
+                        <form method="POST">
+                            {% csrf_token %}
+                            
+                            <div class="form-outline mb-4">
+                                <input type="text" id="username" name="username" 
+                                       class="form-control" value="{{ u_form.username.value }}" />
+                                <label class="form-label" for="username">Username</label>
+                            </div>
+
+                            <div class="form-outline mb-4">
+                                <input type="email" id="email" name="email" 
+                                       class="form-control" value="{{ u_form.email.value }}" />
+                                <label class="form-label" for="email">Email</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block rounded-pill">
+                                Update Account
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all form-outline elements for MDB
+    document.querySelectorAll('.form-outline').forEach((formOutline) => {
+        new mdb.Input(formOutline).init();
+    });
+
+    // File input preview
+    const profilePicInput = document.getElementById('profile_pic');
+    if (profilePicInput) {
+        profilePicInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.querySelector('.profile-pic').src = e.target.result;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
