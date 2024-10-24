@@ -49,6 +49,11 @@
                     <div class="text-center">
                         <p>Don't have an account? <a href="{% url 'register' %}">Register</a></p>
                     </div>
+                    <div class="text-center">
+                        <a href="{% url 'social:begin' 'google-oauth2' %}" class="google-btn">
+                            Sign in with Google
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
