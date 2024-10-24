@@ -1,4 +1,6 @@
-<h1>{{ item.title }}</h1>
+<h1>{{ item.title }} {% if item.sold %}
+    <span>(Sold)</span>
+{% endif %}</h1>
 <img src="{{ item.image.url }}" alt="{{ item.title }}">
 <p>{{ item.description }}</p>
 <p>Price: ${{ item.price }}</p>
@@ -22,10 +24,9 @@
             {% endif %}
         </li>
     {% empty %}
-        <li>No ratings yet.</li>
+        <li>No ratings yet. Be the First.</li>
     {% endfor %}
 </ul>
-
 
 {% if request.user != item.seller %}
     <h3>Rate this item</h3>
@@ -37,10 +38,11 @@
                 <span class="star" data-value="{{ i }}">★</span>
             {% endfor %}
         </div>
+        <textarea name="comment" placeholder="Leave a comment..."></textarea>
         <button type="submit">Submit Rating</button>
     </form>
 {% else %}
-    <p>You cannot rate your own item.</p>
+    <p>You cannot rate your ow n item.</p>
 {% endif %}
 
 <script>
@@ -67,5 +69,4 @@
     color: rgb(110, 19, 19); 
     opacity: 0.5; 
 }
-
 </style>
