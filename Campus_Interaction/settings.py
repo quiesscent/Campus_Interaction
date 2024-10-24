@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "messaging",
     "notifications",
     "events",
+    "polls"
 ]
 
 MIDDLEWARE = [

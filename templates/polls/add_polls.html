@@ -1,0 +1,27 @@
+<form method="post">
+    {% csrf_token %}
+    {{ poll_form.as_p }}
+    
+    {{ option_formset.management_form }}
+    <div id="option-formset">
+        {% for form in option_formset %}
+            <div class="option-form">
+                {{ form.as_p }}
+            </div>
+        {% endfor %}
+    </div>
+    
+    <button type="button" id="add-option">Add another option</button>
+    
+    <button type="submit">Create Poll</button>
+</form>
+
+<script>
+    document.getElementById('add-option').onclick = function() {
+        let totalForms = document.getElementById('id_form-TOTAL_FORMS');
+        let currentCount = parseInt(totalForms.value);
+        let newFormHtml = document.querySelector('.option-form').outerHTML.replace(/-0-/g, '-' + currentCount + '-');
+        document.getElementById('option-formset').insertAdjacentHTML('beforeend', newFormHtml);
+        totalForms.value = currentCount + 1;
+    };
+</script>
