@@ -13,6 +13,7 @@ urlpatterns = [
     path("messaging/", include("messaging.urls")),
     # path("notifications/", include("notifications.urls")),
     path('events/', include('events.urls')),
+    path('polls/', include('polls.urls')),
 ] 
 
 
