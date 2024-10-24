@@ -84,9 +84,9 @@ pip install -r requirements.txt
 
 ## 3. Initialize the database and other dirs
 ```bash
-python makemigrations
-python makemigrations profiles
-python migrate
+python manage.py makemigrations
+python manage.py makemigrations profiles
+python manage.py migrate
 mkdir  static staticfiles
 ```
 

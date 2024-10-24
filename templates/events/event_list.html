@@ -1,0 +1,91 @@
+{% extends 'events/base.html' %}
+{% block title %}All Events{% endblock %}
+{% block content %}
+<div class="mb-8" x-data="{ showFilters: false }">
+    <h1 class="text-3xl font-bold">All Events</h1>
+    
+    <!-- Link to Create Event -->
+    <a href="{% url 'create_event' %}" class="bg-green-600 text-white px-4 py-2 mt-4 rounded shadow-md hover:bg-green-700 transition">
+        Create New Event
+    </a>
+
+    <button @click="showFilters = !showFilters" 
+            aria-expanded="false" 
+            class="bg-blue-500 text-white px-4 py-2 mt-4 rounded shadow-md hover:bg-blue-600 transition">
+        Toggle Filters
+    </button>
+
+    <div x-show="showFilters" class="mt-4">
+        <form hx-get="{% url 'event_list' %}" hx-target="#events-container">
+            <div class="mb-3">
+                <label for="university" class="form-label">University</label>
+                <select name="university" id="university" class="form-select">
+                    <option value="">All Universities</option>
+                    {% for university in universities %}
+                        <option value="{{ university.id }}">{{ university.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Apply Filters</button>
+        </form>
+    </div>
+</div>
+
+<div id="events-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% if events %}
+        {% for event in events %}
+            <div class="bg-white shadow rounded-lg p-4">
+                <h2 class="text-xl font-bold">{{ event.title }}</h2>
+                <p>{{ event.description|truncatewords:20 }}</p>
+
+                {% if event.image %}
+                    <div class="mt-4 mb-4">
+                        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="w-full h-48 object-cover rounded">
+                    </div>
+                {% endif %}
+
+                <a href="{% url 'event_detail' event.id %}" class="text-blue-500 hover:underline">View Details</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-span-3 text-center text-gray-500">
+            <p>No events found.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="mt-8">
+    <nav>
+        <ul class="flex justify-center space-x-2">
+            {% if events.has_previous %}
+                <li>
+                    <a href="?page={{ events.previous_page_number }}" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Previous</a>
+                </li>
+            {% endif %}
+            {% for page_num in events.paginator.page_range %}
+                <li>
+                    <a href="?page={{ page_num }}" class="px-4 py-2 
+                        {% if events.number == page_num %}bg-blue-500 text-white{% else %}bg-gray-200 text-gray-700{% endif %} rounded hover:bg-blue-600 transition">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% endfor %}
+            {% if events.has_next %}
+                <li>
+                    <a href="?page={{ events.next_page_number }}" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+{% endblock %}
