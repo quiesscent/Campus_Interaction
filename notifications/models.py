@@ -17,7 +17,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, related_name='notification_objects')
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
 
