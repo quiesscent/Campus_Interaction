@@ -18,13 +18,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "social_django",
+    'marketplace',
     'events',
     'core',
-    'marketplace',
     'profiles',
     'channels',
     "messaging",
-    "social_django", ]
+     ]
     
 
 

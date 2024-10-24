@@ -80,11 +80,8 @@ def event_detail(request, event_id):
 def create_event(request):
     user = request.user  # Get the currently logged-in user
 
-    # Get the logged-in user's profile to access their university
-    try:
-        profile = Profile.objects.get(user=user)
-    except Profile.DoesNotExist:
-        profile = None
+    # Get the logged-in user's UserProfile to access their university
+    user_profile, created = UserProfile.objects.get_or_create(user=user)
 
     if request.method == 'POST':
         form = EventForm(request.POST, request.FILES)
@@ -94,8 +91,8 @@ def create_event(request):
             event.organizer = user  # Assign the current user as the organizer
 
             # Assign the user's university to the event if available
-            if profile and profile.university:
-                event.university = profile.university
+            if user_profile and user_profile.university:
+                event.university = user_profile.university
 
             event.save()
             return redirect('event_list')  # Redirect after successful creation
@@ -108,6 +105,7 @@ def create_event(request):
         form = EventForm()  # Display the form if it's a GET request
 
     return render(request, 'events/create_event.html', {'form': form})
+
 
 def university_autocomplete(request):
     if 'term' in request.GET:
