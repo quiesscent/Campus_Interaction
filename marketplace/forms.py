@@ -10,5 +10,3 @@ class RatingForm(forms.ModelForm):
     class Meta:
         model = UserRating
         fields = ['stars', 'comment']
-
-
