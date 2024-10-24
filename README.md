@@ -86,7 +86,7 @@ pip install -r requirements.txt
 ```bash
 python manage.py makemigrations
 python manage.py makemigrations profiles
-python migrate
+python manage.py migrate
 mkdir  static staticfiles
 ```
 
