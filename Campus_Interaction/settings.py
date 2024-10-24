@@ -12,6 +12,7 @@ ALLOWED_HOSTS = ["SITE_URL", "0.0.0.0", "127.0.0.1", "localhost"]
 
 
 INSTALLED_APPS = [
+<<<<<<< HEAD
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,6 +29,22 @@ INSTALLED_APPS = [
      ]
     
 
+=======
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "social_django",
+    "marketplace",
+    "profiles",
+    "core",
+    "messaging",
+    "notifications",
+    "events",
+]
+>>>>>>> 5a7ebca82065f966c5a4e11930b8eb142403f780
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -117,7 +134,7 @@ LOGIN_URL = "login"
 LOGOUT_REDIRECT_URL = "home"
 
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
