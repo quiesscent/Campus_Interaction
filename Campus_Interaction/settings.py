@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'profiles',
     'channels',
     "messaging",
+    "polls"
      ]
 
 
