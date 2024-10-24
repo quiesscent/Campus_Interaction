@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -7,7 +8,7 @@ SECRET_KEY = "django-insecure-j5%7qx2o4e*6!dk1h(490(4a&%_a-osywak(-*mqgreg-@wyn8
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1"]
+ALLOWED_HOSTS = ["SITE_URL", "0.0.0.0", "127.0.0.1", "localhost"]
 
 
 INSTALLED_APPS = [
@@ -17,9 +18,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "social_django",
+    "marketplace",
     "profiles",
     "core",
-    "marketplace",
+    "messaging",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -51,7 +55,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "Campus_Interaction.wsgi.application"
+ASGI_APPLICATION = "pof_project.asgi.application"
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 DATABASES = {
     "default": {
@@ -60,6 +70,21 @@ DATABASES = {
     }
 }
 
+AUTHENTICATION_BACKENDS = (
+    "social_core.backends.google.GoogleOAuth2",
+    "django.contrib.auth.backends.ModelBackend",
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("GOOGLE_OAUTH2_KEY")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("GOOGLE_OAUTH2_SECRET")
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+]
+
+SOCIAL_AUTH_URL_NAMESPACE = "social"
+SITE_URL = "https://localhost:5000"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -84,9 +109,9 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_REDIRECT_URL = 'dashboard'
-LOGIN_URL = 'login'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = "dashboard"
+LOGIN_URL = "login"
+LOGOUT_REDIRECT_URL = "home"
 
 
 STATIC_URL = "/static/"
