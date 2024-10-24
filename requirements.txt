@@ -1,4 +1,6 @@
 asgiref==3.8.1
 Django==5.1.2
+django-appconf==1.0.6
+django-select2==8.2.1
 pillow==11.0.0
 sqlparse==0.5.1
