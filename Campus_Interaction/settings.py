@@ -12,7 +12,6 @@ ALLOWED_HOSTS = ["SITE_URL", "0.0.0.0", "127.0.0.1", "localhost"]
 
 
 INSTALLED_APPS = [
-<<<<<<< HEAD
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -25,19 +24,7 @@ INSTALLED_APPS = [
     "core",
     "messaging",
     "notifications",
-=======
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'events',
-    'core',
-    'marketplace',
-    'profiles',
-    
->>>>>>> 2c6edf4200d09ca873907db747f523462d6c74a1
+    "events",
 ]
 
 MIDDLEWARE = [
