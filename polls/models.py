@@ -21,17 +21,24 @@ class Poll(models.Model):
     show_share_button = models.BooleanField(default=True)
     poll_language = models.CharField(max_length=20, default="English")
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
-    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)  # QR code image
-    expiration_time = models.DateTimeField(null=True, blank=True)  # Poll expiration time
-    is_public = models.BooleanField(default=True)  # Determines if the poll is publicly accessible
-    banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)  # Optional poll banner
+    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
+    view_count = models.PositiveIntegerField(default=0)  # Track views
+    expiration_time = models.DateTimeField(null=True, blank=True)
+    allow_expiration = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True)
+    banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
+    multi_option = models.BooleanField(default=False)  # New field for multiple selection
 
     def is_active(self):
-        """Checks if the poll is still active based on expiration time."""
-        return not self.expiration_time or timezone.now() < self.expiration_time
+        """Checks if the poll is still active based on expiration time and allow_expiration."""
+        if self.allow_expiration:
+            return not self.expiration_time or timezone.now() < self.expiration_time
+        return True
 
-    def __str__(self):
-        return self.title
+    def increment_view_count(self):
+        """Increments the view count each time the poll is viewed."""
+        self.view_count += 1
+        self.save()
 
     def get_absolute_url(self):
         """Returns the URL for the poll's detail view."""
@@ -51,6 +58,9 @@ class Poll(models.Model):
     def total_votes(self):
         """Returns the total number of votes cast for the poll."""
         return Vote.objects.filter(poll=self).count()
+
+    def __str__(self):
+        return self.title
 
 class Option(models.Model):
     poll = models.ForeignKey(Poll, related_name='options', on_delete=models.CASCADE)

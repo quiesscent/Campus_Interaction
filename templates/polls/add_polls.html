@@ -8,15 +8,15 @@
     <div id="option-formset">
         {% for form in option_formset %}
             <div class="option-form">
-                <!-- Option text input -->
                 <label for="{{ form.option_text.id_for_label }}">Option Text:</label>
                 {{ form.option_text }}
 
-                {% if poll_form.instance.poll_type == 'question' %}
+                <div class="correct-answer {% if poll_form.instance.poll_type != 'question' %} hidden {% endif %}">
                     <label class="correct-answer-label">
                         {{ form.is_correct }} Mark as correct
                     </label>
-                {% endif %}
+                </div>
+                
             </div>
         {% endfor %}
     </div>
@@ -25,4 +25,43 @@
     <button type="submit">Create Poll</button>
 </form>
 
+<script>
+    // Function to check the poll type and toggle "Mark as correct" checkboxes
+    function toggleCorrectAnswerCheckbox() {
+        const pollType = document.querySelector('#id_poll_type').value;
+        const correctAnswerLabels = document.querySelectorAll('.correct-answer');
+        
+        correctAnswerLabels.forEach(label => {
+            label.style.display = pollType === 'question' ? 'block' : 'none';
+        });
+    }
 
+    // Listen for changes in the poll type dropdown to apply toggle function
+    document.querySelector('#id_poll_type').addEventListener('change', toggleCorrectAnswerCheckbox);
+
+    // Initial toggle based on current poll type
+    toggleCorrectAnswerCheckbox();
+
+    document.getElementById('add-option').addEventListener('click', function() {
+        // Get the current count of option forms
+        const formCount = document.querySelectorAll('.option-form').length;
+
+        // Create a new option form HTML
+        const newFormHtml = `
+            <div class="option-form">
+                <label>Option Text:</label>
+                <input type="text" name="form-${formCount}-option_text" maxlength="100" required>
+                <div class="correct-answer" style="display: ${document.querySelector('#id_poll_type').value === 'question' ? 'block' : 'none'};">
+                    <label><input type="checkbox" name="form-${formCount}-is_correct"> Mark as correct</label>
+                </div>
+            </div>
+        `;
+
+        // Insert the new form HTML
+        document.getElementById('option-formset').insertAdjacentHTML('beforeend', newFormHtml);
+
+        // Update the TOTAL_FORMS input to reflect the new form count
+        const totalFormsInput = document.querySelector('#id_form-TOTAL_FORMS');
+        totalFormsInput.value = formCount + 1;
+    });
+</script>

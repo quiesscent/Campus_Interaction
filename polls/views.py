@@ -10,27 +10,25 @@ def base_poll(request):
     return render(request, 'polls/base.html', {'polls': polls})
 
 
-@login_required
 def add_polls(request):
     if request.method == 'POST':
         poll_form = PollForm(request.POST, request.FILES)
-        option_formset = OptionFormSet(request.POST)  # Pass the POST data to the formset
-        
+        option_formset = OptionFormSet(request.POST)  
+
         if poll_form.is_valid() and option_formset.is_valid():
             poll = poll_form.save(commit=False)
-            poll.creator = request.user
+            if request.user.is_authenticated:
+                poll.creator = request.user
             poll.save()
-
+            
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
 
-            # Iterate over the formset to save all options
             for option_form in option_formset:
                 if option_form.cleaned_data.get('option_text'):
                     option = option_form.save(commit=False)
                     option.poll = poll
-                    # Set is_correct only for question types
                     if poll.poll_type == 'question':
                         option.is_correct = option_form.cleaned_data.get('is_correct', False)
                     option.save()
@@ -44,8 +42,6 @@ def add_polls(request):
         'poll_form': poll_form,
         'option_formset': option_formset,
     })
-
-
 
 @login_required
 def user_dashboard(request):
@@ -83,25 +79,25 @@ def edit_poll(request, poll_id):
     })
 
 
-@login_required
 def vote_poll(request, poll_id):
-    poll = get_object_or_404(Poll, pk=poll_id)
-    if not poll.is_active():
-        return render(request, 'polls/expired.html', {'poll': poll})
-    
+    poll = get_object_or_404(Poll, id=poll_id)
+    options = poll.options.all()
+
+    # Allow multiple selections if `multi_option` is True
     if request.method == 'POST':
-        option_id = request.POST.get('option')
-        option = get_object_or_404(Option, pk=option_id, poll=poll)
-        if Vote.objects.filter(user=request.user, poll=poll).exists():
-            return render(request, 'polls/already_voted.html', {'poll': poll})
-        Vote.objects.create(user=request.user, poll=poll, option=option)
-        
-        if poll.poll_type == 'question':
-            return render(request, 'polls/', {'poll': poll, 'option': option})
-        else:
-            return redirect('poll_results', poll_id=poll_id)
-    
-    return render(request, 'polls/vote.html', {'poll': poll})
+        selected_options = request.POST.getlist('option') if poll.multi_option else [request.POST.get('option')]
+
+        for option_id in selected_options:
+            option = get_object_or_404(Option, id=option_id)
+            Vote.objects.create(poll=poll, option=option, user=request.user if request.user.is_authenticated else None)
+            
+        return redirect('poll_results', poll_id=poll.id)
+
+    return render(request, 'polls/vote_poll.html', {
+        'poll': poll,
+        'options': options,
+        'multi_option': poll.multi_option,
+    })
 
 def poll_detail(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
