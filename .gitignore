@@ -35,3 +35,4 @@ static/             # Static files collected
 *.swo
 .DS_Store           # macOS file
 Thumbs.db           # Windows file
+db.sqlite3
