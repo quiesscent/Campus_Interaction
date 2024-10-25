@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -20,6 +21,14 @@ class Profile(models.Model):
     campus = models.CharField(max_length=200, blank=True, null=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     date_of_birth = models.DateField(null=True, blank=True)
+
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
+
+    def was_recently_online(self):
+        if not self.last_seen:
+            return False
+        return datetime.datetime.now(datetime.timezone.utc) - self.last_seen < datetime.timedelta(minutes=5)
 
     def __str__(self):
         return f'{self.user.username} Profile'

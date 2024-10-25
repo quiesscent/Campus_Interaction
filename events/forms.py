@@ -7,7 +7,9 @@ from django_select2.forms import Select2Widget
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'start_date', 'end_date', 'location', 'image', 'max_participants', 'is_public']
+        fields = ['title', 'description', 'event_type', 'start_date', 'end_date', 
+                 'location', 'image', 'max_participants', 'is_public', 'content', 
+                 'attachments']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -17,6 +19,10 @@ class EventForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Describe the event, including the university details',
                 'rows': 3,
+            }),
+            'event_type': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'event-type-select',
             }),
             'start_date': forms.DateTimeInput(attrs={
                 'class': 'form-control',
@@ -28,10 +34,20 @@ class EventForm(forms.ModelForm):
             }),
             'location': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter event location',
+                'placeholder': 'Enter event location (optional for text-based events)',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter content for text-based event',
+                'rows': 5,
             }),
             'image': forms.FileInput(attrs={
                 'class': 'form-control',
+                'help_text': 'Optional: Upload an image for the event.'
+            }),
+            'attachments': forms.FileInput(attrs={
+                'class': 'form-control',
+                'help_text': 'Optional: Upload attachments for text-based events.'
             }),
             'max_participants': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -43,8 +59,27 @@ class EventForm(forms.ModelForm):
             }),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        event_type = cleaned_data.get('event_type')
+        location = cleaned_data.get('location')
+        content = cleaned_data.get('content')
 
+        if event_type == 'physical' and not location:
+            raise forms.ValidationError("Location is required for physical events.")
+        
+        if event_type == 'text' and not content:
+            raise forms.ValidationError("Content is required for text-based events.")
+
+        return cleaned_data
 class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
         fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Write your comment...'
+            })
+        }

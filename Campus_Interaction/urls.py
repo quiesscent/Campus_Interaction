@@ -4,13 +4,19 @@ from django.views.static import serve
 from django.conf.urls.static import static
 from django.contrib import admin
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include('core.urls')),
     path("profile/", include("profiles.urls")),
+    path('social-auth/', include('social_django.urls', namespace='social')),
     path("marketplace/", include("marketplace.urls")),
+    path("messaging/", include("messaging.urls")),
+    # path("notifications/", include("notifications.urls")),
     path('events/', include('events.urls')),
     path('polls/', include('polls.urls')),
+    path('maps/', include('maps.urls')),
+    path('feeds/', include('feeds.urls')),
 ] 
 
 

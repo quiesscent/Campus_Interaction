@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Polls - Dashboard</title>
+</head>
+<body>
+    <h1>Your Polls</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Link</th>
+                <th>Total Views</th>
+                <th>Total Votes</th>
+                <th>Expiration Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for poll in polls %}
+                <tr>
+                    <td>{{ poll.title }}</td>
+                    <td>
+                        <a href="{{ poll.link }}" target="_blank">{{ poll.link }}</a>
+                    </td>
+                    <td>{{ poll.view_count }}</td>
+                    <td>{{ poll.total_votes }}</td>
+                    <td>
+                        {% if poll.expiration_time %}
+                            {{ poll.expiration_time|date:"F j, Y, g:i a" }}
+                        {% else %}
+                            No Expiration
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'vote_poll' poll.id %}">View</a> |
+                        <a href="{% url 'edit_poll' poll.id %}">Edit</a> |
+                        <a href="{% url 'poll_results' poll.id %}">Result</a> |
+                        <form method="post" action="{% url 'delete_poll' poll.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this poll?');">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No polls available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <a href="{% url 'add_polls' %}">Create New Poll</a>
+</body>
+</html>

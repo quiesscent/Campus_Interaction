@@ -7,11 +7,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Student Portal{% endblock %}</title>
 
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
     <!-- MDB CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.1.0/mdb.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
         .form-outline.invalid-field .form-control {
             border-color: #dc3545;
             animation: shake 0.5s;
@@ -66,7 +79,6 @@
         }
 
         .form-outline .form-control {
-
             font-size: 1rem;
         }
 
@@ -78,15 +90,141 @@
             transition: transform 0.2s ease-out, background 0.2s ease-out;
             transform-origin: 0 0;
         }
+
+        /* Alert styles */
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            max-width: 500px;
+            cursor: pointer;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple:after {
+            content: "";
+            display: block;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10, 10);
+            opacity: 0;
+            transition: transform .5s, opacity 1s;
+        }
+
+        .ripple:active:after {
+            transform: scale(0, 0);
+            opacity: .2;
+            transition: 0s;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 
 <body class="bg-light">
+    <nav>
+        <div class="card-body text-center">
+            <i class="fas fa-envelope fa-2x mb-3" style="color: var(--primary)"></i>
+            <h5 class="card-title">Unread Messages</h5>
+            <button class="btn-glow w-100" onclick="window.location.href='{% url 'inbox' %}'">Go to Inbox</button> 
+        </div>
+    </nav>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
+
     {% block content %}{% endblock %}
+
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- Popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
 
     <!-- MDB JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.1.0/mdb.umd.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize all form-outline elements
+            document.querySelectorAll('.form-outline').forEach((formOutline) => {
+                new mdb.Input(formOutline).init();
+            });
+
+            // Handle form errors
+            document.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                const formOutline = feedback.closest('.form-outline');
+                if (formOutline) {
+                    formOutline.classList.add('invalid-field');
+                }
+            });
+
+            // Initialize all tooltips
+            const tooltipTriggerList = document.querySelectorAll('[data-mdb-toggle="tooltip"]');
+            tooltipTriggerList.forEach(tooltipTriggerEl => {
+                new mdb.Tooltip(tooltipTriggerEl);
+            });
+
+            // Initialize all popovers
+            const popoverTriggerList = document.querySelectorAll('[data-mdb-toggle="popover"]');
+            popoverTriggerList.forEach(popoverTriggerEl => {
+                new mdb.Popover(popoverTriggerEl);
+            });
+        });
+
+        // Function to show alerts
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            alertContainer.appendChild(alertDiv);
+
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }, 5000);
+
+            // Click to dismiss
+            alertDiv.addEventListener('click', function () {
+                this.classList.remove('show');
+                setTimeout(() => this.remove(), 150);
+            });
+        }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 
