@@ -1,31 +1,68 @@
 <h2>{{ poll.title }}</h2>
 <p>{{ poll.description }}</p>
 
-{% if poll.poll_type == 'question' or poll.poll_type == 'opinion' %}
-    <form method="post">
+{% if not poll.is_active %}
+    <p style="color: red;">This poll has expired and is no longer accepting responses.</p>
+{% else %}
+    {% if user_vote %}
+        <p>You have already voted in this poll.</p>
+        {% if poll.poll_type == 'opinion' %}
+            <!-- Allow canceling vote if within 30 minutes -->
+            {% if user_vote.created_at >= user_vote.created_at|add:"30" %}
+                <form method="post" id="cancel-vote-form" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="cancel_vote" value="true">
+                    <button type="button" onclick="confirmCancelVote()">Cancel Vote</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+
+    <form method="post" id="vote-form">
         {% csrf_token %}
         {% for option in poll.options.all %}
-            <div>
-                <input type="radio" name="option" value="{{ option.id }}" id="option-{{ option.id }}">
+            <div class="option-container" data-correct="{{ option.is_correct }}">
+                <input 
+                    type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+                    name="option" 
+                    value="{{ option.id }}" 
+                    id="option-{{ option.id }}"
+                    {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+                    {% if poll.poll_type == 'question' %}onclick="checkOption(this)"{% endif %}> <!-- Only add onclick for question polls -->
                 <label for="option-{{ option.id }}">{{ option.option_text }}</label>
             </div>
         {% empty %}
-            <p>No options available.</p> <!-- If no options are found -->
+            <p>No options available.</p>
         {% endfor %}
-        <button type="submit">Submit</button>
+        {% if not user_vote %}
+            <button type="submit">Submit</button>
+        {% endif %}
     </form>
-{% else %}
-    <p>Invalid poll type.</p>
+{% endif %}
+
+{% if poll_link %}
+    <h3>Share This Poll</h3>
+    <p><strong>Link:</strong> <a href="{{ poll_link }}" target="_blank">{{ poll_link }}</a></p>
+    {% if qr_code_url %}
+        <p><strong>QR Code:</strong></p>
+        <img src="{{ qr_code_url }}" alt="QR Code for Poll Link">
+    {% endif %}
 {% endif %}
 
 <style>
 .correct {
     background-color: green;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
     animation: correct-animation 1s;
 }
 
 .incorrect {
     background-color: red;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
     animation: incorrect-animation 1s;
 }
 
@@ -39,3 +76,45 @@
     100% { background-color: red; }
 }
 </style>
+
+<script>
+    function checkOption(element) {
+        // Get the parent option container
+        const optionContainer = element.closest('.option-container');
+        
+        // Check if the option is correct by reading the data attribute
+        const isCorrect = optionContainer.getAttribute('data-correct') === 'True';
+
+        // Apply color based on correctness
+        if (isCorrect) {
+            optionContainer.classList.add('correct');
+            optionContainer.classList.remove('incorrect');
+        } else {
+            optionContainer.classList.add('incorrect');
+            optionContainer.classList.remove('correct');
+        }
+
+        // Disable all input elements to prevent further changes
+        const inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        inputs.forEach(input => input.disabled = true);
+    }
+
+    function confirmCancelVote() {
+        // Confirm the user wants to cancel their vote
+        const confirmation = confirm("Are you sure you want to cancel your vote?");
+        if (confirmation) {
+            document.getElementById("cancel-vote-form").submit();  // Submit the form to cancel the vote
+        }
+    }
+
+    function clearSelection() {
+        // Clear all checked inputs
+        const inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        inputs.forEach(input => {
+            input.checked = false;
+            input.disabled = false; // Re-enable the options for voting again
+            const optionContainer = input.closest('.option-container');
+            optionContainer.classList.remove('correct', 'incorrect'); // Remove feedback styles
+        });
+    }
+</script>

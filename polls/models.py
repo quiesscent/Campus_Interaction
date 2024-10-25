@@ -37,12 +37,14 @@ class Poll(models.Model):
 
     def increment_view_count(self):
         """Increments the view count each time the poll is viewed."""
+        print(f"Current view count: {self.view_count}")  # Debug print
         self.view_count += 1
         self.save()
 
+
     def get_absolute_url(self):
         """Returns the URL for the poll's detail view."""
-        return reverse('poll_detail', args=[str(self.id)])
+        return reverse('vote_poll', args=[str(self.id)])
 
     def generate_unique_link(self):
         """Generates a unique link to the poll based on its absolute URL."""
@@ -65,7 +67,7 @@ class Poll(models.Model):
 class Option(models.Model):
     poll = models.ForeignKey(Poll, related_name='options', on_delete=models.CASCADE)
     option_text = models.CharField(max_length=100)
-    is_correct = models.BooleanField(default=False)  # Only used for "Question" polls
+    is_correct = models.BooleanField(default=False)
 
     def __str__(self):
         return self.option_text
@@ -77,4 +79,4 @@ class Vote(models.Model):
     voted_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'poll')  # Ensure each user can vote only once per poll
+        unique_together = ('user', 'poll')  
