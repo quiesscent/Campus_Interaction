@@ -14,6 +14,7 @@ urlpatterns = [
     # path("notifications/", include("notifications.urls")),
     path('events/', include('events.urls')),
     path('polls/', include('polls.urls')),
+    path('maps/', include('maps.urls')),
 ] 
 
 
