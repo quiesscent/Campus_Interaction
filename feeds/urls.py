@@ -1,11 +1,10 @@
 from django.urls import path
 from . import views
 
-app_name = 'social'
 
 urlpatterns = [
     # Basic pages (HTML rendered views)
-    path('', views.home, name='home'),
+    path('', views.home, name='feed'),
     
     # API endpoints (JSON responses)
     # Feed and posts
