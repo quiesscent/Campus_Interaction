@@ -32,28 +32,50 @@ class EventCategory(models.Model):
     def __str__(self):
         return self.name
 
+class EventManager(models.Manager):
+    def with_status(self):
+        now = timezone.now()
+        return self.annotate(
+            status=models.Case(
+                models.When(start_date__gt=now, then=models.Value('upcoming')),
+                models.When(start_date__lte=now, end_date__gte=now, then=models.Value('ongoing')),
+                models.When(end_date__lt=now, then=models.Value('completed')),
+                default=models.Value('cancelled'),
+                output_field=models.CharField(),
+            )
+        )
+
+
 class Event(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ('physical', 'Physical Event'),
+        ('text', 'Text-Based Event'),
+    ]
+    
     STATUS_CHOICES = [
         ('upcoming', 'Upcoming'),
         ('ongoing', 'Ongoing'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled')
     ]
-
+    category = models.ForeignKey(EventCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
     title = models.CharField(max_length=200, help_text="Enter the event title.")
     description = models.TextField(help_text="Include the university details in this description.")
-    category = models.ForeignKey(EventCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    organizer = models.ForeignKey(User, on_delete=models.CASCADE)
+    event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES, default='physical')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    location = models.CharField(max_length=200, help_text="Event location.")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='upcoming')
+    location = models.CharField(max_length=200, help_text="Event location (optional for text-based events).", blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='upcoming', db_index=True) # Index status
     image = models.ImageField(upload_to='event_images/', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     max_participants = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum number of participants.")
     is_public = models.BooleanField(default=True)
     university = models.ForeignKey(University, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # For text-based events
+    content = models.TextField(blank=True, null=True, help_text="Content for text-based events")
+    attachments = models.FileField(upload_to='event_attachments/', null=True, blank=True, help_text="Optional attachments for text-based events")
+    
+    objects = EventManager()  # Add custom manager
 
     def save(self, *args, **kwargs):
         now = timezone.now()
@@ -63,10 +85,7 @@ class Event(models.Model):
             self.status = 'ongoing'
         elif self.end_date < now:
             self.status = 'completed'
-        super().save(*args, **kwargs)  # Simplified the save method
-
-    def __str__(self):
-        return self.title
+        super().save(*args, **kwargs)
 
 class EventRegistration(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -75,10 +94,14 @@ class EventRegistration(models.Model):
     attended = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ['event', 'participant']
+        constraints = [
+            models.UniqueConstraint(fields=['event', 'participant'], name='unique_event_participant')
+        ]
 
-    def __str__(self):
-        return f"{self.participant} - {self.event}"
+    def save(self, *args, **kwargs):
+        if self.event.max_participants and EventRegistration.objects.filter(event=self.event).count() >= self.event.max_participants:
+            raise ValueError("Cannot register: event has reached maximum participants")
+        super().save(*args, **kwargs)
 
 class EventReaction(models.Model):
     REACTION_CHOICES = [
@@ -95,8 +118,9 @@ class EventReaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['event', 'user']
-
+        constraints = [
+            models.UniqueConstraint(fields=['event', 'user', 'reaction_type'], name='unique_event_user_reaction')
+        ]
     def __str__(self):
         return f"{self.user} reacted with {self.get_reaction_type_display()} on {self.event}"
 
@@ -104,10 +128,11 @@ class Comment(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='user_comments')
     content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True) 
     updated_at = models.DateTimeField(auto_now=True)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
     likes = models.ManyToManyField(UserProfile, through='CommentLike', related_name='liked_comments')
+    level = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']
@@ -127,7 +152,13 @@ class Comment(models.Model):
             level += 1
             parent = parent.parent
         return level
-
+    def save(self, *args, **kwargs):
+        if self.parent:
+            self.level = self.parent.level + 1
+        else:
+            self.level = 0
+        super().save(*args, **kwargs)
+        
 class CommentLike(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
