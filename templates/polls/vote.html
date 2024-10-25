@@ -1,0 +1,41 @@
+<h2>{{ poll.title }}</h2>
+<p>{{ poll.description }}</p>
+
+{% if poll.poll_type == 'question' or poll.poll_type == 'opinion' %}
+    <form method="post">
+        {% csrf_token %}
+        {% for option in poll.options.all %}
+            <div>
+                <input type="radio" name="option" value="{{ option.id }}" id="option-{{ option.id }}">
+                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
+            </div>
+        {% empty %}
+            <p>No options available.</p> <!-- If no options are found -->
+        {% endfor %}
+        <button type="submit">Submit</button>
+    </form>
+{% else %}
+    <p>Invalid poll type.</p>
+{% endif %}
+
+<style>
+.correct {
+    background-color: green;
+    animation: correct-animation 1s;
+}
+
+.incorrect {
+    background-color: red;
+    animation: incorrect-animation 1s;
+}
+
+@keyframes correct-animation {
+    0% { background-color: white; }
+    100% { background-color: green; }
+}
+
+@keyframes incorrect-animation {
+    0% { background-color: white; }
+    100% { background-color: red; }
+}
+</style>

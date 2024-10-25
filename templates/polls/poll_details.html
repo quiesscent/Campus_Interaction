@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ poll.title }} - Poll Details</title>
+</head>
+<body>
+    <h1>{{ poll.title }}</h1>
+    <p>{{ poll.description }}</p>
+    <p><strong>Type:</strong> {{ poll.get_poll_type_display }}</p>
+    <p><strong>Expiration:</strong> {{ poll.expiration_time|date:"F j, Y, g:i a" }}</p>
+    <p><strong>Status:</strong> {% if poll.is_active %}Active{% else %}Expired{% endif %}</p>
+    
+    <p><strong>Total Votes:</strong> {{ total_votes }}</p>
+
+    <h2>Options</h2>
+    <ul>
+        {% for option in options %}
+            <li>
+                {{ option.option_text }}
+                {% if poll.poll_type == 'question' and option.is_correct %}
+                    <strong>(Correct Answer)</strong>
+                {% endif %}
+                <p>Votes: {{ option.votes.count }}</p>
+            </li>
+        {% empty %}
+            <li>No options available.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Display the poll's unique link -->
+    <h2>Poll Link</h2>
+    <p><a href="{{ poll.link }}" target="_blank">{{ poll.link }}</a></p>
+
+    <!-- Display the QR code, if it exists -->
+    {% if poll.qr_code %}
+        <h2>QR Code</h2>
+        <img src="{{ poll.qr_code.url }}" alt="QR Code for Poll">
+    {% endif %}
+</body>
+</html>
