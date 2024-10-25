@@ -10,7 +10,7 @@ class Category(models.Model):
 
 class Item(models.Model):
     seller = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=50)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     original_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

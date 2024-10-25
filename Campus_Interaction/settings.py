@@ -26,7 +26,9 @@ INSTALLED_APPS = [
     'channels',
     "messaging",
     "notifications",
+    "polls",
      ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
