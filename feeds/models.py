@@ -1,10 +1,12 @@
 from django.db import models
 from django.conf import settings
+from django.db.models import UniqueConstraint
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models import F
 from django.core.validators import FileExtensionValidator
+from django.db.models.functions import TruncDate
 
 def validate_file_size(value):
     filesize = value.size
@@ -85,14 +87,22 @@ class PostView(models.Model):
     post = models.ForeignKey(Post, related_name='views', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     viewed_at = models.DateTimeField(auto_now_add=True)
+    viewed_date = models.DateField(editable=False)  # New field to store the date part
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=200, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Set viewed_date to the date portion of viewed_at
+        if not self.viewed_date:
+            self.viewed_date = self.viewed_at.date()
+        super().save(*args, **kwargs)
+
     class Meta:
-        unique_together = ('post', 'user', 'viewed_at__date')
+        unique_together = (('post', 'user', 'viewed_date'),)
         indexes = [
             models.Index(fields=['post', '-viewed_at']),
         ]
+
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)

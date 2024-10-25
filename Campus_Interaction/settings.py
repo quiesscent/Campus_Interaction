@@ -12,24 +12,24 @@ ALLOWED_HOSTS = ["SITE_URL", "0.0.0.0", "127.0.0.1", "localhost"]
 
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "social_django",
-    'marketplace',
-    'events',
-    'core',
-    'profiles',
-    'channels',
+    "marketplace",
+    "events",
+    "core",
+    "profiles",
+    "channels",
     "messaging",
     "notifications",
     "polls",
     "maps",
     "feeds",
-     ]
+]
 
 
 MIDDLEWARE = [
@@ -42,19 +42,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'Campus_Interaction.urls'
+ROOT_URLCONF = "Campus_Interaction.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR /  "templates"],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -63,11 +63,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "Campus_Interaction.wsgi.application"
 ASGI_APPLICATION = "pof_project.asgi.application"
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 DATABASES = {
     "default": {
@@ -120,7 +116,7 @@ LOGIN_URL = "login"
 LOGOUT_REDIRECT_URL = "home"
 
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
