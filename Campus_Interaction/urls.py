@@ -15,7 +15,7 @@ urlpatterns = [
     path('events/', include('events.urls')),
     path('polls/', include('polls.urls')),
     path('maps/', include('maps.urls')),
-    path('feeds/', include('feeds.urls', namespace='social')),
+    path('feeds/', include('feeds.urls')),
 ] 
 
 
