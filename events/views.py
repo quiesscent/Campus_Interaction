@@ -7,8 +7,9 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import Http404
-
 from .models import University  # Make sure the University model is imported
+from django.utils import timezone
+
 
 def event_list(request):
     # Get filter parameters from the request
@@ -20,7 +21,12 @@ def event_list(request):
 
     # Filter by status if provided
     if status_filter:
-        events = events.filter(status=status_filter)
+        if status_filter == 'upcoming':
+            events = events.filter(start_date__gte=timezone.now())
+        elif status_filter == 'ongoing':
+            events = events.filter(start_date__lte=timezone.now(), end_date__gte=timezone.now())
+        elif status_filter == 'completed':
+            events = events.filter(end_date__lt=timezone.now())
     
     # Filter by university if provided
     if university_filter:
@@ -29,7 +35,7 @@ def event_list(request):
     # Get all universities for the filter dropdown
     universities = University.objects.all()
 
-    paginator = Paginator(events, 12)
+    paginator = Paginator(events, 12)  # 12 events per page
     page = request.GET.get('page')
     events = paginator.get_page(page)
 
@@ -75,7 +81,6 @@ def event_detail(request, event_id):
 
     return render(request, 'events/event_detail.html', context)
 
-
 @login_required
 def create_event(request):
     user = request.user  # Get the currently logged-in user
@@ -95,7 +100,8 @@ def create_event(request):
                 event.university = user_profile.university
 
             event.save()
-            return redirect('event_list')  # Redirect after successful creation
+            # Redirect to event_list after successful creation
+            return redirect('event_list')  # Ensure 'event_list' matches the name in your urls.py
 
         else:
             # Handle form errors
