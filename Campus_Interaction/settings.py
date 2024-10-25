@@ -27,7 +27,8 @@ INSTALLED_APPS = [
     "messaging",
     "notifications",
     "polls",
-    "maps"
+    "maps",
+    "feeds",
      ]
 
 
