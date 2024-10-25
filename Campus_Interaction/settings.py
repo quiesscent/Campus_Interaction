@@ -28,8 +28,7 @@ INSTALLED_APPS = [
     "notifications",
     "polls",
     "maps",
-    "Resources",
-    'widget_tweaks',
+    "feeds",
      ]
 
 
