@@ -1,0 +1,63 @@
+{
+    "development": {
+        "port": 5000,
+        "db": {
+            "type": "sqlite",
+            "filename": "./database.db"
+        },
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "secure": false,
+            "user": "your_email@example.com",
+            "pass": "your_password",
+            "from": "your_email@example.com"
+        },
+        "jwt": {
+            "secret": "your_jwt_secret",
+            "expiresIn": "1h"
+        }
+    },
+    "production": {
+        "port": 80,
+        "db": {
+            "type": "postgres",
+            "host": "your_db_host",
+            "port": 5432,
+            "username": "your_db_user",
+            "password": "your_db_password",
+            "database": "your_db_name"
+        },
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 465,
+            "secure": true,
+            "user": "your_email@example.com",
+            "pass": "your_password",
+            "from": "your_email@example.com"
+        },
+        "jwt": {
+            "secret": "your_jwt_secret",
+            "expiresIn": "1h"
+        }
+    },
+    "test": {
+        "port": 5001,
+        "db": {
+            "type": "sqlite",
+            "filename": "./test_database.db"
+        },
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "secure": false,
+            "user": "your_email@example.com",
+            "pass": "your_password",
+            "from": "your_email@example.com"
+        },
+        "jwt": {
+            "secret": "your_jwt_secret",
+            "expiresIn": "1h"
+        }
+    }
+}

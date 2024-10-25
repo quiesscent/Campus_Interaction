@@ -6,3 +6,5 @@ media/
 events/__pycache__
 events/migrations/
 */*/__pycache__
+
+templates/chatApp/.env
