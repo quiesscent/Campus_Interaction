@@ -1,14 +1,17 @@
+# events/views.py
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from profiles.models import Profile
 from .models import Event, University, EventRegistration, UserProfile, Comment, EventReaction
-from .forms import EventForm, CommentForm
+from .forms import EventForm, CommentForm, EventRegistrationForm
 from django.http import JsonResponse
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import Http404
 from .models import University  # Make sure the University model is imported
 from django.utils import timezone
+from django.http import JsonResponse
+from django.db import transaction
 
 
 def event_list(request):
@@ -53,32 +56,27 @@ def event_detail(request, event_id):
     user_registered = False
     comment_form = CommentForm()
     comments = event.comments.filter(parent=None).prefetch_related('replies', 'likes')
-
+    
     if request.user.is_authenticated:
-        # Ensure the user has a profile
         user_profile, created = UserProfile.objects.get_or_create(user=request.user)
-
-        # Check if the user is registered for the event
-        user_registered = EventRegistration.objects.filter(
-            event=event,
-            participant=user_profile
-        ).exists()
-
-        # Handle event registration
+        user_registered = EventRegistration.objects.filter(event=event, participant=user_profile).exists()
+        
+        # Event registration
         if request.method == 'POST' and 'register' in request.POST:
-            EventRegistration.objects.get_or_create(
-                event=event,
-                participant=user_profile
-            )
-            return redirect('event_detail', event_id=event_id)
+            registration_form = EventRegistrationForm(data=request.POST, event=event)
+            if registration_form.is_valid():
+                EventRegistration.objects.create(event=event, participant=user_profile)
+                return redirect('event_detail', event_id=event_id)
+            else:
+                context['registration_error'] = registration_form.errors.as_text()
 
     context = {
         'event': event,
         'user_registered': user_registered,
         'comment_form': comment_form,
         'comments': comments,
+        'registration_form': EventRegistrationForm(event=event)  # Pass form to template
     }
-
     return render(request, 'events/event_detail.html', context)
 
 @login_required
@@ -101,7 +99,7 @@ def create_event(request):
 
             event.save()
             # Redirect to event_list after successful creation
-            return redirect('event_list')  # Ensure 'event_list' matches the name in your urls.py
+            return redirect('events:event_list')  # Ensure 'event_list' matches the name in your urls.py
 
         else:
             # Handle form errors
@@ -167,23 +165,31 @@ def toggle_comment_like(request, comment_id):
         'likes_count': comment.likes.count()
     })
 
+
 @login_required
-def like_comment(request, comment_id):
+@transaction.atomic
+def toggle_comment_like(request, comment_id):
+    """Toggle like on a comment."""
     comment = get_object_or_404(Comment, id=comment_id)
-    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    user_profile = request.user.userprofile
     
-    # Toggle like
-    existing_like = comment.likes.filter(user=user_profile).first()
-    if existing_like:
-        existing_like.delete()
+    if user_profile in comment.likes.all():
+        comment.likes.remove(user_profile)
+        liked = False
     else:
         comment.likes.add(user_profile)
+        liked = True
     
-    return JsonResponse({'likes_count': comment.likes.count()})
-
+    return JsonResponse({
+        'status': 'success',
+        'liked': liked,
+        'likes_count': comment.likes.count()
+    })
 
 @login_required
+@transaction.atomic
 def toggle_reaction(request, event_id):
+    """Toggle or change reaction on an event."""
     if request.method == 'POST':
         event = get_object_or_404(Event, id=event_id)
         reaction_type = request.POST.get('reaction_type')
@@ -199,11 +205,11 @@ def toggle_reaction(request, event_id):
 
         if not created:
             if reaction.reaction_type == reaction_type:
-                # If the user clicks the same reaction, remove it
+                # Remove the reaction if clicked again
                 reaction.delete()
-                return JsonResponse({'status': 'removed'})
+                return JsonResponse({'status': 'removed', 'reaction_type': reaction_type})
             else:
-                # Change to the new reaction
+                # Change the reaction type
                 reaction.reaction_type = reaction_type
                 reaction.save()
 
