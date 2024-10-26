@@ -11,34 +11,45 @@ def base_poll(request):
     polls = Poll.objects.prefetch_related('options').all()
     return render(request, 'polls/base.html', {'polls': polls})
 
-
 def add_polls(request):
     if request.method == 'POST':
         poll_form = PollForm(request.POST, request.FILES)
-        option_formset = OptionFormSet(request.POST)  
+        option_formset = OptionFormSet(request.POST)
 
+        # Check if the poll form and option formset are valid
         if poll_form.is_valid() and option_formset.is_valid():
+            # Save the poll form
             poll = poll_form.save(commit=False)
             if request.user.is_authenticated:
                 poll.creator = request.user
             poll.save()
-            
+
+            # Generate the unique link and QR code
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
 
+            # Iterate over each option form in the formset
             for option_form in option_formset:
+                # Check if there is option text to save
                 if option_form.cleaned_data.get('option_text'):
                     option = option_form.save(commit=False)
                     option.poll = poll
+                    # Save `is_correct` only if the poll is a question type
                     if poll.poll_type == 'question':
                         option.is_correct = option_form.cleaned_data.get('is_correct', False)
                     option.save()
-                    
-            return redirect('vote_poll', poll_id=poll.id)  
+
+            # Redirect to a confirmation or poll page
+            return redirect('vote_poll', poll_id=poll.id) 
+        else:
+            # Add error handling for debugging if the form is invalid
+            print("Poll Form Errors:", poll_form.errors)
+            print("Option Formset Errors:", option_formset.errors)
+    
     else:
         poll_form = PollForm()
-        option_formset = OptionFormSet(queryset=Option.objects.none()) 
+        option_formset = OptionFormSet(queryset=Option.objects.none())
 
     return render(request, "polls/add_polls.html", {
         'poll_form': poll_form,

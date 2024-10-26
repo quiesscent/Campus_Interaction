@@ -16,16 +16,15 @@ class Poll(models.Model):
 
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     poll_type = models.CharField(max_length=10, choices=POLL_TYPE_CHOICES, default='opinion')
     background_color = models.CharField(max_length=7, default="#ffffff")  # HEX color format
     show_share_button = models.BooleanField(default=True)
-    poll_language = models.CharField(max_length=20, default="English")
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     view_count = models.PositiveIntegerField(default=0)  # Track views
     expiration_time = models.DateTimeField(null=True, blank=True)
-    allow_expiration = models.BooleanField(default=True)
+    allow_expiration = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
     multi_option = models.BooleanField(default=False)  # New field for multiple selection
