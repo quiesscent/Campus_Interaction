@@ -2,57 +2,81 @@
 
 ## 🎯 Project Overview
 Interactive platform for Kenyan university students featuring:
-• News updates
-• Discussion forums
-• Event calendars
-• Resource sharing
-• Live messaging
+- News updates
+- Discussion forums
+- Event calendars
+- Resource sharing
+- Live messaging
 
 ## 👥 Team & Features
 
 ### Live Communications
-• Live Charts & Messaging
-- Frontend: Jean
-- Backend: Fidel
+- **Live Chats & Messaging**
+  - Frontend: Jean
+  - Backend: Fidel
 
 ### Content & Engagement
-• Feeds & Trending
-- Frontend: Fabian
-- Backend: Fidel
+- **Feeds & Trending**
+  - Frontend: Fabian
+  - Backend: Fidel
 
-• Polls
-- Frontend: Debby
-- Backend: Victor
+- **Polls**
+  - Frontend: Debby
+  - Backend: Victor
 
-• Event Calendar
-- Frontend: Saints
-- Backend: Incognito
+- **Event Calendar**
+  - Frontend: Saints
+  - Backend: Incognito
 
 ### Community Features
-• Forums & Communities
-- Frontend: Victor
-- Backend: Fidel
+- **Forums & Communities**
+  - Frontend: Victor
+  - Backend: Fidel
 
-• News Updates
-- Full Stack: Mato
+- **News Updates**
+  - Full Stack: Mato
 
-• Maps
-- Full Stack: Peter
+- **Maps**
+  - Full Stack: Peter
 
-• Resource Sharing
-- Full Stack: Samtech
+- **Resource Sharing**
+  - Full Stack: Samtech
 
-• Marketplace
-- Full Stack: Victor
+- **Marketplace**
+  - Full Stack: Victor
 
-• Student Profiles
-- Full Stack: Fidel
+- **Student Profiles**
+  - Full Stack: Fidel
 
 ## 🛠️ Tech Stack
-• Frontend: HTML, CSS, JavaScript (React/Vue/Angular)
-• Backend: Django
-• Database: SQLite
-• APIs: REST
+- **Frontend:** HTML, CSS, JavaScript (React/Vue/Angular)
+- **Backend:** Django
+- **Database:** SQLite
+- **APIs:** REST
+
+## ✅ TODO Progress Tracker
+Use this list to track progress. Mark tasks as completed by adding a ✅ at the start.
+
+### Live Communications
+- [ ] **Live Chats & Messaging** - Frontend (Jean)
+- [✅] **Live Chats & Messaging** - Backend (Fidel)
+
+### Content & Engagement
+- [ ] **Feeds & Trending** - Frontend (Fabian)
+- [✅] **Feeds & Trending** - Backend (Fidel)
+- [ ] **Polls** - Frontend (Debby)
+- [ ] **Polls** - Backend (Victor)
+- [ ] **Event Calendar** - Frontend (Saints)
+- [ ] **Event Calendar** - Backend (Incognito)
+
+### Community Features
+- [ ] **Forums & Communities** - Frontend (Victor)
+- [ ] **Forums & Communities** - Backend (Fidel)
+- [ ] **News Updates** - Full Stack (Mato)
+- [ ] **Maps** - Full Stack (Peter)
+- [ ] **Resource Sharing** - Full Stack (Samtech)
+- [ ] **Marketplace** - Full Stack (Victor)
+- [✅] **Student Profiles** - Full Stack (Fidel)
 
 ## 🚀 Development Setup
 
@@ -115,8 +139,8 @@ git pull origin main
 git push origin your-feature-branch
 ```
 
-⚠️ *For Merging:*
-• Create Pull Request
-• Wait for review
-• DO NOT self-merge
-• Contact phantom-kali if conflicts occur
+⚠️ **For Merging:**
+- Create Pull Request
+- Wait for review
+- DO NOT self-merge
+- Contact phantom-kali if conflicts occur
