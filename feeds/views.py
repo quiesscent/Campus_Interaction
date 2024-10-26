@@ -1,15 +1,15 @@
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import F, Q, Prefetch
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
-from django.db import transaction
-from .models import Post, Comment, PostView, Report, PostLike
+from django.db import IntegrityError, transaction
+from .models import Post, Comment, PostView, PostLike
 from .forms import PostForm, CommentForm
 import logging
 
@@ -41,45 +41,42 @@ def get_client_ip(request):
 def home(request):
     """
     Landing page view that serves trending posts.
-
-    Args:
-        request: HttpRequest object
-
-    Returns:
-        HttpResponse: Rendered home template with trending posts
     """
+
+    def get_trending_posts():
+        return (
+            Post.objects.filter(
+                created_at__gte=timezone.now() - timezone.timedelta(days=1),
+                status="published",
+            )
+            .order_by("-views_count")
+            .select_related("user")[:5]
+        )
+
     trending_posts = cache.get_or_set(
         "trending_posts",
-        Post.objects.filter(
-            created_at__gte=timezone.now() - timezone.timedelta(days=1)
-        ).order_by("-views_count")[:5],
+        get_trending_posts(),
         CACHE_TTL,
     )
-    return render(request, "social/home.html", {"trending_posts": trending_posts})
+    return render(request, "feeds/home.html", {"trending_posts": trending_posts})
 
 
 @login_required
 def feed(request):
     """
     Main feed view with pagination and filtering options.
-
-    Args:
-        request: HttpRequest object
-
-    Returns:
-        JsonResponse: JSON containing paginated posts and filter information
     """
     page = request.GET.get("page", 1)
     filter_by = request.GET.get("filter", "all")
 
-    posts = (
+    # Base queryset with all necessary joins
+    base_queryset = (
         Post.objects.select_related("user")
         .prefetch_related(
             Prefetch(
                 "comments",
-                queryset=Comment.objects.select_related("user").order_by("-created_at")[
-                    :3
-                ],
+                queryset=Comment.objects.select_related("user").order_by("-created_at"),
+                to_attr="recent_comments",  # Store in custom attribute
             ),
             "likes",
         )
@@ -87,11 +84,102 @@ def feed(request):
     )
 
     if filter_by == "following":
-        posts = posts.filter(user__in=request.user.following.all())
+        following_users = request.user.profile.following.values_list("user", flat=True)
+        posts = base_queryset.filter(user__in=following_users)
     elif filter_by == "trending":
-        posts = posts.order_by("-views_count", "-likes_count", "-created_at")
-    else:
-        posts = posts.order_by("-created_at")
+        posts = base_queryset.order_by("-views_count", "-likes_count", "-created_at")
+    else:  # filter_by == "all"
+        posts = base_queryset.order_by("-created_at")
+
+    paginator = Paginator(posts, POSTS_PER_PAGE)
+    try:
+        page_obj = paginator.page(page)
+    except (EmptyPage, PageNotAnInteger):
+        page_obj = paginator.page(1)
+
+    posts_data = [
+        {
+            "id": post.id,
+            "content": post.content,
+            "user": {"id": post.user.id, "username": post.user.username},
+            "created_at": post.created_at.isoformat(),
+            "likes_count": post.likes_count,
+            "comments_count": (
+                len(post.recent_comments) if hasattr(post, "recent_comments") else 0
+            ),
+            "views_count": post.views_count,
+            "image_url": post.image.url if post.image else None,
+            "video_url": post.video.url if post.video else None,
+            "recent_comments": (
+                [
+                    {
+                        "id": comment.id,
+                        "content": comment.content,
+                        "user": {
+                            "id": comment.user.id,
+                            "username": comment.user.username,
+                        },
+                        "created_at": comment.created_at.isoformat(),
+                    }
+                    for comment in post.recent_comments[:3]
+                ]
+                if hasattr(post, "recent_comments")
+                else []
+            ),
+        }
+        for post in page_obj
+    ]
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "posts": posts_data,
+            "has_next": page_obj.has_next(),
+            "current_page": page_obj.number,
+            "total_pages": paginator.num_pages,
+            "filter_by": filter_by,
+        }
+    )
+
+
+@login_required
+def search_posts(request):
+    """
+    Search posts by content, username, or hashtags.
+
+    Args:
+        request: HttpRequest object with 'q' query parameter
+
+    Returns:
+        JsonResponse: Paginated search results
+    """
+    query = request.GET.get("q", "").strip()
+    page = request.GET.get("page", 1)
+
+    if not query:
+        return JsonResponse(
+            {"status": "error", "message": "Search query is required"}, status=400
+        )
+
+    # Split query into terms and hashtags
+    terms = [term for term in query.split() if not term.startswith("#")]
+    hashtags = [term[1:] for term in query.split() if term.startswith("#")]
+
+    posts = Post.objects.select_related("user").filter(status="published")
+
+    # Search in post content and username
+    if terms:
+        posts = posts.filter(
+            Q(content__icontains=" ".join(terms))
+            | Q(user__username__icontains=" ".join(terms))
+        )
+
+    # Search hashtags
+    if hashtags:
+        for tag in hashtags:
+            posts = posts.filter(content__icontains=f"#{tag}")
+
+    posts = posts.order_by("-created_at")
 
     paginator = Paginator(posts, POSTS_PER_PAGE)
     page_obj = paginator.get_page(page)
@@ -118,7 +206,6 @@ def feed(request):
             "has_next": page_obj.has_next(),
             "current_page": page_obj.number,
             "total_pages": paginator.num_pages,
-            "filter_by": filter_by,
         }
     )
 
@@ -127,29 +214,28 @@ def feed(request):
 @require_POST
 @transaction.atomic
 def like_post(request, post_id):
-    """
-    Toggle like status for a post.
-
-    Args:
-        request: HttpRequest object
-        post_id (int): ID of the post to like/unlike
-
-    Returns:
-        JsonResponse: Updated like status and count
-    """
+    """Toggle like status for a post."""
     try:
         post = Post.objects.select_for_update().get(id=post_id)
 
-        if PostLike.objects.filter(user=request.user, post=post).exists():
-            PostLike.objects.filter(user=request.user, post=post).delete()
-            post.likes_count = F("likes_count") - 1
+        # Check for existing like
+        existing_like = PostLike.objects.filter(user=request.user, post=post)
+
+        if existing_like.exists():
+            # Unlike - only decrease if count > 0
+            if post.likes_count > 0:
+                existing_like.delete()
+                Post.objects.filter(id=post_id, likes_count__gt=0).update(
+                    likes_count=F("likes_count") - 1
+                )
             liked = False
         else:
+            # Like
             PostLike.objects.create(user=request.user, post=post)
-            post.likes_count = F("likes_count") + 1
+            Post.objects.filter(id=post_id).update(likes_count=F("likes_count") + 1)
             liked = True
 
-        post.save()
+        # Refresh to get the updated count
         post.refresh_from_db()
 
         return JsonResponse(
@@ -253,38 +339,53 @@ def create_post(request):
                 )
         return JsonResponse({"status": "error", "errors": form.errors}, status=400)
 
-    return render(request, "social/post_create.html", {"form": PostForm()})
+    return render(request, "feeds/post_create.html", {"form": PostForm()})
 
 
 @login_required
 @require_POST
 def increment_view_count(request, post_id):
     """Track post views with rate limiting"""
-    cache_key = f"post_view_{post_id}_{request.user.id}_{timezone.now().date()}"
+    today = timezone.now().date()
+    cache_key = f"post_view_{post_id}_{request.user.id}_{today}"
 
     if not cache.get(cache_key):
         try:
             with transaction.atomic():
+                # First, get the post
                 post = Post.objects.select_for_update().get(id=post_id)
+
+                # Create PostView
                 PostView.objects.create(
                     post=post,
                     user=request.user,
                     ip_address=get_client_ip(request),
                     user_agent=request.META.get("HTTP_USER_AGENT", "")[:200],
+                    viewed_at=timezone.now(),
+                    viewed_date=today,
                 )
-                post.views_count = F("views_count") + 1
-                post.save()
 
+                # Update views_count directly in the database
+                Post.objects.filter(id=post_id).update(views_count=F("views_count") + 1)
+
+                # Set cache
                 cache.set(cache_key, True, timeout=86400)  # 24 hours
+
+                # Refresh the post to get updated count
+                post.refresh_from_db()
 
                 return JsonResponse(
                     {"status": "success", "views_count": post.views_count}
                 )
+
+        except IntegrityError:
+            # Handle case where view already exists for today
+            return JsonResponse(
+                {"status": "success", "message": "View already counted"}
+            )
         except Exception as e:
             logger.error(f"Error in increment_view_count: {str(e)}")
-            return JsonResponse(
-                {"status": "error", "message": "Server error"}, status=500
-            )
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     return JsonResponse({"status": "success", "message": "View already counted"})
 
@@ -358,6 +459,12 @@ def post_detail(request, post_id):
         return JsonResponse(
             {"status": "error", "message": "Error retrieving post"}, status=500
         )
+
+
+@login_required
+def suggested_users(request):
+    # Placeholder response
+    return JsonResponse({"users": []})  # Empty list for now
 
 
 @login_required
