@@ -36,3 +36,10 @@ static/             # Static files collected
 .DS_Store           # macOS file
 Thumbs.db           # Windows file
 db.sqlite3
+feeds/migrations/0001_initial.py
+marketplace/migrations/0001_initial.py
+media/post_images/
+messaging/migrations/0001_initial.py
+notifications/migrations/0001_initial.py
+profiles/migrations/0001_initial.py
+profiles/migrations/0002_userfollow_profile_following_and_more.py
