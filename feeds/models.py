@@ -1,12 +1,8 @@
 from django.db import models
-from django.conf import settings
-from django.db.models import UniqueConstraint
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.db.models import F
 from django.core.validators import FileExtensionValidator
-from django.db.models.functions import TruncDate
 
 def validate_file_size(value):
     filesize = value.size
@@ -71,6 +67,7 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
 
 class PostLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
