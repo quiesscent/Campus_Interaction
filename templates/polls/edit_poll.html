@@ -11,6 +11,9 @@
             <div class="option-form">
                 <label>Option Text:</label>
                 {{ form.option_text }}
+                {% if form.option_text.errors %}
+                    <div class="error">{{ form.option_text.errors }}</div>
+                {% endif %}
                 <div class="correct-answer {% if poll_form.instance.poll_type != 'question' %} hidden {% endif %}">
                     <label class="correct-answer-label">
                         {{ form.is_correct }} Mark as correct
