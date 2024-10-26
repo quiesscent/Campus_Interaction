@@ -20,6 +20,7 @@ media/              # Uploaded media files
 staticfiles/        # Django static files directory
 static/             # Static files collected
 *.log               # Log files
+media/qr_codes
 
 # Environment variables
 *.env               # Environment variable files (like settings)
