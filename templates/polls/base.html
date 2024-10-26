@@ -1,27 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h1>Base Polls</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %} CampHub - Polls{% endblock %}</title>
+
+    <!-- <link
+      href="https://fonts.googleapis.com/css?family=Josefin+Sans"
+      rel="stylesheet"
+    /> -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v5.0.13/js/all.js"
+      integrity="sha384-xymdQtn1n3lH2wcu0qhcdaOpQwyoarkgLVxC/wZ5q7h9gHtxICrpcaSUfygqZGOe"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+      }
+
+      body {
+        font-family: "Josefin Sans", sans-serif;
+      }
+
+      .navbar {
+        font-size: 18px;
+        background-image: linear-gradient(260deg, #2376ae 0%, #c16ecf 100%);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        padding-bottom: 10px;
+      }
+
+      .main-nav {
+        list-style-type: none;
+        display: none;
+      }
+
+      .nav-links,
+      .logo {
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .main-nav li {
+        text-align: center;
+        margin: 15px auto;
+      }
+      @import url("https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap");
+      .logo {
+        display: inline-block;
+        font-size: 32px;
+        margin-top: 10px;
+        margin-left: 20px;
+        text-transform: capitalize;
+        font-family: "DynaPuff", system-ui;
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-variation-settings: "wdth" 100;
+      }
+
+      .navbar-toggle {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 24px;
+      }
+
+      .active {
+        display: block;
+      }
+
+
+      @media screen and (min-width: 768px) {
+        .navbar {
+          display: flex;
+          justify-content: space-between;
+          padding-bottom: 0;
+          height: 70px;
+          align-items: center;
+        }
+
+        .main-nav {
+          display: flex;
+          margin-right: 30px;
+          flex-direction: row;
+          justify-content: flex-end;
+        }
+
+        .main-nav li {
+          margin: 0;
+        }
+
+        .nav-links {
+          margin-left: 40px;
+        }
+
+        .logo {
+          margin-top: 0;
+        }
+
+        .navbar-toggle {
+          display: none;
+        }
+
+        .logo:hover,
+        .nav-links:hover {
+          color: rgba(255, 255, 255, 1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <h1>Base Polls</h1>
     <a href="{% url 'add_polls' %}"> Create Polls</a>
     <a href="{% url 'user_dashboard' %}">Dashboard</a>
+    <a href="">Logout</a>
+    <a href="">Account</a> -->
 
-    <ul>
-        {% for poll in polls %}
-            <li>
-                <a href="{% url 'vote_poll' poll.id %}">{{ poll.title }}</a>
-                <p>{{ poll.description }}</p>
-                <p>Type: {{ poll.get_poll_type_display }}</p>
-                <p>{% if poll.is_active %}Active{% else %}Expired{% endif %}</p>
-            </li>
-        {% empty %}
-            <li>No polls available.</li>
-        {% endfor %}
-    </ul>
+    <nav class="navbar">
+      <span class="navbar-toggle" id="js-navbar-toggle">
+        <i class="fas fa-bars"></i>
+      </span>
+      <a href="{% url 'base_poll' %}" class="logo">Polls</a>
+      <ul class="main-nav" id="js-menu">
+        <li>
+          <a href="#" class="nav-links"><i class='bx bx-user'></i>Account</a>
+        </li>
+        <li>
+          <a href="{% url 'add_polls' %}" class="nav-links"><i class='bx bx-plus-circle'></i>Create Poll</a>
+        </li>
+        <li>
+          <a href="{% url 'user_dashboard' %}" class="nav-links"><i class='bx bxs-dashboard' ></i>Dashboard</a>
+        </li>
+        <li>
+          <a href="#" class="nav-links"><i class='bx bx-log-out'></i>Logout</a>
+        </li>
+      </ul>
+    </nav>
+
+
+    <main>
+        {% block content %}
+
+        {% endblock %}
+    </main>
+
+
     
-</body>
+    <ul>
+      {% for poll in polls %}
+      <li>
+        <a href="{% url 'vote_poll' poll.id %}">{{ poll.title }}</a>
+        <p>{{ poll.description }}</p>
+        <p>Type: {{ poll.get_poll_type_display }}</p>
+        <p>{% if poll.is_active %}Active{% else %}Expired{% endif %}</p>
+      </li>
+      {% empty %}
+      <!-- <li>No polls available.</li> -->
+      {% endfor %}
+    </ul>
+    <script>
+      let mainNav = document.getElementById("js-menu");
+      let navBarToggle = document.getElementById("js-navbar-toggle");
+
+      navBarToggle.addEventListener("click", function () {
+        mainNav.classList.toggle("active");
+      });
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>
