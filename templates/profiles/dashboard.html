@@ -1,4 +1,4 @@
-{% extends 'core/base.html' %}
+{% extends 'feeds/base.html' %}
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
@@ -100,12 +100,12 @@
 {% block content %}
 <div class="container py-5">
     {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
     {% endif %}
 
     <!-- Profile Header -->
@@ -124,7 +124,7 @@
                 <h2 class="display-6 mb-1">{{ request.user.get_full_name|default:request.user.username }}</h2>
                 <p class="lead mb-2">{{ request.user.email }}</p>
                 {% if request.user.profile.student_id %}
-                    <span class="badge badge-light">Student ID: {{ request.user.profile.student_id }}</span>
+                <span class="badge badge-light">Student ID: {{ request.user.profile.student_id }}</span>
                 {% endif %}
             </div>
         </div>
@@ -166,14 +166,14 @@
                     <!-- Tabs -->
                     <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="profile-tab" data-mdb-toggle="tab" 
-                                    data-mdb-target="#profile" type="button" role="tab">
+                            <button class="nav-link active" id="profile-tab" data-mdb-toggle="tab"
+                                data-mdb-target="#profile" type="button" role="tab">
                                 <i class="fas fa-user-edit me-2"></i>Profile Details
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="account-tab" data-mdb-toggle="tab" 
-                                    data-mdb-target="#account" type="button" role="tab">
+                            <button class="nav-link" id="account-tab" data-mdb-toggle="tab" data-mdb-target="#account"
+                                type="button" role="tab">
                                 <i class="fas fa-cog me-2"></i>Account Settings
                             </button>
                         </li>
@@ -193,21 +193,21 @@
                                         <p class="text-muted small mb-0">or click to select a file</p>
                                     </div>
                                 </div>
-                                
+
                                 {% for field in p_form %}
-                                    {% if field.name != 'profile_pic' %}
-                                        <div class="form-outline mb-4">
-                                            {{ field }}
-                                            <label class="form-label" for="{{ field.id_for_label }}">
-                                                {{ field.label }}
-                                            </label>
-                                            {% if field.errors %}
-                                                {% for error in field.errors %}
-                                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
+                                {% if field.name != 'profile_pic' %}
+                                <div class="form-outline mb-4">
+                                    {{ field }}
+                                    <label class="form-label" for="{{ field.id_for_label }}">
+                                        {{ field.label }}
+                                    </label>
+                                    {% if field.errors %}
+                                    {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
                                     {% endif %}
+                                </div>
+                                {% endif %}
                                 {% endfor %}
                                 <button type="submit" class="btn btn-primary btn-block">
                                     <i class="fas fa-save me-2"></i>Update Profile
@@ -220,17 +220,17 @@
                             <form method="POST" class="mb-4">
                                 {% csrf_token %}
                                 {% for field in u_form %}
-                                    <div class="form-outline mb-4">
-                                        {{ field }}
-                                        <label class="form-label" for="{{ field.id_for_label }}">
-                                            {{ field.label }}
-                                        </label>
-                                        {% if field.errors %}
-                                            {% for error in field.errors %}
-                                                <div class="invalid-feedback d-block">{{ error }}</div>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </div>
+                                <div class="form-outline mb-4">
+                                    {{ field }}
+                                    <label class="form-label" for="{{ field.id_for_label }}">
+                                        {{ field.label }}
+                                    </label>
+                                    {% if field.errors %}
+                                    {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
                                 {% endfor %}
                                 <button type="submit" class="btn btn-primary btn-block">
                                     <i class="fas fa-save me-2"></i>Update Account
@@ -247,7 +247,8 @@
                                         <p class="card-text text-muted">
                                             This action cannot be undone. All your data will be permanently removed.
                                         </p>
-                                        <form method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.');">
+                                        <form method="POST"
+                                            onsubmit="return confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.');">
                                             {% csrf_token %}
                                             <button type="submit" name="delete_account" class="btn btn-danger">
                                                 <i class="fas fa-trash-alt me-2"></i>Delete My Account
@@ -268,147 +269,149 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize MDB components
-    document.querySelectorAll('.form-outline').forEach((formOutline) => {
-        new mdb.Input(formOutline).init();
-    });
-
-    // Initialize all tabs
-    const tabs = new mdb.Tab(document.querySelector('#profileTabs'));
-    
-    // Handle Django messages auto-dismiss and click-to-dismiss
-    document.querySelectorAll('.alert').forEach(alert => {
-        // Enable click to dismiss
-        alert.addEventListener('click', function() {
-            const closeButton = this.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
-            }
-        });
-        
-        // Auto dismiss after 5 seconds
-        setTimeout(() => {
-            const closeButton = alert.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
-            }
-        }, 5000);
-    });
-
-    // Profile picture upload handling
-    const dropZone = document.getElementById('dropZone');
-    const profilePicInput = document.getElementById('profilePicInput');
-    const profilePicOverlay = document.getElementById('profilePicOverlay');
-    const profileForm = document.getElementById('profileForm');
-
-    if (dropZone && profilePicInput && profilePicOverlay && profileForm) {
-        // Handle drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize MDB components
+        const formOutlines = document.querySelectorAll('.form-outline');
+        formOutlines.forEach((formOutline) => {
+            new mdb.Input(formOutline).init();
         });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Initialize all tabs
+        const tabEl = document.querySelector('#profileTabs');
+        if (tabEl) {
+            const tab = new mdb.Tab(tabEl);
         }
 
-        // Add visual feedback for drag events
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('dragover');
-            });
-        });
+        // Profile picture upload handling
+        const setupProfileUpload = () => {
+            const dropZone = document.getElementById('dropZone');
+            const profilePicInput = document.getElementById('profilePicInput');
+            const profilePicOverlay = document.getElementById('profilePicOverlay');
+            const profileForm = document.getElementById('profileForm');
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('dragover');
-            });
-        });
-
-        // File Upload Event Listeners
-        dropZone.addEventListener('drop', handleDrop);
-        dropZone.addEventListener('click', () => {
-            profilePicInput.click();
-        });
-        
-        profilePicOverlay.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            profilePicInput.click();
-        });
-
-        profilePicInput.addEventListener('change', function(e) {
-            handleFiles(this.files);
-        });
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
-
-        function handleFiles(files) {
-            if (files.length) {
-                updateProfilePic(files[0]);
-            }
-        }
-
-        function updateProfilePic(file) {
-            if (!file.type.startsWith('image/')) {
-                showAlert('Please upload an image file', 'danger');
+            if (!dropZone || !profilePicInput || !profilePicOverlay || !profileForm) {
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Update preview
-                document.querySelector('.profile-pic').src = e.target.result;
-                
-                // Create FormData and append file
-                const formData = new FormData();
-                formData.append('profile_pic', file);
-                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-                
-                // Send AJAX request
-                fetch(window.location.href, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    showAlert('Profile picture updated successfully', 'success');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error updating profile picture', 'danger');
-                });
+            // Prevent defaults for drag events
+            const preventDefaults = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
             };
-            reader.readAsDataURL(file);
-        }
-    }
 
-    // Custom alert function
-    window.showAlert = function(message, type = 'success') {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Visual feedback for drag events
+            const addDragClass = () => dropZone.classList.add('dragover');
+            const removeDragClass = () => dropZone.classList.remove('dragover');
+
+            dropZone.addEventListener('dragenter', addDragClass);
+            dropZone.addEventListener('dragover', addDragClass);
+            dropZone.addEventListener('dragleave', removeDragClass);
+            dropZone.addEventListener('drop', removeDragClass);
+
+            // File handling
+            const handleFiles = (files) => {
+                if (files.length) {
+                    updateProfilePic(files[0]);
+                }
+            };
+
+            const updateProfilePic = (file) => {
+                if (!file.type.startsWith('image/')) {
+                    showAlert('Please upload an image file', 'danger');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const profilePic = document.querySelector('.profile-pic');
+                    if (profilePic) {
+                        profilePic.src = e.target.result;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('profile_pic', file);
+                    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.text();
+                        })
+                        .then(() => {
+                            showAlert('Profile picture updated successfully', 'success');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showAlert('Error updating profile picture', 'danger');
+                        });
+                };
+                reader.readAsDataURL(file);
+            };
+
+            // Event listeners for file upload
+            dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+            dropZone.addEventListener('click', () => profilePicInput.click());
+            profilePicOverlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                profilePicInput.click();
+            });
+            profilePicInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        };
+
+        // Initialize profile upload functionality
+        setupProfileUpload();
+
+        // Handle Django messages
+        const setupAlerts = () => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                // Enable click to dismiss
+                alert.addEventListener('click', function () {
+                    const closeButton = this.querySelector('.btn-close');
+                    if (closeButton) {
+                        closeButton.click();
+                    }
+                });
+
+                // Auto dismiss after 5 seconds
+                setTimeout(() => {
+                    const closeButton = alert.querySelector('.btn-close');
+                    if (closeButton) {
+                        closeButton.click();
+                    }
+                }, 5000);
+            });
+        };
+
+        // Initialize alerts
+        setupAlerts();
+    });
+
+    // Global alert function
+    window.showAlert = function (message, type = 'success') {
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
         alertDiv.setAttribute('role', 'alert');
         alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Insert alert at the top of the container
+        ${message}
+        <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
+    `;
+
         const container = document.querySelector('.container');
-        container.insertBefore(alertDiv, container.firstChild);
-        
+        if (container) {
+            container.insertBefore(alertDiv, container.firstChild);
+        }
+
         // Auto dismiss after 5 seconds
         setTimeout(() => {
             const closeButton = alertDiv.querySelector('.btn-close');
@@ -418,13 +421,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
 
         // Enable click to dismiss
-        alertDiv.addEventListener('click', function() {
+        alertDiv.addEventListener('click', function () {
             const closeButton = this.querySelector('.btn-close');
             if (closeButton) {
                 closeButton.click();
             }
         });
     };
-});
 </script>
 {% endblock %}
+
