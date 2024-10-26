@@ -4,12 +4,12 @@ from . import views
 app_name = 'feeds'
 
 urlpatterns = [
-    # Basic pages (HTML rendered views)
-    path('', views.home, name='feed'),
+    # Basic feed view (HTML rendered view)
+    path('feed/', views.home, name='home_feed'),
     
     # API endpoints (JSON responses)
     # Feed and posts
-    path('api/feed/', views.feed, name='feed'),
+    path('api/feed/list/', views.feed, name='api_feed_list'),
     path('api/posts/create/', views.create_post, name='create_post'),
     path('api/posts/<int:post_id>/', views.post_detail, name='post_detail'),
     path('api/posts/<int:post_id>/delete/', views.delete_post, name='delete_post'),
@@ -23,7 +23,5 @@ urlpatterns = [
     path('api/posts/<int:post_id>/engagement/<str:engagement_type>/', 
          views.post_engagement, 
          name='post_engagement'),
-    
-    # HTML form page for post creation (GET request)
-    path('posts/create/', views.create_post, name='create_post_form'),
+    path('api/suggested-users/', views.suggested_users, name='api_suggested_users'),
 ]
