@@ -5,7 +5,7 @@ app_name = "feeds"
 
 urlpatterns = [
     # Basic feed view (HTML rendered view)
-    path("feed/", views.home, name="feed"),
+    path("feed/", views.home, name="home_feed"),
     # API endpoints (JSON responses)
     # Feed and posts
     path("api/feed/list/", views.feed, name="api_feed_list"),

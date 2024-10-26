@@ -99,7 +99,8 @@
             <!-- Post Header -->
             <div class="d-flex justify-content-between mb-3">
                 <div class="d-flex align-items-center">
-                    <img src="" alt="" class="rounded-circle me-2 post-avatar" style="width: 40px; height: 40px;">
+                    <img src="{{ user.profile.get_avatar_url }}" class="rounded-circle me-2"
+                            style="width: 40px; height: 40px;">
                     <div>
                         <h6 class="mb-0 post-username"></h6>
                         <small class="text-muted post-date"></small>
