@@ -110,6 +110,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     likes_count = models.PositiveIntegerField(default=0)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
 
     class Meta:
         indexes = [

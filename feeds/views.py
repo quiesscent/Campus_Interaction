@@ -404,11 +404,20 @@ def post_detail(request, post_id):
     """
     try:
         post = get_object_or_404(
-            Post.objects.select_related("user").prefetch_related(
+            Post.objects.select_related("user", "user__profile").prefetch_related(
                 Prefetch(
                     "comments",
-                    queryset=Comment.objects.select_related("user")
-                    .prefetch_related("replies")
+                    queryset=Comment.objects.select_related("user", "user__profile")
+                    .prefetch_related(
+                        "likes",
+                        Prefetch(
+                            "replies",
+                            queryset=Comment.objects.select_related(
+                                "user", "user__profile"
+                            ).prefetch_related("likes"),
+                        ),
+                    )
+                    .filter(parent=None)
                     .order_by("-created_at"),
                 ),
                 "likes",
@@ -425,35 +434,58 @@ def post_detail(request, post_id):
             lambda: increment_view_count.delay(post.id, request.user.id)
         )
 
-        return JsonResponse(
-            {
-                "status": "success",
-                "post": {
-                    "id": post.id,
-                    "content": post.content,
-                    "user": {"id": post.user.id, "username": post.user.username},
-                    "created_at": post.created_at.isoformat(),
-                    "image_url": post.image.url if post.image else None,
-                    "video_url": post.video.url if post.video else None,
-                    "likes_count": post.likes_count,
-                    "views_count": post.views_count,
-                    "comments": [
-                        {
-                            "id": comment.id,
-                            "content": comment.content,
-                            "user": {
-                                "id": comment.user.id,
-                                "username": comment.user.username,
-                            },
-                            "created_at": comment.created_at.isoformat(),
-                            "likes_count": comment.likes_count,
-                        }
-                        for comment in post.comments.filter(parent=None)
-                    ],
-                    "is_liked": request.user in post.likes.all(),
+        def serialize_comment(comment):
+            return {
+                "id": comment.id,
+                "content": comment.content,
+                "created_at": comment.created_at.isoformat(),
+                "user": {
+                    "id": comment.user.id,
+                    "username": comment.user.username,
+                    "avatar_url": comment.user.profile.get_avatar_url(),
+                    "is_online": comment.user.profile.is_online,
+                    "was_recently_online": comment.user.profile.was_recently_online(),
                 },
+                "likes_count": comment.likes_count,
+                "is_liked": request.user in comment.likes.all(),
+                "replies_count": comment.replies.count(),
+                "replies": (
+                    [serialize_comment(reply) for reply in comment.replies.all()]
+                    if comment.replies.exists()
+                    else []
+                ),
             }
-        )
+
+        response_data = {
+            "status": "success",
+            "post": {
+                "id": post.id,
+                "content": post.content,
+                "user": {
+                    "id": post.user.id,
+                    "username": post.user.username,
+                    "avatar_url": post.user.profile.get_avatar_url(),
+                    "is_online": post.user.profile.is_online,
+                    "was_recently_online": post.user.profile.was_recently_online(),
+                    "student_id": post.user.profile.student_id,
+                    "course": post.user.profile.course,
+                },
+                "created_at": post.created_at.isoformat(),
+                "image_url": post.image.url if post.image else None,
+                "video_url": post.video.url if post.video else None,
+                "likes_count": post.likes_count,
+                "views_count": post.views_count,
+                "comments_count": post.comments.filter(parent=None).count(),
+                "is_liked": request.user in post.likes.all(),
+                "is_owner": post.user == request.user,
+                "comments": [
+                    serialize_comment(comment) for comment in post.comments.all()
+                ],
+            },
+        }
+
+        return JsonResponse(response_data)
+
     except Exception as e:
         logger.error(f"Error in post_detail: {str(e)}")
         return JsonResponse(
@@ -593,3 +625,39 @@ def post_engagement(request, post_id, engagement_type):
             "current_page": page_obj.number,
         }
     )
+
+@login_required
+def like_comment(request, comment_id):
+    if request.method == 'POST':
+        comment = get_object_or_404(Comment, id=comment_id)
+        # Assuming you want to like a comment by the user making the request
+        user = request.user
+        
+        # Check if the user has already liked the comment
+        if user in comment.likes.all():
+            return JsonResponse({'message': 'You have already liked this comment.'}, status=400)
+        
+        # Like the comment
+        comment.likes.add(user)
+        comment.likes_count += 1
+        comment.save()
+        
+        return JsonResponse({'message': 'Comment liked successfully.', 'likes_count': comment.likes_count})
+
+@login_required
+def delete_comment(request, comment_id):
+    if request.method == 'DELETE':
+        comment = get_object_or_404(Comment, id=comment_id)
+        
+        # Check if the user is the owner of the comment
+        if comment.user != request.user:
+            return JsonResponse({'message': 'You do not have permission to delete this comment.'}, status=403)
+        
+        # Delete the comment
+        comment.delete()
+        
+        # Update the post's comments count
+        Post.objects.filter(id=comment.post.id).update(comments_count=F('comments_count') - 1)
+        
+        return JsonResponse({'message': 'Comment deleted successfully.'})
+
