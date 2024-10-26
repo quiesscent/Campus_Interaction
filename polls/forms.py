@@ -24,4 +24,11 @@ class OptionForm(forms.ModelForm):
         model = Option
         fields = ['option_text', 'is_correct']
 
-OptionFormSet = modelformset_factory(Option, form=OptionForm, extra=1)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # Call the parent constructor
+        if self.instance and self.instance.pk:
+            self.fields['option_text'].required = False  # Make option_text optional for existing options
+
+OptionFormSet = modelformset_factory(Option, form=OptionForm, extra=0)
+
+# If you want new options to be required, do not set required = False in the init method above

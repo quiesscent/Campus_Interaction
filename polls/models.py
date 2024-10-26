@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.core.files.base import ContentFile
 from django.conf import settings
 import qrcode
+from datetime import timedelta
 from io import BytesIO
 
 class Poll(models.Model):
@@ -72,11 +73,16 @@ class Option(models.Model):
     def __str__(self):
         return self.option_text
 
-class Vote(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    poll = models.ForeignKey(Poll, related_name='votes', on_delete=models.CASCADE)
-    option = models.ForeignKey(Option, related_name='votes', on_delete=models.CASCADE)
-    voted_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('user', 'poll')  
+class Vote(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+    option = models.ForeignKey(Option, related_name='votes', on_delete=models.CASCADE)  # Set related_name here
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveIntegerField(default=1)  # Start attempts at 1 for the first vote
+
+
+    def can_vote_again(self):
+        """Returns True if the user has fewer than 2 cancel attempts and the vote is within 30 minutes."""
+        time_limit = timezone.now() - timedelta(minutes=30)
+        return self.attempts < 2 and self.created_at >= time_limit
