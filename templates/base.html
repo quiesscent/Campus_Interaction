@@ -1,11 +1,14 @@
-{%load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Social Network{% endblock %}</title>
+    <title>{% block title %}CampHub{% endblock %}</title>
+    <!-- CSRF Token Meta -->
+    {% csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- MDB CSS -->
@@ -13,7 +16,37 @@
     <!-- jQuery (required for AJAX setup) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
+    <!-- CSRF Token Setup for AJAX -->
+    <script>
+        $(document).ready(function() {
+            // Function to get cookie by name
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
 
+            // Set up CSRF token for all AJAX requests
+            const csrftoken = getCookie('csrftoken');
+            
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                }
+            });
+        });
+    </script>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -23,7 +56,6 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
-                <!-- <img src="{% static 'imgs/logo.jpeg' %}" alt="Logo" class="navbar-logo"> -->
                 <span class="gradient-text">CampHub</span>
             </a>
 
@@ -37,6 +69,11 @@
                     <li class="nav-item">
                         <a class="nav-link px-3" href="{% url 'dashboard' %}">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item0">
+                        <a class="nav-link px-3" href="{% url 'feeds:feed' %}">
+                            Feeds
                         </a>
                     </li>
                     <li class="nav-item ms-2">
