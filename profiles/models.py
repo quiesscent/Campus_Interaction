@@ -57,6 +57,14 @@ class Profile(models.Model):
     def is_following(self, profile):
         return self.following.filter(id=profile.id).exists()
     
+    def get_avatar_url(self):
+        """
+        Returns the URL of the profile picture, handling both relative and absolute URLs.
+        """
+        if self.profile_pic and hasattr(self.profile_pic, 'url'):
+            return self.profile_pic.url
+        return '/media/profile_pics/default.png'
+    
     class Meta:
         indexes = [
             models.Index(fields=['user']),
