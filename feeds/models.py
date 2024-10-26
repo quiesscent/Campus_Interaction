@@ -6,7 +6,7 @@ from django.core.validators import FileExtensionValidator
 
 def validate_file_size(value):
     filesize = value.size
-    if filesize > 10 * 1024 * 1024:  # 10MB limit
+    if filesize > 20 * 1024 * 1024:  # 20MB limit
         raise ValidationError("Maximum file size is 10MB")
 
 class Post(models.Model):
