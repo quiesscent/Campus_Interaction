@@ -200,15 +200,17 @@ def toggle_reaction(request, event_id):
     return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
-def university_autocomplete(request):
+def campus_autocomplete(request):
     if 'term' in request.GET:
         query = request.GET.get('term')
-        universities = University.objects.filter(
-            Q(name__icontains=query) | 
-            Q(location__icontains=query)
-        ).values('id', 'name')[:10]
+        
+        # Query for campus using Profile model
+        campuses = Profile.objects.filter(
+            Q(campus__icontains=query)
+        ).values('id', 'campus').distinct()[:10]
 
-        results = [{'id': uni['id'], 'label': uni['name'], 'value': uni['name']} for uni in universities]
+        # Format the results to return campus data
+        results = [{'id': profile['id'], 'label': profile['campus'], 'value': profile['campus']} for profile in campuses]
         return JsonResponse(results, safe=False)
 
     return JsonResponse([], safe=False)
