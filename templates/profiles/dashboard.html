@@ -1,430 +1,259 @@
-{% extends 'core/base.html' %}
-{% block title %}Dashboard{% endblock %}
-
-{% block extra_css %}
-<style>
-    .profile-header {
-        background: linear-gradient(135deg, #1266f1 0%, #2979ff 100%);
-        color: white;
-        border-radius: 1rem;
-        padding: 2.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .profile-pic-container {
-        width: 150px;
-        height: 150px;
-        position: relative;
-        margin: 0 auto;
-    }
-
-    .profile-pic {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 4px solid white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .profile-pic-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        cursor: pointer;
-    }
-
-    .profile-pic-container:hover .profile-pic-overlay {
-        opacity: 1;
-    }
-
-    .drop-zone {
-        border: 2px dashed #1266f1;
-        border-radius: 1rem;
-        padding: 2rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        background: #f8f9fa;
-    }
-
-    .drop-zone.dragover {
-        background: #e3f2fd;
-        border-color: #2979ff;
-    }
-
-    .nav-pills .nav-link {
-        color: #1266f1;
-        border-radius: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s ease;
-        margin-right: 0.5rem;
-    }
-
-    .nav-pills .nav-link:hover {
-        background-color: rgba(18, 102, 241, 0.1);
-    }
-
-    .nav-pills .nav-link.active {
-        background-color: #1266f1;
-        color: white;
-    }
-
-    .profile-card {
-        border-radius: 1rem;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-        transition: transform 0.3s ease;
-    }
-
-    .profile-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .delete-account-section {
-        border-top: 1px solid #dee2e6;
-        margin-top: 2rem;
-        padding-top: 2rem;
-    }
-</style>
-{% endblock %}
-
+{% extends "base.html" %}
+{% load static %}
 {% block content %}
-<div class="container py-5">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
 
-    <!-- Profile Header -->
-    <div class="profile-header mb-4 ripple">
-        <div class="row align-items-center">
-            <div class="col-md-auto text-center text-md-start mb-4 mb-md-0">
-                <div class="profile-pic-container">
-                    <img src="{{ request.user.profile.profile_pic.url }}" alt="Profile Picture" class="profile-pic">
-                    <div class="profile-pic-overlay" id="profilePicOverlay">
-                        <i class="fas fa-camera fa-lg text-white"></i>
+<!-- Dashboard Header -->
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-4 position-relative">
+                        <img src="{{ profile.get_avatar_url }}" class="rounded-circle img-fluid" style="width: 150px; height: 150px; object-fit: cover;">
+                        <label for="profile_pic" class="position-absolute bottom-0 end-0 me-5">
+                            <i class="fas fa-camera btn btn-light btn-floating"></i>
+                            <input type="file" id="profile_pic" class="d-none" accept="image/*">
+                        </label>
                     </div>
-                    <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                    <h4 class="mb-2">{{ user.username }}</h4>
+                    <p class="text-muted mb-4">{{ profile.bio|default:"No bio added yet" }}</p>
                 </div>
-            </div>
-            <div class="col-md">
-                <h2 class="display-6 mb-1">{{ request.user.get_full_name|default:request.user.username }}</h2>
-                <p class="lead mb-2">{{ request.user.email }}</p>
-                {% if request.user.profile.student_id %}
-                    <span class="badge badge-light">Student ID: {{ request.user.profile.student_id }}</span>
-                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Profile Information -->
     <div class="row">
-        <!-- Left Column - Profile Stats -->
-        <div class="col-md-4 mb-4">
-            <div class="profile-card card h-100">
-                <div class="card-body">
-                    <h5 class="card-title fw-bold mb-4">Profile Information</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Course</span>
-                            <span class="fw-medium">{{ request.user.profile.course|default:"Not set" }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Year of Study</span>
-                            <span class="fw-medium">{{ request.user.profile.year_of_study|default:"Not set" }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Member Since</span>
-                            <span class="fw-medium">{{ request.user.profile.date_joined|date:"F j, Y" }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Campus</span>
-                            <span class="fw-medium">{{ request.user.profile.campus|default:"Not set" }}</span>
-                        </li>
-                    </ul>
+        <div class="col-lg-8 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Profile Information</h5>
                 </div>
-            </div>
-        </div>
-
-        <!-- Right Column - Edit Forms -->
-        <div class="col-md-8">
-            <div class="profile-card card">
                 <div class="card-body">
-                    <!-- Tabs -->
-                    <ul class="nav nav-pills mb-4" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="profile-tab" data-mdb-toggle="tab" 
-                                    data-mdb-target="#profile" type="button" role="tab">
-                                <i class="fas fa-user-edit me-2"></i>Profile Details
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="account-tab" data-mdb-toggle="tab" 
-                                    data-mdb-target="#account" type="button" role="tab">
-                                <i class="fas fa-cog me-2"></i>Account Settings
-                            </button>
-                        </li>
-                    </ul>
-
-                    <!-- Tab Content -->
-                    <div class="tab-content" id="profileTabsContent">
-                        <!-- Profile Tab -->
-                        <div class="tab-pane fade show active" id="profile" role="tabpanel">
-                            <form method="POST" enctype="multipart/form-data" id="profileForm">
-                                {% csrf_token %}
-                                <!-- Profile Picture Upload -->
-                                <div class="drop-zone mb-4" id="dropZone">
-                                    <div class="text-center">
-                                        <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
-                                        <h6 class="mb-2">Drag and drop your profile picture here</h6>
-                                        <p class="text-muted small mb-0">or click to select a file</p>
-                                    </div>
+                    <form id="profileForm">
+                        {% csrf_token %}
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="text" id="username" name="username" class="form-control" value="{{ user.username }}">
+                                    <label class="form-label" for="username">Username</label>
                                 </div>
-                                
-                                {% for field in p_form %}
-                                    {% if field.name != 'profile_pic' %}
-                                        <div class="form-outline mb-4">
-                                            {{ field }}
-                                            <label class="form-label" for="{{ field.id_for_label }}">
-                                                {{ field.label }}
-                                            </label>
-                                            {% if field.errors %}
-                                                {% for error in field.errors %}
-                                                    <div class="invalid-feedback d-block">{{ error }}</div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                                <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save me-2"></i>Update Profile
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- Account Settings Tab -->
-                        <div class="tab-pane fade" id="account" role="tabpanel">
-                            <form method="POST" class="mb-4">
-                                {% csrf_token %}
-                                {% for field in u_form %}
-                                    <div class="form-outline mb-4">
-                                        {{ field }}
-                                        <label class="form-label" for="{{ field.id_for_label }}">
-                                            {{ field.label }}
-                                        </label>
-                                        {% if field.errors %}
-                                            {% for error in field.errors %}
-                                                <div class="invalid-feedback d-block">{{ error }}</div>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                                <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save me-2"></i>Update Account
-                                </button>
-                            </form>
-
-                            <!-- Delete Account Section -->
-                            <div class="delete-account-section">
-                                <div class="card border border-danger">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-danger mb-3">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>Delete Account
-                                        </h5>
-                                        <p class="card-text text-muted">
-                                            This action cannot be undone. All your data will be permanently removed.
-                                        </p>
-                                        <form method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.');">
-                                            {% csrf_token %}
-                                            <button type="submit" name="delete_account" class="btn btn-danger">
-                                                <i class="fas fa-trash-alt me-2"></i>Delete My Account
-                                            </button>
-                                        </form>
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="email" id="email" name="email" class="form-control" value="{{ user.email }}" readonly>
+                                    <label class="form-label" for="email">Email</label>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Academic Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="text" id="student_id" name="student_id" class="form-control" value="{{ profile.student_id }}">
+                                    <label class="form-label" for="student_id">Student ID</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="text" id="course" name="course" class="form-control" value="{{ profile.course }}">
+                                    <label class="form-label" for="course">Course</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="number" id="year_of_study" name="year_of_study" class="form-control" value="{{ profile.year_of_study }}">
+                                    <label class="form-label" for="year_of_study">Year of Study</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-outline">
+                                    <input type="text" id="campus" name="campus" class="form-control" value="{{ profile.campus }}">
+                                    <label class="form-label" for="campus">Campus</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="" {% if not profile.gender %}selected{% endif %}>Select Gender</option>
+                                    <option value="M" {% if profile.gender == 'M' %}selected{% endif %}>Male</option>
+                                    <option value="F" {% if profile.gender == 'F' %}selected{% endif %}>Female</option>
+                                    <option value="O" {% if profile.gender == 'O' %}selected{% endif %}>Other</option>
+                                    <option value="N" {% if profile.gender == 'N' %}selected{% endif %}>Prefer not to say</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-outline datepicker">
+                                    <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" 
+                                           value="{{ profile.date_of_birth|date:'Y-m-d' }}">
+                                    <label class="form-label" for="date_of_birth">Date of Birth</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bio -->
+                        <div class="form-outline mb-4">
+                            <textarea class="form-control" id="bio" name="bio" rows="4">{{ profile.bio }}</textarea>
+                            <label class="form-label" for="bio">Bio</label>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <button type="button" class="btn btn-danger" data-mdb-toggle="modal" data-mdb-target="#deleteAccountModal">
+                                Delete Account
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Account</h5>
+                <button type="button" class="btn-close" data-mdb-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast for notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-mdb-dismiss="toast"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     // Initialize MDB components
     document.querySelectorAll('.form-outline').forEach((formOutline) => {
         new mdb.Input(formOutline).init();
     });
 
-    // Initialize all tabs
-    const tabs = new mdb.Tab(document.querySelector('#profileTabs'));
-    
-    // Handle Django messages auto-dismiss and click-to-dismiss
-    document.querySelectorAll('.alert').forEach(alert => {
-        // Enable click to dismiss
-        alert.addEventListener('click', function() {
-            const closeButton = this.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
-            }
-        });
-        
-        // Auto dismiss after 5 seconds
-        setTimeout(() => {
-            const closeButton = alert.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
-            }
-        }, 5000);
-    });
-
-    // Profile picture upload handling
-    const dropZone = document.getElementById('dropZone');
-    const profilePicInput = document.getElementById('profilePicInput');
-    const profilePicOverlay = document.getElementById('profilePicOverlay');
-    const profileForm = document.getElementById('profileForm');
-
-    if (dropZone && profilePicInput && profilePicOverlay && profileForm) {
-        // Handle drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        // Add visual feedback for drag events
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('dragover');
-            });
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('dragover');
-            });
-        });
-
-        // File Upload Event Listeners
-        dropZone.addEventListener('drop', handleDrop);
-        dropZone.addEventListener('click', () => {
-            profilePicInput.click();
-        });
-        
-        profilePicOverlay.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            profilePicInput.click();
-        });
-
-        profilePicInput.addEventListener('change', function(e) {
-            handleFiles(this.files);
-        });
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
-
-        function handleFiles(files) {
-            if (files.length) {
-                updateProfilePic(files[0]);
-            }
-        }
-
-        function updateProfilePic(file) {
-            if (!file.type.startsWith('image/')) {
-                showAlert('Please upload an image file', 'danger');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Update preview
-                document.querySelector('.profile-pic').src = e.target.result;
-                
-                // Create FormData and append file
-                const formData = new FormData();
-                formData.append('profile_pic', file);
-                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-                
-                // Send AJAX request
-                fetch(window.location.href, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    showAlert('Profile picture updated successfully', 'success');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error updating profile picture', 'danger');
-                });
-            };
-            reader.readAsDataURL(file);
-        }
+    // Function to show toast notification
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        const toastBody = toast.querySelector('.toast-body');
+        toastBody.textContent = message;
+        toast.classList.remove('bg-danger', 'bg-success');
+        toast.classList.add(isError ? 'bg-danger' : 'bg-success');
+        const toastInstance = new mdb.Toast(toast);
+        toastInstance.show();
     }
 
-    // Custom alert function
-    window.showAlert = function(message, type = 'success') {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-mdb-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Insert alert at the top of the container
-        const container = document.querySelector('.container');
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        // Auto dismiss after 5 seconds
-        setTimeout(() => {
-            const closeButton = alertDiv.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
-            }
-        }, 5000);
+    // Handle profile picture change
+    $('#profile_pic').change(function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('data', JSON.stringify({}));
+            formData.append('profile_pic', file);
 
-        // Enable click to dismiss
-        alertDiv.addEventListener('click', function() {
-            const closeButton = this.querySelector('.btn-close');
-            if (closeButton) {
-                closeButton.click();
+            $.ajax({
+                url: '{% url "api_update_profile" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    $('.rounded-circle').attr('src', response.data.profile_pic_url);
+                    showToast('Profile picture updated successfully');
+                },
+                error: function(xhr) {
+                    showToast('Error updating profile picture', true);
+                }
+            });
+        }
+    });
+
+    // Handle form submission
+    $('#profileForm').submit(function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        const data = {
+            username: $('#username').val(),
+            student_id: $('#student_id').val(),
+            course: $('#course').val(),
+            year_of_study: $('#year_of_study').val(),
+            bio: $('#bio').val(),
+            campus: $('#campus').val(),
+            gender: $('#gender').val(),
+            date_of_birth: $('#date_of_birth').val()
+        };
+
+        formData.append('data', JSON.stringify(data));
+
+        $.ajax({
+            url: '{% url "api_update_profile" %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                showToast('Profile updated successfully');
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                const errorMessage = response.errors ? 
+                    Object.values(response.errors).flat().join('\n') : 
+                    'Error updating profile';
+                showToast(errorMessage, true);
             }
         });
-    };
+    });
+
+    // Handle account deletion
+    $('#confirmDelete').click(function() {
+        $.ajax({
+            url: '{% url "api_delete_account" %}',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                window.location.href = '{% url "login" %}';
+            },
+            error: function(xhr) {
+                showToast('Error deleting account', true);
+                $('#deleteAccountModal').modal('hide');
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

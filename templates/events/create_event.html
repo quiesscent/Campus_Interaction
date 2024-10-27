@@ -1,15 +1,25 @@
+{# create_event.html #}
 {% extends 'events/base.html' %}
 
 {% block title %}Create Event{% endblock %}
+{% load form_tags %}
 
 {% block extra_css %}
-    <style>
-        /* Larger textarea styling */
-        textarea {
-            min-height: 150px;
-            resize: vertical;  /* Allow vertical resizing */
-        }
-    </style>
+<style>
+    textarea {
+        min-height: 150px;
+        resize: vertical;
+    }
+    .content-editor {
+        min-height: 300px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        padding: 1rem;
+    }
+    .hidden {
+        display: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -20,60 +30,86 @@
             <form method="POST" enctype="multipart/form-data" id="event-form" class="needs-validation" novalidate>
                 {% csrf_token %}
 
+                <!-- Event Type Selection -->
+                <div class="mb-3">
+                    <label for="id_event_type" class="form-label">Event Type</label>
+                    {{ form.event_type|add_class:"form-control" }}
+                    <div class="invalid-feedback">{{ form.event_type.errors }}</div>
+                </div>
+
                 <!-- Title Field -->
                 <div class="mb-3">
                     <label for="id_title" class="form-label">Title</label>
-                    {{ form.title }}
+                    {{ form.title|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.title.errors }}</div>
                 </div>
                 
                 <!-- Description Field -->
                 <div class="mb-3">
                     <label for="id_description" class="form-label">Description</label>
-                    {{ form.description }}  <!-- This will render the textarea field automatically -->
+                    {{ form.description|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.description.errors }}</div>
                 </div>
                 
-                <!-- Start Date Field -->
+                <!-- Physical Event Fields -->
+                <div id="physical-fields">
+                    <!-- Location Field -->
+                    <div class="mb-3">
+                        <label for="id_location" class="form-label">Location</label>
+                        {{ form.location|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.location.errors }}</div>
+                    </div>
+                </div>
+
+                <!-- Text-based Event Fields -->
+                <div id="text-fields" class="hidden">
+                    <!-- Content Field -->
+                    <div class="mb-3">
+                        <label for="id_content" class="form-label">Event Content</label>
+                        {{ form.content|add_class:"form-control content-editor" }}
+                        <div class="invalid-feedback">{{ form.content.errors }}</div>
+                    </div>
+
+                    <!-- Attachments Field -->
+                    <div class="mb-3">
+                        <label for="id_attachments" class="form-label">Attachments</label>
+                        {{ form.attachments|add_class:"form-control" }}
+                        <small class="text-muted">Upload any relevant files for the text-based event</small>
+                        <div class="invalid-feedback">{{ form.attachments.errors }}</div>
+                    </div>
+                </div>
+
+                <!-- Common Fields -->
                 <div class="mb-3">
                     <label for="id_start_date" class="form-label">Start Date</label>
-                    {{ form.start_date }}
+                    {{ form.start_date|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.start_date.errors }}</div>
                 </div>
                 
-                <!-- End Date Field -->
                 <div class="mb-3">
                     <label for="id_end_date" class="form-label">End Date</label>
-                    {{ form.end_date }}
+                    {{ form.end_date|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.end_date.errors }}</div>
                 </div>
                 
-                <!-- Location Field -->
-                <div class="mb-3">
-                    <label for="id_location" class="form-label">Location</label>
-                    {{ form.location }}
-                    <div class="invalid-feedback">{{ form.location.errors }}</div>
-                </div>
-                
-                <!-- Max Participants Field -->
                 <div class="mb-3">
                     <label for="id_max_participants" class="form-label">Max Participants</label>
-                    {{ form.max_participants }}
+                    {{ form.max_participants|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.max_participants.errors }}</div>
                 </div>
                 
-                <!-- Is Public Checkbox Field -->
-                <div class="mb-3">
-                    <label for="id_is_public" class="form-label">Is Public?</label>
-                    {{ form.is_public }}
+                <div class="mb-3 form-check">
+                    {{ form.is_public|add_class:"form-check-input" }}
+                    <label class="form-check-label" for="id_is_public">Is Public?</label>
                     <div class="invalid-feedback">{{ form.is_public.errors }}</div>
                 </div>
                 
-                <!-- Image Upload Field -->
                 <div class="mb-4">
-                    <label for="id_image" class="form-label">Image</label>
+                    <label for="id_image" class="form-label">Cover Image</label>
                     <input type="file" id="id_image" name="image" class="form-control" accept="image/*">
+                    <small class="text-muted">Upload an image to represent your event</small>
                     <div class="invalid-feedback">{{ form.image.errors }}</div>
+                    <div id="image-preview" class="mt-2"></div>
                 </div>
                 
                 <!-- Submit Button -->
@@ -84,9 +120,8 @@
                 </div>
             </form>
             
-            <!-- Back to Events Button -->
             <div class="text-center">
-                <a href="{% url 'event_list' %}" class="btn btn-secondary">
+                <a href="{% url 'events:event_list' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Back to Events
                 </a>
             </div>
@@ -96,153 +131,53 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            // Add Bootstrap classes to form fields
-            $('#id_title').addClass('form-control');
-            $('#id_description').addClass('form-control');
-            $('#id_start_date').addClass('form-control');
-            $('#id_end_date').addClass('form-control');
-            $('#id_location').addClass('form-control');
-            $('#id_max_participants').addClass('form-control');
-            $('#id_is_public').addClass('form-check-input');
-            $('#id_image').addClass('form-control');
-
-            // Optional: Update filename display on file selection
-            $('#id_image').on('change', function() {
-                var fileName = $(this).val().split('\\').pop();  // Get the file name
-                if (fileName) {
-                    $(this).next('.form-control').remove();  // Remove the default text
-                    $(this).after('<div class="form-control">' + fileName + '</div>');
-                }
-            });
-        });
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle reactions
-            document.querySelectorAll('.reaction-btn').forEach(button => {
-                button.addEventListener('click', async function() {
-                    const eventId = this.dataset.eventId;
-                    const reactionType = this.dataset.reaction;
-        
-                    try {
-                        const response = await fetch(`/events/${eventId}/react/`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `reaction_type=${reactionType}`
-                        });
-        
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            // Update the reaction buttons
-                            document.querySelectorAll('.reaction-btn').forEach(btn => {
-                                const reactionCount = btn.querySelector('.reaction-count');
-                                if (btn.dataset.reaction === reactionType) {
-                                    // Update the clicked reaction
-                                    reactionCount.textContent = parseInt(reactionCount.textContent) + 1;
-                                    btn.classList.add('active');
-                                } else if (btn.classList.contains('active')) {
-                                    // Remove the previous reaction
-                                    reactionCount.textContent = parseInt(reactionCount.textContent) - 1;
-                                    btn.classList.remove('active');
-                                }
-                            });
-                        } else if (data.status === 'removed') {
-                            // If the reaction is removed, decrement the count and deactivate
-                            const reactionCount = this.querySelector('.reaction-count');
-                            reactionCount.textContent = parseInt(reactionCount.textContent) - 1;
-                            this.classList.remove('active');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                });
-            });
-        
-            // Handle comments
-            const commentForm = document.querySelector('form');
-            commentForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const eventId = this.dataset.eventId;
-                const formData = new FormData(this);
-        
-                try {
-                    const response = await fetch(`/events/${eventId}/comment/`, {
-                        method: 'POST',
-                        body: formData
-                    });
-        
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        // Add new comment to the list
-                        const commentsList = document.getElementById('comments-list');
-                        const newComment = createCommentElement(data);
-                        commentsList.insertBefore(newComment, commentsList.firstChild);
-                        this.reset();
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            });
-        
-            // Handle comment likes
-            document.querySelectorAll('.like-btn').forEach(button => {
-                button.addEventListener('click', async function() {
-                    const commentId = this.dataset.commentId;
-        
-                    try {
-                        const response = await fetch(`/events/comment/${commentId}/like/`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                            }
-                        });
-        
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            const icon = this.querySelector('i');
-                            const likesCount = this.querySelector('.likes-count');
-        
-                            icon.classList.toggle('bi-heart');
-                            icon.classList.toggle('bi-heart-fill');
-                            likesCount.textContent = data.likes_count;
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                });
-            });
-        });
-        
-        function createCommentElement(data) {
-            // Create a new comment element
-            const div = document.createElement('div');
-            div.className = 'comment-card mb-3';
-            div.id = `comment-${data.comment_id}`;
-        
-            div.innerHTML = `
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">${data.user}</h6>
-                        <p class="card-text">${data.content}</p>
-                        <div class="d-flex gap-2 align-items-center">
-                            <small class="text-muted">${data.created_at}</small>
-                            <button class="btn btn-sm btn-link like-btn" data-comment-id="${data.comment_id}">
-                                <i class="bi bi-heart"></i>
-                                <span class="likes-count">0</span>
-                            </button>
-                            <button class="btn btn-sm btn-link reply-btn" data-comment-id="${data.comment_id}">Reply</button>
-                        </div>
-                        <div class="replies-section ms-4 mt-2"></div>
-                    </div>
-                </div>
-            `;
-        
-            return div;
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Handle event type switching
+        function toggleEventFields() {
+            const eventType = $('#id_event_type').val();
+            if (eventType === 'physical') {
+                $('#physical-fields').removeClass('hidden');
+                $('#text-fields').addClass('hidden');
+            } else {
+                $('#physical-fields').addClass('hidden');
+                $('#text-fields').removeClass('hidden');
+            }
         }
-        
-    </script>
+
+        // Initial toggle
+        toggleEventFields();
+
+        // Toggle on change
+        $('#id_event_type').on('change', toggleEventFields);
+
+        // Image preview
+        $('#id_image').on('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#image-preview').html(`<img src="${e.target.result}" class="img-thumbnail mt-2" style="max-height: 200px;">`);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Form validation
+        (function() {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    });
+</script>
 {% endblock %}

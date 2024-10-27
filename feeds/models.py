@@ -1,14 +1,12 @@
 from django.db import models
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.db.models import F
 from django.core.validators import FileExtensionValidator
 
 def validate_file_size(value):
     filesize = value.size
-    if filesize > 10 * 1024 * 1024:  # 10MB limit
+    if filesize > 20 * 1024 * 1024:  # 20MB limit
         raise ValidationError("Maximum file size is 10MB")
 
 class Post(models.Model):
@@ -70,6 +68,7 @@ class Post(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+
 class PostLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
@@ -85,14 +84,22 @@ class PostView(models.Model):
     post = models.ForeignKey(Post, related_name='views', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     viewed_at = models.DateTimeField(auto_now_add=True)
+    viewed_date = models.DateField(editable=False)  # New field to store the date part
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=200, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Set viewed_date to the date portion of viewed_at
+        if not self.viewed_date:
+            self.viewed_date = self.viewed_at.date()
+        super().save(*args, **kwargs)
+
     class Meta:
-        unique_together = ('post', 'user', 'viewed_at__date')
+        unique_together = (('post', 'user', 'viewed_date'),)
         indexes = [
             models.Index(fields=['post', '-viewed_at']),
         ]
+
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
@@ -103,6 +110,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     likes_count = models.PositiveIntegerField(default=0)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
 
     class Meta:
         indexes = [

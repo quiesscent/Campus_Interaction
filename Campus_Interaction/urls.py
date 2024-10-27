@@ -4,6 +4,7 @@ from django.views.static import serve
 from django.conf.urls.static import static
 from django.contrib import admin
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include('core.urls')),
@@ -15,6 +16,7 @@ urlpatterns = [
     path('events/', include('events.urls')),
     path('polls/', include('polls.urls')),
     path('maps/', include('maps.urls')),
+    path('feeds/', include('feeds.urls')),
 ] 
 
 

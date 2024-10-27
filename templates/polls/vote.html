@@ -1,0 +1,90 @@
+<h2>{{ poll.title }}</h2>
+<p>{{ poll.description }}</p>
+
+{% if not poll.is_active %}
+    <p style="color: red;">This poll has expired and is no longer accepting responses.</p>
+{% else %}
+    {% if user_vote %}
+        <p>You have already voted in this poll.</p>
+        <p>Poll Type: {{ poll.poll_type }}</p>
+        <p>Can Vote Again: {{ user_vote.can_vote_again }}</p>
+        <p>Attempts Remaining: {{ user_vote.attempts }}</p>
+        <p>Created At: {{ user_vote.created_at }}</p>
+
+        {% if poll.poll_type == 'opinion' %}
+            {% if remaining_attempts > 0 and user_vote.can_vote_again %}
+                <!-- Show Cancel button if the user can vote again -->
+                <form method="post" id="cancel-vote-form" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="cancel_vote" value="true">
+                    <button type="button" onclick="confirmCancelVote()">Cancel Vote</button>
+                </form>
+                <p>You have {{ remaining_attempts }} cancellation attempts remaining.</p>
+            {% else %}
+                <!-- Show message if the user has reached the vote limit or 30 min has passed -->
+                <p style="color: red;">You have reached the limit of vote cancellations for this poll.</p>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+
+    <form method="post" id="vote-form">
+        {% csrf_token %}
+        {% for option in poll.options.all %}
+            <div class="option-container" data-correct="{{ option.is_correct }}">
+                <input 
+                    type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+                    name="option{% if poll.multi_option %}[]{% endif %}" 
+                    value="{{ option.id }}" 
+                    id="option-{{ option.id }}"
+                    {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+                    {% if poll.poll_type == 'question' %}onclick="checkOption(this)"{% endif %}> 
+                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
+            </div>
+        {% empty %}
+            <p>No options available.</p>
+        {% endfor %}
+        {% if not user_vote %}
+            <button type="submit">Submit</button>
+        {% endif %}
+    </form>
+    
+    
+{% endif %}
+
+{% if poll_link %}
+    <h3>Share This Poll</h3>
+    <p><strong>Link:</strong> <a href="{{ poll_link }}" target="_blank">{{ poll_link }}</a></p>
+    {% if qr_code_url %}
+        <p><strong>QR Code:</strong></p>
+        <img src="{{ qr_code_url }}" alt="QR Code for Poll Link">
+    {% endif %}
+{% endif %}
+
+<style>
+.correct {
+    background-color: green;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    animation: correct-animation 1s;
+}
+
+.incorrect {
+    background-color: red;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    animation: incorrect-animation 1s;
+}
+
+@keyframes correct-animation {
+    0% { background-color: white; }
+    100% { background-color: green; }
+}
+
+@keyframes incorrect-animation {
+    0% { background-color: white; }
+    100% { background-color: red; }
+}
+</style>
+

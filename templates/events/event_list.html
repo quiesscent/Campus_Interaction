@@ -4,7 +4,7 @@
 <div class="container my-5" x-data="{ showFilters: false }">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="display-4">All Events</h1>
-        <a href="{% url 'create_event' %}" class="btn btn-success shadow-sm">
+        <a href="{% url 'events:create_event' %}" class="btn btn-success shadow-sm">
             <i class="fas fa-plus"></i> Create New Event
         </a>
     </div>
@@ -18,7 +18,7 @@
 
     <!-- Filters Section -->
     <div x-show="showFilters" class="bg-light p-4 rounded shadow-sm">
-        <form hx-get="{% url 'event_list' %}" hx-target="#events-container" class="row g-3">
+        <form hx-get="{% url 'events:event_list' %}" hx-target="#events-container" class="row g-3">
             <div class="col-md-6">
                 <label for="university" class="form-label">University</label>
                 <select name="university" id="university" class="form-select">
@@ -61,7 +61,13 @@
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ event.title }}</h5>
                         <p class="card-text">{{ event.description|truncatewords:20 }}</p>
-                        <a href="{% url 'event_detail' event.id %}" class="mt-auto btn btn-link text-primary">View Details</a>
+                        
+                        <!-- Display Content for Text-Based Events -->
+                        {% if event.event_type == 'text' %}
+                            <p class="card-text text-muted">{{ event.content|truncatewords:30 }}</p>
+                        {% endif %}
+                        
+                        <a href="{% url 'events:event_detail' event.id %}" class="mt-auto btn btn-link text-primary">View Details</a>
                     </div>
                 </div>
             </div>
@@ -72,6 +78,7 @@
         </div>
     {% endif %}
 </div>
+
 
 <!-- Pagination -->
 <div class="mt-4">

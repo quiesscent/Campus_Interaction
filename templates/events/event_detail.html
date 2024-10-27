@@ -17,10 +17,18 @@
 
         <p class="mt-2">{{ event.description }}</p>
 
+        <!-- Display content for text-based events -->
+        {% if event.event_type == 'text' %}
+            <div class="mt-4">
+                <h3 class="font-semibold">Content:</h3>
+                <p>{{ event.content }}</p>
+            </div>
+        {% endif %}
+
         <div class="mt-4">
             <p class="text-gray-500"><strong>Date:</strong> {{ event.start_date }} - {{ event.end_date }}</p>
             <p class="text-gray-500"><strong>Location:</strong> {{ event.location }}</p>
-            <p class="text-gray-500"><strong>Status:</strong> {{ event.get_status_display }}</p>
+            <p class="text-gray-500"><strong>Status:</strong> {{ event.status }}</p>
         </div>
 
         {% if not user_registered %}
