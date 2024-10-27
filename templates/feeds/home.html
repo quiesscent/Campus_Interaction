@@ -1,5 +1,5 @@
-# templates/feeds/home.html
 {% extends "base.html" %}
+{%load static%}
 
 {% block title %}Feed{% endblock %}
 
@@ -40,5 +40,7 @@
 <script src="{% static 'js/feeds/comments.js' %}"></script>
 <script src="{% static 'js/feeds/engagement.js' %}"></script>
 <script src="{% static 'js/feeds/sharing.js' %}"></script>
+<script src="{% static 'js/feeds/sidebar.js' %}"></script>
+<script src="{% static 'js/feeds/modals.js' %}"></script>
 {% endblock %}
 
