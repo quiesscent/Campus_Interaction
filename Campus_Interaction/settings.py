@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "polls",
     "maps",
     "feeds",
+    "rest_framework",
+    'django_filters',
 ]
 
 
