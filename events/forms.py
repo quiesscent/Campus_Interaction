@@ -1,7 +1,6 @@
 #events/forms.py
 from django import forms
 from .models import Event, Comment, EventRegistration
-from django_select2.forms import Select2Widget
 
 
 class EventForm(forms.ModelForm):

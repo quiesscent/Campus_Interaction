@@ -1,9 +1,8 @@
 # events/serializers.py
 from rest_framework import serializers
-from django.core.validators import MinValueValidator
 from django.utils import timezone
 from .models import Event, EventCategory, EventRegistration, Comment, EventReaction
-from profiles.models import Profile
+
 
 class EventCategorySerializer(serializers.ModelSerializer):
     class Meta:
