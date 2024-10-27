@@ -47,3 +47,4 @@ qrcode==8.0
 Django==5.1.2
 django-filter==23.2
 djangorestframework==3.15.0
+djangorestframework-nested==0.14.1
