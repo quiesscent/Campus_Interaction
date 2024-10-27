@@ -1,17 +1,20 @@
+import logging
+
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from django.core.files.storage import default_storage
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+
 from profiles.models import Profile
 from .models import Event, EventRegistration, Comment, EventReaction
 from .forms import EventForm, CommentForm, EventRegistrationForm
-from django.http import JsonResponse
-from django.db.models import Q
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from django.db import transaction
-from django.contrib import messages
-from django.views.decorators.http import require_POST
-from django.core.files.storage import default_storage
-import logging
+
 
 # Set up logging
 logger = logging.getLogger(__name__)
