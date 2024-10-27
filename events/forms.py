@@ -1,6 +1,6 @@
 #events/forms.py
 from django import forms
-from .models import Event, University, Comment, EventRegistration
+from .models import Event, Comment, EventRegistration
 from django_select2.forms import Select2Widget
 
 
