@@ -27,7 +27,7 @@ urlpatterns = [
     path('comment/<int:comment_id>/like/', views.toggle_comment_like, name='toggle_comment_like'),
     path('<int:event_id>/delete/', views.delete_event, name='delete_event'),
     path('<int:event_id>/react/', views.toggle_reaction, name='toggle_reaction'),
-    path('university/autocomplete/', views.university_autocomplete, name='university_autocomplete'),
+    path('university/autocomplete/', views.campus_autocomplete, name='university_autocomplete'),
     # Integrate select2 for dropdowns
     path('select2/', include('django_select2.urls')),
 ]
