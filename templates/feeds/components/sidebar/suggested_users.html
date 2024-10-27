@@ -1,0 +1,31 @@
+# templates/feeds/components/sidebar/suggested_users.html
+<div class="card border-0 shadow-2">
+    <div class="card-body">
+        <h5 class="card-title d-flex align-items-center mb-3">
+            <i class="fas fa-user-plus me-2 text-primary"></i>
+            <span class="fw-bold">Suggested Users</span>
+        </h5>
+        <div id="suggestedUsers" class="list-group list-group-flush">
+            <!-- Loading State -->
+            <div class="placeholder-glow">
+                {% for i in '123'|make_list %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="placeholder rounded-circle me-3" style="width: 48px; height: 48px;"></div>
+                    <div class="flex-grow-1">
+                        <div class="placeholder col-7 mb-1"></div>
+                        <div class="placeholder col-4"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- Error State -->
+            <div class="d-none text-center py-4" id="suggestedUsersError">
+                <i class="fas fa-exclamation-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted mb-0">Unable to load suggestions</p>
+                <button class="btn btn-link btn-sm" onclick="loadSuggestedUsers()">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
