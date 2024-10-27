@@ -24,29 +24,27 @@ def add_polls(request):
                 poll.creator = request.user
             poll.save()
 
-            # Generate the unique link and QR code
+            # Save banner_image if it exists
+            if 'banner_image' in request.FILES:
+                poll.banner_image = request.FILES['banner_image']
+            
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
 
             # Iterate over each option form in the formset
             for option_form in option_formset:
-                # Check if there is option text to save
                 if option_form.cleaned_data.get('option_text'):
                     option = option_form.save(commit=False)
                     option.poll = poll
-                    # Save `is_correct` only if the poll is a question type
                     if poll.poll_type == 'question':
                         option.is_correct = option_form.cleaned_data.get('is_correct', False)
                     option.save()
 
-            # Redirect to a confirmation or poll page
             return redirect('vote_poll', poll_id=poll.id) 
         else:
-            # Add error handling for debugging if the form is invalid
             print("Poll Form Errors:", poll_form.errors)
             print("Option Formset Errors:", option_formset.errors)
-    
     else:
         poll_form = PollForm()
         option_formset = OptionFormSet(queryset=Option.objects.none())

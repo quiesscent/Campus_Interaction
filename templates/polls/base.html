@@ -153,7 +153,7 @@
 
 
     
-    <ul>
+    <!-- <ul>
       {% for poll in polls %}
       <li>
         <a href="{% url 'vote_poll' poll.id %}">{{ poll.title }}</a>
@@ -162,9 +162,9 @@
         <p>{% if poll.is_active %}Active{% else %}Expired{% endif %}</p>
       </li>
       {% empty %}
-      <!-- <li>No polls available.</li> -->
+
       {% endfor %}
-    </ul>
+    </ul> -->
     <script>
       let mainNav = document.getElementById("js-menu");
       let navBarToggle = document.getElementById("js-navbar-toggle");

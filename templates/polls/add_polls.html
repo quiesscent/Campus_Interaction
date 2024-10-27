@@ -10,135 +10,217 @@
         font-size: larger;
         font-weight: 800;
     }
-form{
+/* General Form Styling */
+form {
     max-width: 600px;
     margin: 0 auto;
-    padding: 20px;
-    border: 1px solid #000;
+    padding: 25px;
+    border: none;
+    border-radius: 12px;
+    margin-top: 25px;
+    background: linear-gradient(135deg, #f0f4f8, #dde1e7);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+form:hover {
+    transform: translateY(-5px);
+}
+
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: 10% auto;
+    padding: 25px;
+    border: 1px solid #ccc;
+    width: 75%;
     border-radius: 10px;
-    margin-top: 15px;
-}
-/* Slider styling */
-.slider {
-    width: 100%;
-    appearance: none;
-    height: 8px;
-    background: linear-gradient(to right, red, yellow, green, cyan, blue, magenta, red);
-    border-radius: 5px;
-    outline: none;
-    margin-top: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background-color: #333;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background-color: #333;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.form-title, .form-option, .form-period,  .form-language,
-.form-control-file, .form-option-text{
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-outline: none;
-    font-size: 15px;
-}
-.form-description{
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 15px;
-    outline: none;
-    resize: none;
-    min-height: 50px;
-    overflow: hidden;
-    display: none !important;
-    
-}
-.description-label{
-    color: darkblue;
+/* Close Button Styling */
+.close {
+    color: #444;
+    float: right;
+    font-size: 28px;
     font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.close:hover,
+.close:focus {
+    color: #ff4c4c;
     cursor: pointer;
 }
+
+/* Form Field Styling */
+.form-title, .form-option, .form-period, .form-language,
+.form-control-file, .form-option-text {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    resize: none;
+}
+
 .form-title:focus, .form-option:focus, .form-period:focus, .form-image:focus, .form-language:focus,
-.form-control-file:focus, .form-option:focus, .form-description:focus, .form-option-text:focus{
-    outline: 1px solid blue !important;
+.form-control-file:focus, .form-option:focus, .form-description:focus, .form-option-text:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
 }
-.options{
-padding: 20px;
-border: 1px solid #000;
-margin-top: 10px;
-border-radius: 10px;
-display: none;
+
+.description-label {
+        color: darkblue;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .form-description {
+        display: none;
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 15px;
+        outline: none;
+        resize: none;
+        min-height: 70px;
+    }
+
+.description-label:hover {
+    color: #007bff;
 }
-.actions{
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-top: 10px;
-    margin-bottom: 0;
-   
-}
-.actions button{
-    border: none !important;
+
+
+/* Actions Button Styling */
+.actions button {
+    border: none;
     font-size: 14px;
-    padding: 10px 20px;
-    background-color: blue;
+    padding: 12px 24px;
+    background-color: #007bff;
     border-radius: 7px;
     cursor: pointer;
     color: #fff;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.form-check-input {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #007bff; /* Primary color */
-    border-radius: 4px; /* Rounded corners */
-    position: relative;
-    cursor: pointer;
+.actions button:hover {
+    background-color: #0056b3;
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.options {
+    padding: 20px;
+    border: 1px solid #ddd;
+    margin-top: 20px;
+    border-radius: 10px;
+    display: none;
+    background-color: #f8f9fa;
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: max-height 0.5s ease;
+}
+
+.color-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .color-swatch {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border 0.2s ease-in-out;
+    }
+    .color-swatch.selected {
+        border-color: #000;
+    } 
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
+    .drag-area {
+    border: 2px dashed #c0c4cc;
+    height: 150px;
+    width: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #eef2f5;
+    margin-top: 15px;
+    transition: border-color 0.3s ease;
+}
+
+.drag-area.active {
+    border: 2px solid #8fa3bf;
+    background-color: #e6e9ec;
+}
+
+/* Icon styling for drag area */
+.drag-area .icon {
+    font-size: 24px;
+    color: #8fa3bf;
+}
+
+/* Header text inside drag area */
+.drag-area header {
+    font-size: 18px;
+    font-weight: 500;
+    color: #5d697a;
+    margin-top: 10px;
+}
+
+/* Span text styling */
+.drag-area span {
+    font-size: 14px;
+    font-weight: 400;
+    color: #6c7b8c;
+    margin: 8px 0 10px 0;
+}
+
+/* Button styling inside drag area */
+.drag-area button {
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
     outline: none;
-    transition: all 0.3s ease;
+    background: #8fa3bf;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-/* Styling for when the checkbox is checked */
-.form-check-input:checked {
-    background-color: #007bff; /* Background color when checked */
-    border-color: #007bff;
+.drag-area button:hover {
+    background-color: #7b90a3;
 }
 
-/* Checkmark style */
-.form-check-input:checked::before {
-    content: "";
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 10px;
-    height: 10px;
-    background-color: white; /* Checkmark color */
-    border-radius: 2px;
-    transition: all 0.3s ease;
-}
-
-/* Add a subtle box-shadow on focus */
-.form-check-input:focus {
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-
+/* Image styling inside drag area */
+.drag-area img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}   
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <h2>Create a New Poll</h2>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -152,12 +234,14 @@ display: none;
         </div>
     </div>
     <br>
+
     <div class="mb-3">
         <div class="input-container">
             <label for="id_description" class="description-label" id="description-label">
                 Add Description (optional):
             </label>
-            {{ poll_form.description }}
+            <textarea name="description"  class="form-description" 
+          id="id_description" placeholder="Enter poll description (optional)" style="display: none; overflow: hidden;"></textarea>
             <div id="description-error" class="text-danger">
                 {% for error in poll_form.description.errors %}
                     {{ error }}
@@ -166,6 +250,7 @@ display: none;
         </div>
     </div>
     <br>
+
     {{ option_formset.management_form }}
     <div id="option-formset">
         {% for form in option_formset %}
@@ -191,85 +276,191 @@ display: none;
 <button type="button" id="toggle-options">Options<i class='bx bx-cog'></i></button>
 <button type="submit" class="btn btn-primary">Save<i class='bx bx-save' ></i></button>
 </div>
+
 <div class="options">
-    <div class="mb-3">
+
+    <div class="mb-3 form-option-wrapper">
         {{ poll_form.poll_type.label_tag }}
         {{ poll_form.poll_type }}
         {% if poll_form.poll_type.errors %}
             <div class="text-danger">{{ poll_form.poll_type.errors }}</div>
         {% endif %}
-    </div><br>
+    </div>
+    
+    <br>
+    
 
-
-   <div class="form-check mb-3">  
-    {{ poll_form.allow_expiration.label_tag }}
-    {{ poll_form.allow_expiration }}
-    {% if poll_form.allow_expiration.errors %}
-        <div class="text-danger">{{ poll_form.allow_expiration.errors }}</div>
-    {% endif %}
-</div>
-
-<div class="mb-3 expiration-fields" style="display: none;">
-    {{ poll_form.expiration_time.label_tag }}
-    {{ poll_form.expiration_time }}
-    {% if poll_form.expiration_time.errors %}
-        <div class="text-danger">{{ poll_form.expiration_time.errors }}</div>
-    {% endif %}
-</div><br>
-
-
-    <div class="form-check mb-3">
-        
-        {{ poll_form.multi_option.label_tag }}
-        {{ poll_form.multi_option }}
+    <div class="form-check mb-3">  
+        {{ poll_form.allow_expiration.label_tag }}
+        {{ poll_form.allow_expiration }}
         {% if poll_form.allow_expiration.errors %}
             <div class="text-danger">{{ poll_form.allow_expiration.errors }}</div>
         {% endif %}
-    </div><br>
-    <div class="form-check mb-3">
-  
-        {{ poll_form.show_share_button.label_tag }}
-        {{ poll_form.show_share_button }}
-        {% if poll_form.allow_expiration.errors %}
-            <div class="text-danger">{{ poll_form.allow_expiration.errors }}</div>
+    </div>
+
+    <div class="mb-3 expiration-fields" style="display: none;">
+        {{ poll_form.expiration_time.label_tag }}
+        {{ poll_form.expiration_time }}
+        {% if poll_form.expiration_time.errors %}
+            <div class="text-danger">{{ poll_form.expiration_time.errors }}</div>
         {% endif %}
-    </div><br>
-    <div class="form-check mb-3">
-        <label for="background-color-slider">Background Color:</label>
-        <input type="range" id="background-color-slider" min="0" max="360" value="0" class="slider">
-        <input type="color" id="background-color-picker" class="form-image" name="background_color">
     </div>
     <br>
+
     <div class="form-check mb-3">
-        {{ poll_form.banner_image.label_tag }}
-        {{ poll_form.banner_image }}
-        {% if poll_form.allow_expiration.errors %}
-            <div class="text-danger">{{ poll_form.allow_expiration.errors }}</div>
+        {{ poll_form.multi_option.label_tag }}
+        {{ poll_form.multi_option }}
+        {% if poll_form.multi_option.errors %}
+            <div class="text-danger">{{ poll_form.multi_option.errors }}</div>
         {% endif %}
-    </div><br>
+    </div>
+    <br>
+
+    <div class="form-check mb-3">
+        {{ poll_form.show_share_button.label_tag }}
+        {{ poll_form.show_share_button }}
+        {% if poll_form.show_share_button.errors %}
+            <div class="text-danger">{{ poll_form.show_share_button.errors }}</div>
+        {% endif %}
+    </div>
+    <br>
+
+    <!-- Background Color Selection -->
+    <div class="form-check mb-3">
+        <label for="background-color-picker">Choose Background Color:</label>
+        <div class="color-options">
+            <!-- Color swatches with common colors -->
+            <div class="color-swatch" data-color="#d3d3d3" style="background-color: #d3d3d3;"></div> 
+            <div class="color-swatch" data-color="#ff5733" style="background-color: #ff5733;"></div>
+            <div class="color-swatch" data-color="#33ff57" style="background-color: #33ff57;"></div>
+            <div class="color-swatch" data-color="#3357ff" style="background-color: #3357ff;"></div>
+            <div class="color-swatch" data-color="#ff33a1" style="background-color: #ff33a1;"></div>
+            <div class="color-swatch" data-color="#ffd633" style="background-color: #ffd633;"></div>
+            <div class="color-swatch" data-color="#33ffd6" style="background-color: #33ffd6;"></div>
+            <div class="color-swatch" data-color="#ff3333" style="background-color: #ff3333;"></div>
+            <div class="color-swatch" data-color="#33ffcc" style="background-color: #33ffcc;"></div>
+            <div class="color-swatch" data-color="#cccccc" style="background-color: #cccccc;"></div>
+        </div>
+        <!-- Hidden color input to store the selected color -->
+        <input type="hidden" id="background-color-picker" name="background_color" value="#ffffff">
+    </div>
+    <br>
+    <label for="banner-image">Banner Image(Optional):</label>
+    <div class="drag-area" id="drag-area">
+        <div class="icon"><i class="fas fa-cloud-upload-alt"></i></div>
+        <header>Drag & Drop to Upload File</header>
+        <span>OR</span>
+        <button type="button" id="browse-btn">Browse File</button>
+        <input type="file" name="banner_image" id="banner_image" hidden accept="image/*">
+    </div>
+    
+    
+    <br>
 </div>
 
 </div>
 </form>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select all color swatches and the hidden color input
+        const colorSwatches = document.querySelectorAll('.color-swatch');
+        const colorPickerInput = document.getElementById('background-color-picker');
 
+        // Add click event to each color swatch
+        colorSwatches.forEach(swatch => {
+            swatch.addEventListener('click', function() {
+                // Remove selected class from all swatches and add to the clicked one
+                colorSwatches.forEach(s => s.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                // Update the hidden color input's value with the selected color
+                colorPickerInput.value = this.dataset.color;
+            });
+        });
+    });
+    document.addEventListener("DOMContentLoaded", () => {
+    const dragArea = document.getElementById("drag-area");
+    const inputFile = document.getElementById("banner_image");
+    const browseBtn = document.getElementById("browse-btn");
+
+    // Open file selector when the Browse button is clicked
+    browseBtn.addEventListener("click", () => inputFile.click());
+
+    // Display selected file and handle file selection
+    inputFile.addEventListener("change", () => {
+        handleFileUpload(inputFile.files[0]);
+    });
+
+    // Handle drag and drop events
+    ["dragenter", "dragover"].forEach(eventType => {
+        dragArea.addEventListener(eventType, (event) => {
+            event.preventDefault();
+            dragArea.classList.add("active");
+        });
+    });
+
+    ["dragleave", "drop"].forEach(eventType => {
+        dragArea.addEventListener(eventType, (event) => {
+            event.preventDefault();
+            dragArea.classList.remove("active");
+        });
+    });
+
+    // File drop handling
+    dragArea.addEventListener("drop", (event) => {
+        event.preventDefault();
+        if (event.dataTransfer.files.length) {
+            const file = event.dataTransfer.files[0];
+            handleFileUpload(file);
+        }
+    });
+
+    // File preview and name display
+    function handleFileUpload(file) {
+        const validTypes = ["image/jpeg", "image/png", "image/gif"];
+        if (validTypes.includes(file.type)) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                // Update the drag area with the preview image
+                dragArea.innerHTML = `<img src="${reader.result}" alt="Uploaded Image" style="max-height: 200px; max-width: 100%; border-radius: 5px;" name="banner_image">`;
+                
+                // Store the file in the input element for form submission
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                inputFile.files = dataTransfer.files; // Assign the file to the hidden input
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert("Please upload an image file (jpg, png, gif).");
+        }
+    }
+});
+
+
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const descriptionInput = document.querySelector('.form-description'); // Target the textarea by its class
         const descriptionLabel = document.getElementById('description-label');
+        function adjustHeight() {
+            this.style.height = 'auto'; // Reset height to auto to calculate new height
+            this.style.height = this.scrollHeight + 'px'; // Set height to scroll height
+        }
 
-        // Toggle visibility when the label is clicked
         descriptionLabel.addEventListener('click', function() {
-            // Toggle the display property
             if (descriptionInput.style.display === 'none' || descriptionInput.style.display === '') {
-                descriptionInput.style.display = 'block'; // Show textarea
-                descriptionInput.focus(); // Focus on the textarea when shown
+                descriptionInput.style.display = 'block';
+                descriptionInput.focus(); 
+                adjustHeight.call(descriptionInput); 
             } else {
-                descriptionInput.style.display = 'none'; // Hide textarea
+                descriptionInput.style.display = 'none'; 
             }
         });
+        descriptionInput.addEventListener('input', adjustHeight);
     });
 </script>
+
 
 
 <script>
@@ -308,54 +499,7 @@ display: none;
         allowExpirationCheckbox.addEventListener('change', toggleExpirationFields);
     });
     </script>
-    
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const slider = document.getElementById('background-color-slider');
-        const colorPicker = document.getElementById('background-color-picker');
-    
-        // Function to convert hue to hex color
-        function hslToHex(hue) {
-            const saturation = 100;
-            const lightness = 50;
-            let chroma = (1 - Math.abs(2 * lightness / 100 - 1)) * (saturation / 100);
-            let x = chroma * (1 - Math.abs((hue / 60) % 2 - 1));
-            let m = lightness / 100 - chroma / 2;
-            let [r, g, b] = (hue < 60) ? [chroma, x, 0]
-                        : (hue < 120) ? [x, chroma, 0]
-                        : (hue < 180) ? [0, chroma, x]
-                        : (hue < 240) ? [0, x, chroma]
-                        : (hue < 300) ? [x, 0, chroma]
-                        : [chroma, 0, x];
-            [r, g, b] = [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
-            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-        }
-    
-        // Update color picker when slider is changed
-        slider.addEventListener('input', function() {
-            const hue = slider.value;
-            colorPicker.value = hslToHex(hue);
-        });
-    });
-    </script>
-    
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const textarea = document.getElementById('description');
-    
-        // Function to adjust the height
-        function adjustHeight() {
-            this.style.height = 'auto'; // Reset height to auto to calculate new height
-            this.style.height = this.scrollHeight + 'px'; // Set height to scroll height
-        }
-    
-        // Adjust height on input
-        textarea.addEventListener('input', adjustHeight);
-    
-        // Optionally, adjust height on page load if there's already content
-        adjustHeight.call(textarea);
-    });
-    </script>
+
     
 
 <script>
