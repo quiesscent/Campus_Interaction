@@ -89,18 +89,23 @@ def create_event(request):
         form = EventForm(request.POST, request.FILES)
 
         if form.is_valid():
-            event = form.save(commit=False)
-            event.organizer = user_profile
-            event.campus = user_profile  # Set the campus to the user's profile
-            event.save()
-            messages.success(request, "Event created successfully!")
-            return redirect('events:event_list')
+            try:
+                event = form.save(commit=False)
+                event.organizer = user_profile
+                event.campus = user_profile.campus
+                event.save()
+                messages.success(request, "Event created successfully!")
+                return redirect('events:event_list')
+            except Exception as e:
+                messages.error(request, f"An error occurred while saving the event: {e}")
         else:
             messages.error(request, "Invalid form submission.")
+            print(form.errors)  # Print form errors to console for debugging
     else:
         form = EventForm()
 
     return render(request, 'events/create_event.html', {'form': form})
+
 @login_required
 def add_comment(request, event_id):
     event = get_object_or_404(Event, id=event_id)
