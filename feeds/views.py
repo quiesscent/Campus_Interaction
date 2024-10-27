@@ -1,16 +1,18 @@
+from datetime import datetime
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import F, Q, Prefetch
+from django.db.models import F, Q, Prefetch, Count
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.db import IntegrityError, transaction
-from .models import Post, Comment, PostView, PostLike
+from .models import Post, Comment, PostView, PostLike, Report
 from .forms import PostForm, CommentForm
+from profiles.models import Profile, UserFollow
 import logging
 
 logger = logging.getLogger(__name__)
@@ -492,11 +494,127 @@ def post_detail(request, post_id):
             {"status": "error", "message": "Error retrieving post"}, status=500
         )
 
-
 @login_required
 def suggested_users(request):
-    # Placeholder response
-    return JsonResponse({"users": []})  # Empty list for now
+    user_profile = request.user.profile
+    
+    # Get IDs of users already being followed
+    following_ids = user_profile.following.values_list('id', flat=True)
+    
+    # Base queryset excluding the user themselves and users they already follow
+    base_qs = Profile.objects.exclude(
+        Q(user=request.user) | Q(id__in=following_ids)
+    )
+
+    # Find users with similar attributes (same campus, course, year of study)
+    similar_users = base_qs.filter(
+        Q(campus=user_profile.campus) |
+        Q(course=user_profile.course) |
+        Q(year_of_study=user_profile.year_of_study)
+    ).distinct()
+
+    # Find users followed by people the user follows (mutual connections)
+    mutual_connections = base_qs.filter(
+        followers__in=following_ids
+    ).annotate(
+        mutual_count=Count('followers')
+    )
+
+    # Find active users based on recent posts and engagement
+    active_users = base_qs.filter(
+        user__post__created_at__gte=timezone.now() - datetime.timedelta(days=30)
+    ).annotate(
+        post_count=Count('user__post')
+    ).filter(post_count__gt=0)
+
+    # Combine and prioritize suggestions
+    suggested = list(similar_users[:5]) + list(mutual_connections[:5]) + list(active_users[:5])
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_suggested = []
+    for profile in suggested:
+        if profile.id not in seen:
+            seen.add(profile.id)
+            unique_suggested.append(profile)
+
+    # Limit to top 10 suggestions
+    suggested_profiles = unique_suggested[:10]
+
+    return JsonResponse({
+        'users': [{
+            'id': profile.user.id,
+            'username': profile.user.username,
+            'avatar_url': profile.get_avatar_url(),
+            'course': profile.course,
+            'year_of_study': profile.year_of_study,
+            'campus': profile.campus,
+            'mutual_followers': UserFollow.objects.filter(
+                following__in=following_ids,
+                follower=profile
+            ).count()
+        } for profile in suggested_profiles]
+    })
+
+
+
+@login_required
+def report_post(request, post_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    post = get_object_or_404(Post, id=post_id)
+    report_type = request.POST.get('report_type')
+    description = request.POST.get('description', '')
+
+    if not report_type or report_type not in dict(Report.REPORT_TYPES):
+        return JsonResponse({'error': 'Invalid report type'}, status=400)
+
+    # Check if user has already reported this post
+    if Report.objects.filter(reporter=request.user, post=post).exists():
+        return JsonResponse({'error': 'You have already reported this post'}, status=400)
+
+    report = Report.objects.create(
+        reporter=request.user,
+        post=post,
+        report_type=report_type,
+        description=description,
+        status='pending'
+    )
+
+    return JsonResponse({
+        'message': 'Report submitted successfully',
+        'report_id': report.id
+    }, status=201)
+
+@login_required
+def report_comment(request, comment_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    comment = get_object_or_404(Comment, id=comment_id)
+    report_type = request.POST.get('report_type')
+    description = request.POST.get('description', '')
+
+    if not report_type or report_type not in dict(Report.REPORT_TYPES):
+        return JsonResponse({'error': 'Invalid report type'}, status=400)
+
+    # Create a new Report model for comments if you want to track them separately
+    # For now, we'll create a report against the parent post with additional context
+    if Report.objects.filter(reporter=request.user, post=comment.post).exists():
+        return JsonResponse({'error': 'You have already reported this content'}, status=400)
+
+    report = Report.objects.create(
+        reporter=request.user,
+        post=comment.post,  # Link to parent post
+        report_type=report_type,
+        description=f"Comment ID {comment.id}: {description}",  # Include comment context
+        status='pending'
+    )
+
+    return JsonResponse({
+        'message': 'Report submitted successfully',
+        'report_id': report.id
+    }, status=201)
 
 
 @login_required
