@@ -26,6 +26,8 @@ media/post_images/*
 media/qr_codes/*
 !media/qr_codes/.gitkeep
 staticfiles/
+media/poll_banner/*
+!media/poll_banner/.gitkeep
 static/collected/
 *.log
 

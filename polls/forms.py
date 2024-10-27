@@ -17,10 +17,13 @@ class PollForm(forms.ModelForm):
                 'id': 'id_description',
                 'placeholder': 'Enter poll description (optional)'  # Optional placeholder
             }),
-            'expiration_time': forms.DateTimeInput(attrs={'class': 'form-period', 'type': 'datetime-local'}),
+             'expiration_time': forms.DateTimeInput(attrs={
+                'class': 'form-control form-period',
+                'type': 'datetime-local'
+            }),
             'background_color': forms.TextInput(attrs={'class': 'form-image', 'type': 'color', 'id': 'background-color-picker',}),
-            'poll_type': forms.Select(attrs={'class': 'form-option'}),
-            'banner_image': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
+            'poll_type': forms.Select(attrs={'class': 'form-option', 'placeholder': 'Select an option'}),
+            'banner_image': forms.FileInput(attrs={'class': 'form-control-file', 'id': 'banner_image'}),
             'allow_expiration': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'multi_option': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'show_share_button': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
