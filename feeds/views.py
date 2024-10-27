@@ -1,16 +1,18 @@
+from datetime import datetime
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import F, Q, Prefetch
+from django.db.models import F, Q, Prefetch, Count
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.db import IntegrityError, transaction
-from .models import Post, Comment, PostView, PostLike
+from .models import Post, Comment, PostView, PostLike, Report
 from .forms import PostForm, CommentForm
+from profiles.models import Profile, UserFollow
 import logging
 
 logger = logging.getLogger(__name__)
@@ -404,11 +406,20 @@ def post_detail(request, post_id):
     """
     try:
         post = get_object_or_404(
-            Post.objects.select_related("user").prefetch_related(
+            Post.objects.select_related("user", "user__profile").prefetch_related(
                 Prefetch(
                     "comments",
-                    queryset=Comment.objects.select_related("user")
-                    .prefetch_related("replies")
+                    queryset=Comment.objects.select_related("user", "user__profile")
+                    .prefetch_related(
+                        "likes",
+                        Prefetch(
+                            "replies",
+                            queryset=Comment.objects.select_related(
+                                "user", "user__profile"
+                            ).prefetch_related("likes"),
+                        ),
+                    )
+                    .filter(parent=None)
                     .order_by("-created_at"),
                 ),
                 "likes",
@@ -425,46 +436,185 @@ def post_detail(request, post_id):
             lambda: increment_view_count.delay(post.id, request.user.id)
         )
 
-        return JsonResponse(
-            {
-                "status": "success",
-                "post": {
-                    "id": post.id,
-                    "content": post.content,
-                    "user": {"id": post.user.id, "username": post.user.username},
-                    "created_at": post.created_at.isoformat(),
-                    "image_url": post.image.url if post.image else None,
-                    "video_url": post.video.url if post.video else None,
-                    "likes_count": post.likes_count,
-                    "views_count": post.views_count,
-                    "comments": [
-                        {
-                            "id": comment.id,
-                            "content": comment.content,
-                            "user": {
-                                "id": comment.user.id,
-                                "username": comment.user.username,
-                            },
-                            "created_at": comment.created_at.isoformat(),
-                            "likes_count": comment.likes_count,
-                        }
-                        for comment in post.comments.filter(parent=None)
-                    ],
-                    "is_liked": request.user in post.likes.all(),
+        def serialize_comment(comment):
+            return {
+                "id": comment.id,
+                "content": comment.content,
+                "created_at": comment.created_at.isoformat(),
+                "user": {
+                    "id": comment.user.id,
+                    "username": comment.user.username,
+                    "avatar_url": comment.user.profile.get_avatar_url(),
+                    "is_online": comment.user.profile.is_online,
+                    "was_recently_online": comment.user.profile.was_recently_online(),
                 },
+                "likes_count": comment.likes_count,
+                "is_liked": request.user in comment.likes.all(),
+                "replies_count": comment.replies.count(),
+                "replies": (
+                    [serialize_comment(reply) for reply in comment.replies.all()]
+                    if comment.replies.exists()
+                    else []
+                ),
             }
-        )
+
+        response_data = {
+            "status": "success",
+            "post": {
+                "id": post.id,
+                "content": post.content,
+                "user": {
+                    "id": post.user.id,
+                    "username": post.user.username,
+                    "avatar_url": post.user.profile.get_avatar_url(),
+                    "is_online": post.user.profile.is_online,
+                    "was_recently_online": post.user.profile.was_recently_online(),
+                    "student_id": post.user.profile.student_id,
+                    "course": post.user.profile.course,
+                },
+                "created_at": post.created_at.isoformat(),
+                "image_url": post.image.url if post.image else None,
+                "video_url": post.video.url if post.video else None,
+                "likes_count": post.likes_count,
+                "views_count": post.views_count,
+                "comments_count": post.comments.filter(parent=None).count(),
+                "is_liked": request.user in post.likes.all(),
+                "is_owner": post.user == request.user,
+                "comments": [
+                    serialize_comment(comment) for comment in post.comments.all()
+                ],
+            },
+        }
+
+        return JsonResponse(response_data)
+
     except Exception as e:
         logger.error(f"Error in post_detail: {str(e)}")
         return JsonResponse(
             {"status": "error", "message": "Error retrieving post"}, status=500
         )
 
-
 @login_required
 def suggested_users(request):
-    # Placeholder response
-    return JsonResponse({"users": []})  # Empty list for now
+    user_profile = request.user.profile
+    
+    # Get IDs of users already being followed
+    following_ids = user_profile.following.values_list('id', flat=True)
+    
+    # Base queryset excluding the user themselves and users they already follow
+    base_qs = Profile.objects.exclude(
+        Q(user=request.user) | Q(id__in=following_ids)
+    )
+
+    # Find users with similar attributes (same campus, course, year of study)
+    similar_users = base_qs.filter(
+        Q(campus=user_profile.campus) |
+        Q(course=user_profile.course) |
+        Q(year_of_study=user_profile.year_of_study)
+    ).distinct()
+
+    # Find users followed by people the user follows (mutual connections)
+    mutual_connections = base_qs.filter(
+        followers__in=following_ids
+    ).annotate(
+        mutual_count=Count('followers')
+    )
+
+    # Find active users based on recent posts and engagement
+    active_users = base_qs.filter(
+        user__post__created_at__gte=timezone.now() - datetime.timedelta(days=30)
+    ).annotate(
+        post_count=Count('user__post')
+    ).filter(post_count__gt=0)
+
+    # Combine and prioritize suggestions
+    suggested = list(similar_users[:5]) + list(mutual_connections[:5]) + list(active_users[:5])
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_suggested = []
+    for profile in suggested:
+        if profile.id not in seen:
+            seen.add(profile.id)
+            unique_suggested.append(profile)
+
+    # Limit to top 10 suggestions
+    suggested_profiles = unique_suggested[:10]
+
+    return JsonResponse({
+        'users': [{
+            'id': profile.user.id,
+            'username': profile.user.username,
+            'avatar_url': profile.get_avatar_url(),
+            'course': profile.course,
+            'year_of_study': profile.year_of_study,
+            'campus': profile.campus,
+            'mutual_followers': UserFollow.objects.filter(
+                following__in=following_ids,
+                follower=profile
+            ).count()
+        } for profile in suggested_profiles]
+    })
+
+
+
+@login_required
+def report_post(request, post_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    post = get_object_or_404(Post, id=post_id)
+    report_type = request.POST.get('report_type')
+    description = request.POST.get('description', '')
+
+    if not report_type or report_type not in dict(Report.REPORT_TYPES):
+        return JsonResponse({'error': 'Invalid report type'}, status=400)
+
+    # Check if user has already reported this post
+    if Report.objects.filter(reporter=request.user, post=post).exists():
+        return JsonResponse({'error': 'You have already reported this post'}, status=400)
+
+    report = Report.objects.create(
+        reporter=request.user,
+        post=post,
+        report_type=report_type,
+        description=description,
+        status='pending'
+    )
+
+    return JsonResponse({
+        'message': 'Report submitted successfully',
+        'report_id': report.id
+    }, status=201)
+
+@login_required
+def report_comment(request, comment_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    comment = get_object_or_404(Comment, id=comment_id)
+    report_type = request.POST.get('report_type')
+    description = request.POST.get('description', '')
+
+    if not report_type or report_type not in dict(Report.REPORT_TYPES):
+        return JsonResponse({'error': 'Invalid report type'}, status=400)
+
+    # Create a new Report model for comments if you want to track them separately
+    # For now, we'll create a report against the parent post with additional context
+    if Report.objects.filter(reporter=request.user, post=comment.post).exists():
+        return JsonResponse({'error': 'You have already reported this content'}, status=400)
+
+    report = Report.objects.create(
+        reporter=request.user,
+        post=comment.post,  # Link to parent post
+        report_type=report_type,
+        description=f"Comment ID {comment.id}: {description}",  # Include comment context
+        status='pending'
+    )
+
+    return JsonResponse({
+        'message': 'Report submitted successfully',
+        'report_id': report.id
+    }, status=201)
 
 
 @login_required
@@ -593,3 +743,39 @@ def post_engagement(request, post_id, engagement_type):
             "current_page": page_obj.number,
         }
     )
+
+@login_required
+def like_comment(request, comment_id):
+    if request.method == 'POST':
+        comment = get_object_or_404(Comment, id=comment_id)
+        # Assuming you want to like a comment by the user making the request
+        user = request.user
+        
+        # Check if the user has already liked the comment
+        if user in comment.likes.all():
+            return JsonResponse({'message': 'You have already liked this comment.'}, status=400)
+        
+        # Like the comment
+        comment.likes.add(user)
+        comment.likes_count += 1
+        comment.save()
+        
+        return JsonResponse({'message': 'Comment liked successfully.', 'likes_count': comment.likes_count})
+
+@login_required
+def delete_comment(request, comment_id):
+    if request.method == 'DELETE':
+        comment = get_object_or_404(Comment, id=comment_id)
+        
+        # Check if the user is the owner of the comment
+        if comment.user != request.user:
+            return JsonResponse({'message': 'You do not have permission to delete this comment.'}, status=403)
+        
+        # Delete the comment
+        comment.delete()
+        
+        # Update the post's comments count
+        Post.objects.filter(id=comment.post.id).update(comments_count=F('comments_count') - 1)
+        
+        return JsonResponse({'message': 'Comment deleted successfully.'})
+

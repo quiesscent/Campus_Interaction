@@ -6,7 +6,7 @@ from django.core.validators import FileExtensionValidator
 
 def validate_file_size(value):
     filesize = value.size
-    if filesize > 10 * 1024 * 1024:  # 10MB limit
+    if filesize > 20 * 1024 * 1024:  # 20MB limit
         raise ValidationError("Maximum file size is 10MB")
 
 class Post(models.Model):
@@ -110,6 +110,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     likes_count = models.PositiveIntegerField(default=0)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
 
     class Meta:
         indexes = [

@@ -1,46 +1,50 @@
 # Python cache files
 __pycache__/
 *.py[cod]
-**/__pycache__/   # Ignore all __pycache__ folders in any subdirectory
+**/__pycache__/
 *.pyo
 
 # Virtual environment
 venv/
 env/
-*.venv/
+.env/
+.venv/
+ENV/
 
 # Django-specific
-db.sqlite3          # SQLite database file
-*.sqlite3           # Ignore any SQLite database files
-*/migrations/*.py   # Ignore all migration files, but keep the migrations folders
-!*/migrations/__init__.py   # Allow __init__.py in migrations to remain tracked
+*.sqlite3
+db.sqlite3
+*/migrations/*
+!*/migrations/
+!*/migrations/__init__.py
 
 # Media and Static files
-media/              # Uploaded media files
-staticfiles/        # Django static files directory
-static/             # Static files collected
-*.log               # Log files
-media/qr_codes
+media/*
+!media/.gitkeep
+media/post_images/*
+!media/post_images/.gitkeep
+media/qr_codes/*
+!media/qr_codes/.gitkeep
+staticfiles/
+static/collected/
+*.log
 
 # Environment variables
-*.env               # Environment variable files (like settings)
-**/.env             # All .env files, including those in subdirectories
+.env
+**/.env
+.env.local
+.env.*.local
 
 # IDE specific
-.vscode/            # VSCode settings
-.idea/              # PyCharm/IntelliJ settings
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
 
 # Temporary files
-*.bak               # Backup files
-*.swp               # vi/vim swap files
+*.bak
+*.swp
 *.swo
-.DS_Store           # macOS file
-Thumbs.db           # Windows file
-db.sqlite3
-feeds/migrations/0001_initial.py
-marketplace/migrations/0001_initial.py
-media/post_images/
-messaging/migrations/0001_initial.py
-notifications/migrations/0001_initial.py
-profiles/migrations/0001_initial.py
-profiles/migrations/0002_userfollow_profile_following_and_more.py
+.DS_Store
+Thumbs.db
+*~
