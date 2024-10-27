@@ -387,7 +387,10 @@ def increment_view_count(request, post_id):
             )
         except Exception as e:
             logger.error(f"Error in increment_view_count: {str(e)}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            return JsonResponse(
+                {"status": "error", "message": "An internal error has occurred."},
+                status=500,
+            )
 
     return JsonResponse({"status": "success", "message": "View already counted"})
 
@@ -494,41 +497,42 @@ def post_detail(request, post_id):
             {"status": "error", "message": "Error retrieving post"}, status=500
         )
 
+
 @login_required
 def suggested_users(request):
     user_profile = request.user.profile
-    
+
     # Get IDs of users already being followed
-    following_ids = user_profile.following.values_list('id', flat=True)
-    
+    following_ids = user_profile.following.values_list("id", flat=True)
+
     # Base queryset excluding the user themselves and users they already follow
-    base_qs = Profile.objects.exclude(
-        Q(user=request.user) | Q(id__in=following_ids)
-    )
+    base_qs = Profile.objects.exclude(Q(user=request.user) | Q(id__in=following_ids))
 
     # Find users with similar attributes (same campus, course, year of study)
     similar_users = base_qs.filter(
-        Q(campus=user_profile.campus) |
-        Q(course=user_profile.course) |
-        Q(year_of_study=user_profile.year_of_study)
+        Q(campus=user_profile.campus)
+        | Q(course=user_profile.course)
+        | Q(year_of_study=user_profile.year_of_study)
     ).distinct()
 
     # Find users followed by people the user follows (mutual connections)
-    mutual_connections = base_qs.filter(
-        followers__in=following_ids
-    ).annotate(
-        mutual_count=Count('followers')
+    mutual_connections = base_qs.filter(followers__in=following_ids).annotate(
+        mutual_count=Count("followers")
     )
 
     # Find active users based on recent posts and engagement
-    active_users = base_qs.filter(
-        user__post__created_at__gte=timezone.now() - datetime.timedelta(days=30)
-    ).annotate(
-        post_count=Count('user__post')
-    ).filter(post_count__gt=0)
+    active_users = (
+        base_qs.filter(
+            user__post__created_at__gte=timezone.now() - datetime.timedelta(days=30)
+        )
+        .annotate(post_count=Count("user__post"))
+        .filter(post_count__gt=0)
+    )
 
     # Combine and prioritize suggestions
-    suggested = list(similar_users[:5]) + list(mutual_connections[:5]) + list(active_users[:5])
+    suggested = (
+        list(similar_users[:5]) + list(mutual_connections[:5]) + list(active_users[:5])
+    )
     # Remove duplicates while preserving order
     seen = set()
     unique_suggested = []
@@ -540,81 +544,87 @@ def suggested_users(request):
     # Limit to top 10 suggestions
     suggested_profiles = unique_suggested[:10]
 
-    return JsonResponse({
-        'users': [{
-            'id': profile.user.id,
-            'username': profile.user.username,
-            'avatar_url': profile.get_avatar_url(),
-            'course': profile.course,
-            'year_of_study': profile.year_of_study,
-            'campus': profile.campus,
-            'mutual_followers': UserFollow.objects.filter(
-                following__in=following_ids,
-                follower=profile
-            ).count()
-        } for profile in suggested_profiles]
-    })
-
+    return JsonResponse(
+        {
+            "users": [
+                {
+                    "id": profile.user.id,
+                    "username": profile.user.username,
+                    "avatar_url": profile.get_avatar_url(),
+                    "course": profile.course,
+                    "year_of_study": profile.year_of_study,
+                    "campus": profile.campus,
+                    "mutual_followers": UserFollow.objects.filter(
+                        following__in=following_ids, follower=profile
+                    ).count(),
+                }
+                for profile in suggested_profiles
+            ]
+        }
+    )
 
 
 @login_required
 def report_post(request, post_id):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
     post = get_object_or_404(Post, id=post_id)
-    report_type = request.POST.get('report_type')
-    description = request.POST.get('description', '')
+    report_type = request.POST.get("report_type")
+    description = request.POST.get("description", "")
 
     if not report_type or report_type not in dict(Report.REPORT_TYPES):
-        return JsonResponse({'error': 'Invalid report type'}, status=400)
+        return JsonResponse({"error": "Invalid report type"}, status=400)
 
     # Check if user has already reported this post
     if Report.objects.filter(reporter=request.user, post=post).exists():
-        return JsonResponse({'error': 'You have already reported this post'}, status=400)
+        return JsonResponse(
+            {"error": "You have already reported this post"}, status=400
+        )
 
     report = Report.objects.create(
         reporter=request.user,
         post=post,
         report_type=report_type,
         description=description,
-        status='pending'
+        status="pending",
     )
 
-    return JsonResponse({
-        'message': 'Report submitted successfully',
-        'report_id': report.id
-    }, status=201)
+    return JsonResponse(
+        {"message": "Report submitted successfully", "report_id": report.id}, status=201
+    )
+
 
 @login_required
 def report_comment(request, comment_id):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
     comment = get_object_or_404(Comment, id=comment_id)
-    report_type = request.POST.get('report_type')
-    description = request.POST.get('description', '')
+    report_type = request.POST.get("report_type")
+    description = request.POST.get("description", "")
 
     if not report_type or report_type not in dict(Report.REPORT_TYPES):
-        return JsonResponse({'error': 'Invalid report type'}, status=400)
+        return JsonResponse({"error": "Invalid report type"}, status=400)
 
     # Create a new Report model for comments if you want to track them separately
     # For now, we'll create a report against the parent post with additional context
     if Report.objects.filter(reporter=request.user, post=comment.post).exists():
-        return JsonResponse({'error': 'You have already reported this content'}, status=400)
+        return JsonResponse(
+            {"error": "You have already reported this content"}, status=400
+        )
 
     report = Report.objects.create(
         reporter=request.user,
         post=comment.post,  # Link to parent post
         report_type=report_type,
         description=f"Comment ID {comment.id}: {description}",  # Include comment context
-        status='pending'
+        status="pending",
     )
 
-    return JsonResponse({
-        'message': 'Report submitted successfully',
-        'report_id': report.id
-    }, status=201)
+    return JsonResponse(
+        {"message": "Report submitted successfully", "report_id": report.id}, status=201
+    )
 
 
 @login_required
@@ -744,38 +754,51 @@ def post_engagement(request, post_id, engagement_type):
         }
     )
 
+
 @login_required
 def like_comment(request, comment_id):
-    if request.method == 'POST':
+    if request.method == "POST":
         comment = get_object_or_404(Comment, id=comment_id)
         # Assuming you want to like a comment by the user making the request
         user = request.user
-        
+
         # Check if the user has already liked the comment
         if user in comment.likes.all():
-            return JsonResponse({'message': 'You have already liked this comment.'}, status=400)
-        
+            return JsonResponse(
+                {"message": "You have already liked this comment."}, status=400
+            )
+
         # Like the comment
         comment.likes.add(user)
         comment.likes_count += 1
         comment.save()
-        
-        return JsonResponse({'message': 'Comment liked successfully.', 'likes_count': comment.likes_count})
+
+        return JsonResponse(
+            {
+                "message": "Comment liked successfully.",
+                "likes_count": comment.likes_count,
+            }
+        )
+
 
 @login_required
 def delete_comment(request, comment_id):
-    if request.method == 'DELETE':
+    if request.method == "DELETE":
         comment = get_object_or_404(Comment, id=comment_id)
-        
+
         # Check if the user is the owner of the comment
         if comment.user != request.user:
-            return JsonResponse({'message': 'You do not have permission to delete this comment.'}, status=403)
-        
+            return JsonResponse(
+                {"message": "You do not have permission to delete this comment."},
+                status=403,
+            )
+
         # Delete the comment
         comment.delete()
-        
-        # Update the post's comments count
-        Post.objects.filter(id=comment.post.id).update(comments_count=F('comments_count') - 1)
-        
-        return JsonResponse({'message': 'Comment deleted successfully.'})
 
+        # Update the post's comments count
+        Post.objects.filter(id=comment.post.id).update(
+            comments_count=F("comments_count") - 1
+        )
+
+        return JsonResponse({"message": "Comment deleted successfully."})
