@@ -1,4 +1,3 @@
-{# create_event.html #}
 {% extends 'base.html' %}
 
 {% block title %}Create Event{% endblock %}
@@ -19,6 +18,21 @@
     .hidden {
         display: none;
     }
+    /* Add styling for sections */
+    .section-title {
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        color: #007bff;
+    }
+    .form-section {
+        padding: 1rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        margin-bottom: 1.5rem;
+        background-color: #f9f9f9;
+    }
 </style>
 {% endblock %}
 
@@ -29,48 +43,39 @@
             <h2 class="text-center mb-4">Create Event</h2>
             <form method="POST" enctype="multipart/form-data" id="event-form" class="needs-validation" novalidate>
                 {% csrf_token %}
-
+                
                 <!-- Event Type Selection -->
                 <div class="mb-3">
                     <label for="id_event_type" class="form-label">Event Type</label>
                     {{ form.event_type|add_class:"form-control" }}
                     <div class="invalid-feedback">{{ form.event_type.errors }}</div>
                 </div>
-
-                <!-- Title Field -->
-                <div class="mb-3">
-                    <label for="id_title" class="form-label">Title</label>
-                    {{ form.title|add_class:"form-control" }}
-                    <div class="invalid-feedback">{{ form.title.errors }}</div>
-                </div>
                 
-                <!-- Description Field -->
-                <div class="mb-3">
-                    <label for="id_description" class="form-label">Description</label>
-                    {{ form.description|add_class:"form-control" }}
-                    <div class="invalid-feedback">{{ form.description.errors }}</div>
-                </div>
-                
-                <!-- Physical Event Fields -->
-                <div id="physical-fields">
-                    <!-- Location Field -->
+                <!-- Common Fields -->
+                <div class="section-title">Event Details</div>
+                <div class="form-section">
                     <div class="mb-3">
-                        <label for="id_location" class="form-label">Location</label>
-                        {{ form.location|add_class:"form-control" }}
-                        <div class="invalid-feedback">{{ form.location.errors }}</div>
+                        <label for="id_title" class="form-label">Title</label>
+                        {{ form.title|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.title.errors }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        {{ form.description|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.description.errors }}</div>
                     </div>
                 </div>
-
+                
                 <!-- Text-based Event Fields -->
-                <div id="text-fields" class="hidden">
-                    <!-- Content Field -->
+                <div id="text-fields" class="form-section hidden">
+                    <div class="section-title">Text-based Event Details</div>
                     <div class="mb-3">
                         <label for="id_content" class="form-label">Event Content</label>
                         {{ form.content|add_class:"form-control content-editor" }}
                         <div class="invalid-feedback">{{ form.content.errors }}</div>
                     </div>
 
-                    <!-- Attachments Field -->
                     <div class="mb-3">
                         <label for="id_attachments" class="form-label">Attachments</label>
                         {{ form.attachments|add_class:"form-control" }}
@@ -80,30 +85,38 @@
                 </div>
 
                 <!-- Common Fields -->
-                <div class="mb-3">
-                    <label for="id_start_date" class="form-label">Start Date</label>
-                    {{ form.start_date|add_class:"form-control" }}
-                    <div class="invalid-feedback">{{ form.start_date.errors }}</div>
+                <div class="section-title">Schedule and Settings</div>
+                <div class="form-section">
+                    <div class="mb-3">
+                        <label for="id_start_date" class="form-label">Start Date</label>
+                        {{ form.start_date|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.start_date.errors }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_end_date" class="form-label">End Date</label>
+                        {{ form.end_date|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.end_date.errors }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_max_participants" class="form-label">Max Participants</label>
+                        {{ form.max_participants|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.max_participants.errors }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_location" class="form-label">Location</label>
+                        {{ form.location|add_class:"form-control" }}
+                        <div class="invalid-feedback">{{ form.location.errors }}</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_public|add_class:"form-check-input" }}
+                        <label class="form-check-label" for="id_is_public">Is Public?</label>
+                        <div class="invalid-feedback">{{ form.is_public.errors }}</div>
+                    </div>
                 </div>
                 
-                <div class="mb-3">
-                    <label for="id_end_date" class="form-label">End Date</label>
-                    {{ form.end_date|add_class:"form-control" }}
-                    <div class="invalid-feedback">{{ form.end_date.errors }}</div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="id_max_participants" class="form-label">Max Participants</label>
-                    {{ form.max_participants|add_class:"form-control" }}
-                    <div class="invalid-feedback">{{ form.max_participants.errors }}</div>
-                </div>
-                
-                <div class="mb-3 form-check">
-                    {{ form.is_public|add_class:"form-check-input" }}
-                    <label class="form-check-label" for="id_is_public">Is Public?</label>
-                    <div class="invalid-feedback">{{ form.is_public.errors }}</div>
-                </div>
-                
+                <!-- Image Upload -->
                 <div class="mb-4">
                     <label for="id_image" class="form-label">Cover Image</label>
                     <input type="file" id="id_image" name="image" class="form-control" accept="image/*">

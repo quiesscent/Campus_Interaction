@@ -41,7 +41,7 @@ class Event(models.Model):
     category = models.ForeignKey(EventCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
     title = models.CharField(max_length=200, help_text="Enter the event title.")
     description = models.TextField(help_text="Event description")
-    event_type = models.CharField(max_length=10, choices=EVENT_TYPE_CHOICES, default='physical')
+    event_type = models.CharField(max_length=10, choices=[('text', 'Text'), ('physical', 'Physical')], default='physical')
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     location = models.CharField(max_length=200, help_text="Event location (optional for text-based events).", blank=True, null=True)
