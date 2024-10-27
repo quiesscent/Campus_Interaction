@@ -1,0 +1,113 @@
+name: Enforce GitIgnore Rules
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  check-ignored-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyGithub
+
+      - name: Check for ignored files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > check_ignored.py << 'EOF'
+          import os
+          import sys
+          import subprocess
+          from github import Github
+
+          def get_changed_files():
+              if os.environ.get('GITHUB_EVENT_NAME') == 'pull_request':
+                  # For pull requests, check files in the PR
+                  g = Github(os.environ['GITHUB_TOKEN'])
+                  repo = g.get_repo(os.environ['GITHUB_REPOSITORY'])
+                  pr_number = int(os.environ['GITHUB_REF'].split('/')[-2])
+                  pr = repo.get_pull(pr_number)
+                  return [f.filename for f in pr.get_files()]
+              else:
+                  # For direct pushes, get changed files from git
+                  result = subprocess.run(['git', 'diff', '--name-only', 'HEAD^', 'HEAD'], 
+                                       capture_output=True, text=True)
+                  return result.stdout.splitlines()
+
+          def is_file_ignored(file_path):
+              result = subprocess.run(['git', 'check-ignore', file_path], 
+                                   capture_output=True, text=True)
+              return result.returncode == 0
+
+          def main():
+              changed_files = get_changed_files()
+              ignored_files = []
+
+              for file in changed_files:
+                  if is_file_ignored(file):
+                      ignored_files.append(file)
+
+              if ignored_files:
+                  print("❌ Error: Attempted to commit ignored files:")
+                  for file in ignored_files:
+                      print(f"  - {file}")
+                  sys.exit(1)
+              else:
+                  print("✅ No ignored files found in commit")
+                  sys.exit(0)
+
+          if __name__ == '__main__':
+              main()
+          EOF
+
+          python check_ignored.py
+
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - << 'EOF'
+          import os
+          from github import Github
+
+          g = Github(os.environ['GITHUB_TOKEN'])
+          repo = g.get_repo(os.environ['GITHUB_REPOSITORY'])
+          pr_number = int(os.environ['GITHUB_REF'].split('/')[-2])
+          pr = repo.get_pull(pr_number)
+
+          comment = """⚠️ **Warning: Ignored Files Detected**
+
+          This PR contains files that are listed in .gitignore. Please remove these files from your PR:
+
+          To fix this:
+          1. Remove the ignored files using: `git rm --cached <file>`
+          2. Commit the changes
+          3. Push the updates
+
+          If you believe this is a mistake, please check the .gitignore configuration."""
+
+          pr.create_issue_comment(comment)
+          EOF

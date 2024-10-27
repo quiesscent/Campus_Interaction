@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.core.files.base import ContentFile
 from django.conf import settings
 import qrcode
+from datetime import timedelta
 from io import BytesIO
 
 class Poll(models.Model):
@@ -15,16 +16,15 @@ class Poll(models.Model):
 
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     poll_type = models.CharField(max_length=10, choices=POLL_TYPE_CHOICES, default='opinion')
     background_color = models.CharField(max_length=7, default="#ffffff")  # HEX color format
     show_share_button = models.BooleanField(default=True)
-    poll_language = models.CharField(max_length=20, default="English")
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     view_count = models.PositiveIntegerField(default=0)  # Track views
     expiration_time = models.DateTimeField(null=True, blank=True)
-    allow_expiration = models.BooleanField(default=True)
+    allow_expiration = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
     multi_option = models.BooleanField(default=False)  # New field for multiple selection
@@ -72,11 +72,16 @@ class Option(models.Model):
     def __str__(self):
         return self.option_text
 
-class Vote(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    poll = models.ForeignKey(Poll, related_name='votes', on_delete=models.CASCADE)
-    option = models.ForeignKey(Option, related_name='votes', on_delete=models.CASCADE)
-    voted_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('user', 'poll')  
+class Vote(models.Model):
+    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+    option = models.ForeignKey(Option, related_name='votes', on_delete=models.CASCADE)  # Set related_name here
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveIntegerField(default=1)  # Start attempts at 1 for the first vote
+
+
+    def can_vote_again(self):
+        """Returns True if the user has fewer than 2 cancel attempts and the vote is within 30 minutes."""
+        time_limit = timezone.now() - timedelta(minutes=30)
+        return self.attempts < 2 and self.created_at >= time_limit
