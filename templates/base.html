@@ -76,6 +76,9 @@
                             Feeds
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'events:event_list' %}"><i class="fas fa-calendar-alt"></i> All Events</a>
+                    </li>
                     <li class="nav-item ms-2">
                         <form method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
