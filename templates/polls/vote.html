@@ -1,4 +1,4 @@
-{% extends 'polls/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Polls - Create Poll{% endblock %}
 
@@ -190,7 +190,7 @@ label{
         {% if not user_vote %}
             <button type="submit">Submit</button>
         {% endif %}
-        <a href="{% url 'poll_results' poll.id %}" class="view_result">View Results</a>
+        <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
         <button id="share-button">Share</button>
     </div>
     </form>

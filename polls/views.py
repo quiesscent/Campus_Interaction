@@ -8,8 +8,49 @@ from datetime import timedelta
 
 
 def base_poll(request):
-    polls = Poll.objects.prefetch_related('options').all()
-    return render(request, 'polls/base.html', {'polls': polls})
+    query = request.GET.get('query', '')
+    poll_type = request.GET.get('poll_type', '')
+
+    polls = Poll.objects.prefetch_related('options').order_by('-created_at')
+    no_polls_message = None
+
+    if query:
+        polls = polls.filter(
+            title__icontains=query
+        ) | polls.filter(
+            description__icontains=query
+        )
+
+        if not polls.exists():
+            no_polls_message = f"No polls found using the keyword: '{query}'"
+
+    if poll_type:
+        polls = polls.filter(poll_type=poll_type)
+
+    current_time = timezone.now()
+
+    # Debugging output
+    print(f"Current time: {current_time}")
+
+    # Adjusting the query to better visualize issues
+    popular_polls = Poll.objects.filter(
+        view_count__gt=10
+    ).exclude(
+        expiration_time__lt=current_time
+    ).order_by('-view_count')
+
+    # Log details about popular polls
+    for poll in popular_polls:
+        print(f"Poll: {poll.title}, Views: {poll.view_count}, Expiration: {poll.expiration_time}, Allow Expiration: {poll.allow_expiration}")
+
+    return render(request, 'polls/all_polls.html', {
+        'polls': polls,
+        'query': query,
+        'poll_type': poll_type,
+        'no_polls_message': no_polls_message,
+        'popular_polls': popular_polls
+    })
+
 
 def add_polls(request):
     if request.method == 'POST':
@@ -41,7 +82,7 @@ def add_polls(request):
                         option.is_correct = option_form.cleaned_data.get('is_correct', False)
                     option.save()
 
-            return redirect('vote_poll', poll_id=poll.id) 
+            return redirect('polls:vote_poll', poll_id=poll.id) 
         else:
             print("Poll Form Errors:", poll_form.errors)
             print("Option Formset Errors:", option_formset.errors)
@@ -60,15 +101,16 @@ def add_polls(request):
 def user_dashboard(request):
     polls = Poll.objects.filter(creator=request.user)
     return render(request, "polls/user_dashboard.html", {
-        'polls': polls,
+        'polls': polls
     })
+
 
 @login_required
 def delete_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
     if request.method == 'POST':
         poll.delete()
-        return redirect('user_dashboard') 
+        return redirect('polls:user_dashboard') 
 
 @login_required
 def edit_poll(request, poll_id):
