@@ -10,7 +10,7 @@ from django.core.files.storage import default_storage
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-
+from django.views.decorators.http import require_http_methods
 from profiles.models import Profile
 from .models import Event, EventRegistration, Comment, EventReaction
 from .forms import EventForm, CommentForm, EventRegistrationForm
@@ -113,8 +113,8 @@ def add_comment(request, event_id):
     
     if request.method == 'POST':
         form = CommentForm(request.POST)
-        parent_comment_id = request.POST.get('parent_comment_id')
-        
+        parent_comment_id = request.POST.get('parent_comment_id')  # Check for reply
+
         if form.is_valid():
             comment = form.save(commit=False)
             comment.event = event
@@ -123,13 +123,13 @@ def add_comment(request, event_id):
             if parent_comment_id:
                 parent_comment = Comment.objects.get(id=parent_comment_id)
                 comment.parent = parent_comment
-                
+            
             comment.save()
             messages.success(request, "Comment added successfully!")
-            return redirect('event_detail', event_id=event_id)
+            return redirect('events:event_detail', event_id=event_id)
     
     messages.error(request, "Failed to add comment.")
-    return redirect('event_detail', event_id=event_id)
+    return redirect('events:event_detail', event_id=event_id)
 
 @login_required
 @require_POST
@@ -137,7 +137,7 @@ def toggle_comment_like(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     user_profile = request.user.profile
     
-    if user_profile in comment.likes.all():
+    if user_profile in comment.likes.all():  # Check if user already liked the comment
         comment.likes.remove(user_profile)
         liked = False
     else:
@@ -151,20 +151,21 @@ def toggle_comment_like(request, comment_id):
     })
 
 @login_required
-@require_POST
+@require_http_methods(["POST", "DELETE"])
 @transaction.atomic
 def delete_event(request, event_id):
+    # Fetch the event or return 404 if it doesn't exist
     event = get_object_or_404(Event, id=event_id)
 
     # Permission check
     if event.organizer.user != request.user and not request.user.is_staff:
         return JsonResponse({"status": "error", "message": "Permission denied"}, status=403)
 
-    # Attempt to delete image
+    # Attempt to delete image if exists
     image_path = event.image.path if event.image else None
-    event.delete()
+    event.delete()  # Delete event from the database
 
-    # Delete media file if exists
+    # Delete associated media file if it exists
     if image_path:
         try:
             default_storage.delete(image_path)
@@ -175,6 +176,7 @@ def delete_event(request, event_id):
                 "message": "Event deleted, but media file removal failed."
             }, status=500)
 
+    # Use Django messages for UI feedback and return JSON response
     messages.success(request, "Event deleted successfully.")
     return JsonResponse({"status": "success", "message": "Event deleted successfully."})
 
