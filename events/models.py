@@ -77,21 +77,20 @@ class EventRegistration(models.Model):
         if self.event.max_participants and EventRegistration.objects.filter(event=self.event).count() >= self.event.max_participants:
             raise ValueError("Cannot register: event has reached maximum participants")
         super().save(*args, **kwargs)
-
 class Comment(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='user_comments')  # Use Profile here
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='user_comments')  # Profile is used here
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
-    likes = models.ManyToManyField(Profile, through='CommentLike', related_name='liked_comments')  # Use Profile here
+    likes = models.ManyToManyField(Profile, through='CommentLike', related_name='liked_comments')  # Profile is used here
     level = models.PositiveIntegerField(default=0)
     is_edited = models.BooleanField(default=False)
-    path = models.TextField(editable=False, db_index=True, default="")  # Hierarchical path for ordering
+    path = models.TextField(editable=False, db_index=True, default="")  # Used for ordering hierarchical comments
 
     class Meta:
-        ordering = ['path']
+        ordering = ['path']  # Orders by hierarchical path for displaying replies under parent comments
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Only set path for new comments
@@ -102,12 +101,12 @@ class Comment(models.Model):
         super().save(*args, **kwargs)
 
 class CommentLike(models.Model):
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)  # Use Profile here
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)  # Profile is used here
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['user', 'comment']
+        unique_together = ['user', 'comment']  # Ensures one like per user-comment pair
 
     def __str__(self):
         return f"{self.user} likes {self.comment}"
