@@ -4,13 +4,13 @@
 {% load form_tags %}
 
 {% block extra_css %}
-    <style>
-        .hidden { display: none; }
-        .step { display: none; }
-        .active-step { display: block; }
-        .form-navigation { margin-top: 1.5rem; }
-        .section-title { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; color: #007bff; }
-    </style>
+<style>
+    .hidden { display: none; }
+    .step { display: none; }
+    .active-step { display: block; }
+    .form-navigation { margin-top: 1.5rem; }
+    .section-title { font-weight: bold; font-size: 1.2rem; margin-bottom: 1rem; color: #007bff; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -26,7 +26,7 @@
                     <div class="section-title">Step 1: Event Type and Basic Information</div>
                     <div class="mb-3">
                         <label for="id_event_type" class="form-label">Event Type</label>
-                        <select id="id_event_type" name="event_type" class="form-control">
+                        <select id="id_event_type" name="event_type" class="form-control" required>
                             <option value="physical">Physical Event</option>
                             <option value="text">Text-Based Event</option>
                         </select>
@@ -115,8 +115,28 @@
     document.addEventListener('DOMContentLoaded', function() {
         let currentStep = 1;
         const totalSteps = 3;
-        
-        // Step navigation
+
+        // Function to get today's date in "YYYY-MM-DDTHH:MM" format
+        const getFormattedTodayDateTime = () => {
+            const now = new Date();
+            now.setSeconds(0, 0); // Truncate seconds and milliseconds
+            return now.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+        };
+
+        // Set min date for start and end date fields
+        const startDateInput = document.getElementById('id_start_date');
+        const endDateInput = document.getElementById('id_end_date');
+        startDateInput.setAttribute('min', getFormattedTodayDateTime());
+
+        // Ensure end date is after start date
+        startDateInput.addEventListener('change', function() {
+            endDateInput.setAttribute('min', startDateInput.value);
+            if (endDateInput.value < startDateInput.value) {
+                endDateInput.value = ''; // Reset end date if it is before start date
+            }
+        });
+
+        // Step navigation function
         const showStep = (step) => {
             document.querySelectorAll('.step').forEach((el, index) => {
                 el.classList.toggle('active-step', index === step - 1);
@@ -125,7 +145,7 @@
             document.getElementById('next-btn').classList.toggle('hidden', step === totalSteps);
             document.getElementById('submit-btn').classList.toggle('hidden', step !== totalSteps);
         };
-        
+
         document.getElementById('next-btn').addEventListener('click', () => {
             if (currentStep < totalSteps) currentStep++;
             showStep(currentStep);
@@ -135,8 +155,8 @@
             if (currentStep > 1) currentStep--;
             showStep(currentStep);
         });
-        
-        // Initialize fields based on event type
+
+        // Event type fields toggle
         const toggleEventTypeFields = () => {
             const eventType = document.getElementById('id_event_type').value;
             document.getElementById('text-fields').style.display = eventType === 'text' ? 'block' : 'none';
@@ -159,6 +179,15 @@
                 reader.readAsDataURL(file);
             } else {
                 preview.innerHTML = '';
+            }
+        });
+
+        // Form validation on submit
+        document.getElementById('event-form').addEventListener('submit', function(event) {
+            if (endDateInput.value < startDateInput.value) {
+                event.preventDefault(); // Prevent form submission
+                alert("End date must be after start date.");
+                endDateInput.focus();
             }
         });
     });
