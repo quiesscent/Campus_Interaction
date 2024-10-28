@@ -74,7 +74,7 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 - [ ] **Forums & Communities** - Backend (Fidel)
 - [ ] **News Updates** - Full Stack (Mato)
 - [ ] **Maps** - Full Stack (Peter)
-- [ ] **Resource Sharing** - Full Stack (Samtech)
+- [✅] **Resource Sharing** - Full Stack (Samtech)
 - [ ] **Marketplace** - Full Stack (Victor)
 - [✅] **Student Profiles** - Full Stack (Fidel)
 
