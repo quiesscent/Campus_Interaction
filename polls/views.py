@@ -5,8 +5,9 @@ from .models import Poll, Option, Vote
 from .forms import PollForm, OptionFormSet
 from django.db.models import Q
 from datetime import timedelta
+import logging
 
-
+logger = logging.getLogger(__name__)
 def base_poll(request):
     query = request.GET.get('query', '')
     poll_type = request.GET.get('poll_type', '')
@@ -28,18 +29,12 @@ def base_poll(request):
         polls = polls.filter(poll_type=poll_type)
 
     current_time = timezone.now()
-
-    # Debugging output
     print(f"Current time: {current_time}")
-
-    # Adjusting the query to better visualize issues
     popular_polls = Poll.objects.filter(
         view_count__gt=10
     ).exclude(
         expiration_time__lt=current_time
     ).order_by('-view_count')
-
-    # Log details about popular polls
     for poll in popular_polls:
         print(f"Poll: {poll.title}, Views: {poll.view_count}, Expiration: {poll.expiration_time}, Allow Expiration: {poll.allow_expiration}")
 
@@ -55,54 +50,64 @@ def base_poll(request):
 def add_polls(request):
     if request.method == 'POST':
         poll_form = PollForm(request.POST, request.FILES)
-        option_formset = OptionFormSet(request.POST)
+        option_formset = OptionFormSet(request.POST, request.FILES)
 
-        # Check if the poll form and option formset are valid
         if poll_form.is_valid() and option_formset.is_valid():
-            # Save the poll form
             poll = poll_form.save(commit=False)
+
             if request.user.is_authenticated:
                 poll.creator = request.user
-            poll.save()
 
-            # Save banner_image if it exists
+            poll.save()  # Save the poll instance
+
+            # Save the banner image if it exists
             if 'banner_image' in request.FILES:
                 poll.banner_image = request.FILES['banner_image']
-            
+                poll.save()
+
+            # Generate unique link and QR code
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
 
-            # Iterate over each option form in the formset
+            # Saving options from the formset
             for option_form in option_formset:
-                if option_form.cleaned_data.get('option_text'):
+                if option_form.cleaned_data.get('option_text') or option_form.cleaned_data.get('option_image'):
                     option = option_form.save(commit=False)
                     option.poll = poll
-                    if poll.poll_type == 'question':
-                        option.is_correct = option_form.cleaned_data.get('is_correct', False)
+                    if 'option_image' in option_form.cleaned_data and option_form.cleaned_data['option_image']:
+                        option.option_image = option_form.cleaned_data['option_image']
                     option.save()
 
-            return redirect('polls:vote_poll', poll_id=poll.id) 
+            return redirect('polls:vote_poll', poll_id=poll.id)
         else:
-            print("Poll Form Errors:", poll_form.errors)
-            print("Option Formset Errors:", option_formset.errors)
+            logger.error("Poll Form Errors: %s", poll_form.errors)
+            logger.error("Option Formset Errors: %s", option_formset.errors)
+
+            # Check for specific formset errors and set a message
+            if option_formset.non_form_errors():
+                error_message = "At least two options are required."
+            else:
+                error_message = None
+
     else:
         poll_form = PollForm()
         option_formset = OptionFormSet(queryset=Option.objects.none())
+        error_message = None
 
     return render(request, "polls/add_polls.html", {
         'poll_form': poll_form,
         'option_formset': option_formset,
+        'error_message': error_message,  # Pass the error message to the template
     })
-
-
 
 @login_required
 def user_dashboard(request):
-    polls = Poll.objects.filter(creator=request.user)
+    polls = Poll.objects.filter(creator=request.user).order_by('-created_at')
     return render(request, "polls/user_dashboard.html", {
         'polls': polls
     })
+
 
 
 @login_required

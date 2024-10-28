@@ -253,3 +253,103 @@ label{
 </script>
 
 {% endblock %}
+
+
+.question-container {
+    margin-bottom: 20px;
+}
+.question-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.question-input input[type="text"] {
+    flex-grow: 1;
+    padding: 8px;
+    margin-right: 10px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+.question-input input[type="file"] {
+    display: none;
+}
+.upload-btn {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 4px;
+}
+.file-info {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #333;
+}
+.delete-btn {
+    color: red;
+    cursor: pointer;
+    margin-left: 10px;
+}
+#options-container {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    display: none;
+}
+#options-container label {
+    margin-right: 10px;
+}
+img.preview-image {
+    margin-top: 10px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+.button {
+    background-color: #2981d9;
+    color: white;
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+<div id="questions-container">
+
+
+    <div class="question-container">
+<label for="question-1"><b>Answer 1:</b></label>
+<div class="question-input">
+    <input type="text" name="questions[]" id="question-1" autocomplete="off" maxlength="200" placeholder="Enter the answer" required>
+    <label class="upload-btn">
+        <i class="fa-solid fa-image"></i>
+        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
+    </label>
+</div>
+
+<div class="file-info">
+    <img class="preview-image" style="display:none;" alt="Preview">
+    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
+</div>
+</div>
+
+
+
+<div class="question-container">
+<label for="question-2"><b>Answer 2:</b></label>
+<div class="question-input">
+    <input type="text" name="questions[]" id="question-2" autocomplete="off" maxlength="200" placeholder="Enter the answer">
+    <label class="upload-btn">
+        <i class="fa-solid fa-image"></i>
+        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
+    </label>
+</div>
+<div class="file-info">
+    <img class="preview-image" style="display:none;" alt="Preview">
+    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
+</div>
+</div>
+</div>

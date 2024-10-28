@@ -23,7 +23,7 @@ class Poll(models.Model):
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     view_count = models.PositiveIntegerField(default=0)  # Track views
-    expiration_time = models.DateTimeField(null=True, blank=True)
+    expiration_time = models.DateTimeField(null=True, blank=True) 
     allow_expiration = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
@@ -68,11 +68,13 @@ class Poll(models.Model):
 
 class Option(models.Model):
     poll = models.ForeignKey(Poll, related_name='options', on_delete=models.CASCADE)
-    option_text = models.CharField(max_length=100)
+    option_text = models.CharField(max_length=100, blank=True)  # Allow empty option_text
     is_correct = models.BooleanField(default=False)
+    option_image = models.ImageField(upload_to='option_images/', blank=True, null=True)  # Optional image field
 
     def __str__(self):
-        return self.option_text
+        return self.option_text or "Option without text"  # Return something if text is empty
+
 
 
 class Vote(models.Model):
