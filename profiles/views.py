@@ -8,6 +8,9 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth import logout
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def register(request):
@@ -101,7 +104,11 @@ def update_profile(request):
             {"status": "error", "message": "Invalid JSON data"}, status=400
         )
     except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        logging.error("An error occurred while updating profile: %s", str(e))
+        return JsonResponse(
+            {"status": "error", "message": "An internal error has occurred."},
+            status=500,
+        )
 
 
 @login_required
@@ -116,4 +123,9 @@ def delete_account(request):
             {"status": "success", "message": "Account deleted successfully"}
         )
     except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+        logger.error("An error occurred in update_profile: %s", str(e))
+        return JsonResponse(
+            {"status": "error", "message": "An internal error has occurred."},
+            status=500,
+        )

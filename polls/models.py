@@ -28,7 +28,9 @@ class Poll(models.Model):
     is_public = models.BooleanField(default=True)
     banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
     multi_option = models.BooleanField(default=False)  # New field for multiple selection
+    created_at = models.DateTimeField(auto_now_add=True)  # Automatically set to now when created
 
+    
     def is_active(self):
         """Checks if the poll is still active based on expiration time and allow_expiration."""
         if self.allow_expiration:
@@ -44,11 +46,11 @@ class Poll(models.Model):
 
     def get_absolute_url(self):
         """Returns the URL for the poll's detail view."""
-        return reverse('vote_poll', args=[str(self.id)])
+        return reverse('polls:vote_poll', args=[str(self.id)])
 
     def generate_unique_link(self):
         """Generates a unique link to the poll based on its absolute URL."""
-        self.link = f"{settings.SITE_URL}{self.get_absolute_url()}"
+        self.link = f"http://127.0.0.1:8000{self.get_absolute_url()}"
 
     def generate_qr_code(self):
         """Generates a QR code image for the poll's unique link."""

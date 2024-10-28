@@ -173,8 +173,7 @@ def delete_event(request, event_id):
             logger.error(f"Error deleting file {image_path}: {e}")
             return JsonResponse({
                 "status": "success",
-                "message": "Event deleted, but media file removal failed.",
-                "error": str(e),
+                "message": "Event deleted, but media file removal failed."
             }, status=500)
 
     # Use Django messages for UI feedback and return JSON response

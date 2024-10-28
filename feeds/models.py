@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import F
 from django.core.validators import FileExtensionValidator
 
+from forums.models import Forum
+
 def validate_file_size(value):
     filesize = value.size
     if filesize > 20 * 1024 * 1024:  # 20MB limit
@@ -11,6 +13,7 @@ def validate_file_size(value):
 
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    forum = models.ForeignKey(Forum, on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
     content = models.TextField(max_length=500)  # Increased for more flexibility
     image = models.ImageField(
         upload_to='post_images/%Y/%m/',  # Organized by date
