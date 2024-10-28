@@ -1,16 +1,14 @@
 {% extends 'base.html' %}
-
 {% block title %}Event Details{% endblock %}
-
 {% load event_filters %}
 
 {% block content %}
 <div class="container mt-5">
     <!-- Show delete button only for the event organizer -->
     {% if request.user == event.organizer.user %}
-    <button type="button" class="btn btn-danger mt-3 delete-event-btn" data-event-id="{{ event.id }}">Delete Event</button>
+        <button type="button" class="btn btn-danger mt-3 delete-event-btn" data-event-id="{{ event.id }}">Delete Event</button>
     {% else %}
-    <p class="text-warning">Only the organizer can delete this event.</p>
+        <p class="text-warning">Only the organizer can delete this event.</p>
     {% endif %}
 
     <div class="bg-white shadow-md p-4 rounded-lg">
@@ -21,10 +19,8 @@
                 <img src="{{ event.image.url }}" alt="{{ event.title }}" class="img-fluid rounded">
             </div>
         {% endif %}
-
         <p class="mt-2">{{ event.description }}</p>
 
-        <!-- Display content for text-based events -->
         {% if event.event_type == 'text' %}
             <div class="mt-4">
                 <h3 class="font-semibold">Content:</h3>
@@ -38,7 +34,6 @@
             <p class="text-gray-500"><strong>Status:</strong> {{ event.status }}</p>
         </div>
 
-        <!-- Hide registration button for public events -->
         {% if not event.is_public %}
             {% if not user_registered %}
                 <form method="POST">
@@ -49,45 +44,53 @@
                 <p class="text-success mt-4">You are registered for this event!</p>
             {% endif %}
         {% endif %}
+    </div>
 
-        <!-- Comments Section -->
-        <div class="mt-5">
-            <h3>Comments</h3>
+    <!-- Comments Section -->
+    <div class="mt-5">
+        <h3>Comments</h3>
 
-            <!-- Comment Form -->
-            <form method="POST" action="{% url 'events:add_comment' event.id %}">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="commentContent">Your Comment</label>
-                    <textarea name="content" id="commentContent" class="form-control" rows="4" placeholder="Write your comment here..."></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
-            </form>
+        <!-- Comment Form -->
+        <form method="POST" action="{% url 'events:add_comment' event.id %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="commentContent">Your Comment</label>
+                <textarea name="content" id="commentContent" class="form-control" rows="4" placeholder="Write your comment here..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
+        </form>
 
-            <!-- Display Comments -->
-            <div class="mt-4">
-                {% for comment in event.comments.all %}
-                    <div class="comment mt-3" style="margin-left: {{ comment.level|multiply:20 }}px;">
-                        <strong>{{ comment.user.user.username }}</strong>
-                        <p>{{ comment.content }}</p>
-                        <small>{{ comment.created_at }}</small>
+        <!-- Main comments toggle link -->
+        <a href="javascript:void(0);" id="toggle-main-comments" onclick="toggleComments()">See comments</a>
 
-                        <!-- Like/Unlike button -->
-                        <button class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleLike({{ comment.id }})">
-                            {% if request.user.profile in comment.likes.all %}Unlike{% else %}Like{% endif %} ({{ comment.likes.count }})
-                        </button>
+        <!-- Main comments section (hidden by default) -->
+        <div id="main-comments" style="display: none;" class="mt-4">
+            {% for comment in comments %}
+                <div class="comment mt-3">
+                    <strong>{{ comment.user.user.username }}</strong>
+                    <p>{{ comment.content }}</p>
+                    <small>{{ comment.created_at }}</small>
 
-                        <!-- Reply Form -->
-                        <form method="POST" action="{% url 'events:add_comment' event.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
-                            <textarea name="content" class="form-control mt-2" placeholder="Write a reply..."></textarea>
-                            <button type="submit" class="btn btn-link">Reply</button>
-                        </form>
-                        
-                        <!-- Recursive Replies -->
+                    <!-- Like/Unlike button -->
+                    <button class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleLike({{ comment.id }})">
+                        {% if request.user.profile in comment.likes.all %}Unlike{% else %}Like{% endif %} ({{ comment.likes.count }})
+                    </button>
+
+                    <!-- Reply Form -->
+                    <form method="POST" action="{% url 'events:add_comment' event.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
+                        <textarea name="content" class="form-control mt-2" placeholder="Write a reply..."></textarea>
+                        <button type="submit" class="btn btn-link">Reply</button>
+                    </form>
+
+                    <!-- See replies link (toggle button) -->
+                    <a href="javascript:void(0);" onclick="toggleReplies({{ comment.id }})" class="text-primary">See replies</a>
+
+                    <!-- Replies section (hidden by default) -->
+                    <div id="replies-{{ comment.id }}" style="display: none; margin-left: 20px;">
                         {% for reply in comment.replies.all %}
-                            <div class="reply mt-3 ml-4" style="margin-left: {{ reply.level|multiply:20 }}px;">
+                            <div class="reply mt-3">
                                 <strong>{{ reply.user.user.username }}</strong>
                                 <p>{{ reply.content }}</p>
                                 <small>{{ reply.created_at }}</small>
@@ -98,10 +101,10 @@
                             </div>
                         {% endfor %}
                     </div>
-                {% empty %}
-                    <p>No comments yet. Be the first to comment!</p>
-                {% endfor %}
-            </div>
+                </div>
+            {% empty %}
+                <p>No comments yet. Be the first to comment!</p>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -143,20 +146,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-async function toggleLike(commentId) {
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const response = await fetch(`/comments/${commentId}/like/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        }
-    });
-    const data = await response.json();
+function toggleComments() {
+    const commentsSection = document.getElementById("main-comments");
+    const toggleLink = document.getElementById("toggle-main-comments");
 
-    if (data.status === 'success') {
-        location.reload();  // Reload page to update like count and button state
+    if (commentsSection.style.display === "none") {
+        commentsSection.style.display = "block";
+        toggleLink.innerText = "Hide comments";
+    } else {
+        commentsSection.style.display = "none";
+        toggleLink.innerText = "See comments";
     }
+}
+
+function toggleReplies(commentId) {
+    const repliesSection = document.getElementById(`replies-${commentId}`);
+    repliesSection.style.display = repliesSection.style.display === "none" ? "block" : "none";
 }
 </script>
 {% endblock %}
