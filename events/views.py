@@ -110,24 +110,24 @@ def create_event(request):
 def add_comment(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     user_profile, _ = Profile.objects.get_or_create(user=request.user)
-    
+
     if request.method == 'POST':
         form = CommentForm(request.POST)
-        parent_comment_id = request.POST.get('parent_comment_id')  # Check for reply
+        parent_comment_id = request.POST.get('parent_comment_id')
 
         if form.is_valid():
             comment = form.save(commit=False)
             comment.event = event
             comment.user = user_profile
             
+            # Check if this is a reply
             if parent_comment_id:
-                parent_comment = Comment.objects.get(id=parent_comment_id)
-                comment.parent = parent_comment
+                comment.parent = get_object_or_404(Comment, id=parent_comment_id)
             
             comment.save()
             messages.success(request, "Comment added successfully!")
             return redirect('events:event_detail', event_id=event_id)
-    
+
     messages.error(request, "Failed to add comment.")
     return redirect('events:event_detail', event_id=event_id)
 

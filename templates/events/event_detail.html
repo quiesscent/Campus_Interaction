@@ -78,13 +78,13 @@
                         </button>
 
                         <!-- Reply Form -->
-                        <form method="POST" action="{% url 'events:add_comment' comment.id %}">
+                        <form method="POST" action="{% url 'events:add_comment' event.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
                             <textarea name="content" class="form-control mt-2" placeholder="Write a reply..."></textarea>
                             <button type="submit" class="btn btn-link">Reply</button>
                         </form>
-
+                        
                         <!-- Recursive Replies -->
                         {% for reply in comment.replies.all %}
                             <div class="reply mt-3 ml-4" style="margin-left: {{ reply.level|multiply:20 }}px;">
