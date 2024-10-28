@@ -58,11 +58,13 @@ def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     user_profile, created = Profile.objects.get_or_create(user=request.user)
     user_registered = EventRegistration.objects.filter(event=event, participant=user_profile).exists()
-    
+
+    # Fetch top-level comments only and prefetch related replies and likes
     comments = event.comments.filter(parent=None).prefetch_related('replies', 'likes')
     comment_form = CommentForm()
 
     if request.method == 'POST':
+        # Handle registration
         if 'register' in request.POST:
             registration_form = EventRegistrationForm(data=request.POST, event=event)
             if registration_form.is_valid():
@@ -130,6 +132,7 @@ def add_comment(request, event_id):
 
     messages.error(request, "Failed to add comment.")
     return redirect('events:event_detail', event_id=event_id)
+
 
 @login_required
 @require_POST

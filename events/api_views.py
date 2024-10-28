@@ -108,3 +108,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             'liked': liked,
             'likes_count': comment.likes.count()
         })
+        
+        
+        
