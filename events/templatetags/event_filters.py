@@ -13,3 +13,7 @@ def multiply(value, arg):
         return int(value) * int(arg)
     except (ValueError, TypeError):
         return value  # Return the original value if conversion fails
+@register.filter
+def top_level_comments(comments):
+    """Filter to get only top-level comments (where parent is None)"""
+    return comments.filter(parent=None)

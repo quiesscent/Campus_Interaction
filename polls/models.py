@@ -7,6 +7,7 @@ from django.conf import settings
 import qrcode
 from datetime import timedelta
 from io import BytesIO
+import pytz
 
 class Poll(models.Model):
     POLL_TYPE_CHOICES = (
@@ -23,7 +24,7 @@ class Poll(models.Model):
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     view_count = models.PositiveIntegerField(default=0)  # Track views
-    expiration_time = models.DateTimeField(null=True, blank=True)
+    expiration_time = models.DateTimeField(null=True, blank=True) 
     allow_expiration = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     banner_image = models.ImageField(upload_to='poll_banners/', blank=True, null=True)
@@ -31,10 +32,15 @@ class Poll(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # Automatically set to now when created
 
     
+    @property
     def is_active(self):
-        """Checks if the poll is still active based on expiration time and allow_expiration."""
-        if self.allow_expiration:
-            return not self.expiration_time or timezone.now() < self.expiration_time
+        """Checks if the poll is still active based on expiration time and allow_expiration in Kenyan timezone."""
+        kenya_timezone = pytz.timezone("Africa/Nairobi")
+        now_in_kenya = timezone.now().astimezone(kenya_timezone)
+
+        if self.allow_expiration and self.expiration_time:
+            expiration_in_kenya = self.expiration_time.astimezone(kenya_timezone)
+            return now_in_kenya < expiration_in_kenya
         return True
 
     def increment_view_count(self):
@@ -68,11 +74,13 @@ class Poll(models.Model):
 
 class Option(models.Model):
     poll = models.ForeignKey(Poll, related_name='options', on_delete=models.CASCADE)
-    option_text = models.CharField(max_length=100)
+    option_text = models.CharField(max_length=100, blank=True)  # Allow empty option_text
     is_correct = models.BooleanField(default=False)
+    option_image = models.ImageField(upload_to='option_images/', blank=True, null=True)  # Optional image field
 
     def __str__(self):
-        return self.option_text
+        return self.option_text or "Option without text"  # Return something if text is empty
+
 
 
 class Vote(models.Model):
