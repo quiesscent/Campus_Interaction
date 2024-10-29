@@ -1,119 +1,110 @@
-# Kenyan Universities Interaction and Trending News Website
+# Kenyan Universities Interaction Platform
 
-## Project Overview
-This project is a web-based platform designed to engage university students, faculty, and the wider academic community in Kenya. The platform offers interactive features such as news updates, discussion forums, event calendars, resource sharing, and live messaging. The goal is to create an engaging and informative space for students to connect, share academic resources, and stay updated on trending topics across Kenyan universities.
+## 🎯 Project Overview
+Interactive platform for Kenyan university students featuring:
+- News updates
+- Discussion forums
+- Event calendars
+- Resource sharing
+- Live messaging
 
-## Features
-1. **Live Charts & Messaging**  
-   - Frontend: Jean  
-   - Backend: Fidel  
+## 👥 Team & Features
 
-2. **Feeds, Trending Topics & Hashtags**  
-   - Frontend: Fabian  
-   - Backend: Fidel  
+### Live Communications
+- **Live Chats & Messaging**
+  - Frontend: Jean
+  - Backend: Fidel
 
-3. **Polls**  
-   - Frontend: Debby  
-   - Backend: Victor  
+### Content & Engagement
+- **Feeds & Trending**
+  - Frontend: Fabian
+  - Backend: Fidel
 
-4. **Event Calendar**  
-   - Frontend: Saints  
-   - Backend: Incognito  
+- **Polls**
+  - Frontend: Debby
+  - Backend: Victor
 
-5. **Discussion Forums & Student Communities**  
-   - Frontend: Victor  
-   - Backend: Fidel  
+- **Event Calendar**
+  - Frontend: Saints
+  - Backend: Incognito
 
-6. **News and Updates**  
-   - Both Frontend and Backend: Mato  
+### Community Features
+- **Forums & Communities**
+  - Frontend: Victor
+  - Backend: Fidel
 
-7. **Maps**  
-   - Both Frontend and Backend: Peter  
+- **News Updates**
+  - Full Stack: Mato
 
-8. **Resource Sharing & Academic Tools**  
-   - Both Frontend and Backend: Samtech  
+- **Maps**
+  - Full Stack: Peter
 
-9. **Marketplace**  
-   - Both Frontend and Backend: Victor  
+- **Resource Sharing**
+  - Full Stack: Samtech
 
-10. **Student Profiles & Networking**  
-    - Both Frontend and Backend: Fidel
+- **Marketplace**
+  - Full Stack: Victor
 
-## Technology Stack
-- **Frontend:** HTML, CSS, JavaScript (React, Vue, or Angular based on the developer's choice)
+- **Student Profiles**
+  - Full Stack: Fidel
+
+## 🛠️ Tech Stack
+- **Frontend:** HTML, CSS, JavaScript (React/Vue/Angular)
 - **Backend:** Django
-- **Database:** sqlite
-- **API Services:** RESTful APIs for communication between frontend and backend components
+- **Database:** SQLite
+- **APIs:** REST
 
-## Project Structure
-### Frontend
-- **Jean:** Live Charts & Messaging  
-- **Fabian:** Feeds, Trending Topics & Hashtags  
-- **Debby:** Polls  
-- **Saints:** Event Calendar  
-- **Victor:** Discussion Forums & Student Communities
+## ✅ TODO Progress Tracker
+Use this list to track progress. Mark tasks as completed by adding a ✅ at the start.
 
-### Backend
-- **Fidel:** Live Charts & Messaging, Feeds, Discussion Forums
-- **Victor:** Polls, Marketplace  
-- **Incognito:** Event Calendar  
-- **Mato:** News and Updates  
-- **Peter:** Maps  
-- **Samtech:** Resource Sharing & Academic Tools
+### Live Communications
+- [ ] **Live Chats & Messaging** - Frontend (Jean)
+- [✅] **Live Chats & Messaging** - Backend (Fidel)
 
-### Both Frontend & Backend
-- **Mato:** News and Updates  
-- **Peter:** Maps  
-- **Samtech:** Resource Sharing & Academic Tools  
-- **Victor:** Marketplace
-- **Fidel:** Student Profiles & Networking  
+### Content & Engagement
+- [ ] **Feeds & Trending** - Frontend (Fabian)
+- [✅] **Feeds & Trending** - Backend (Fidel)
+- [ ] **Polls** - Frontend (Debby)
+- [ ] **Polls** - Backend (Victor)
+- [ ] **Event Calendar** - Frontend (Saints)
+- [ ] **Event Calendar** - Backend (Incognito)
 
-# How to setup the project for dev
+### Community Features
+- [ ] **Forums & Communities** - Frontend (Victor)
+- [ ] **Forums & Communities** - Backend (Fidel)
+- [ ] **News Updates** - Full Stack (Mato)
+- [ ] **Maps** - Full Stack (Peter)
+- [✅] **Resource Sharing** - Full Stack (Samtech)
+- [ ] **Marketplace** - Full Stack (Victor)
+- [✅] **Student Profiles** - Full Stack (Fidel)
 
-## 1. Clone the repo
+## 🚀 Development Setup
 
+1️⃣ *Clone & Enter Project*
 ```bash
 git clone https://github.com/KenyanAudo03/Campus_Interaction.git
 cd Campus_Interaction
 ```
 
-## 2.  Install dependencies
+2️⃣ *Install Requirements*
 ```bash
 pip install -r requirements.txt
 ```
 
-## 3. Initialize the database and other dirs
+3️⃣ *Initialize Database*
 ```bash
 python manage.py makemigrations
 python manage.py makemigrations profiles
 python manage.py migrate
-mkdir  static staticfiles
+mkdir static staticfiles
 ```
 
-## 4.  Run the project
+4️⃣ *Start Server*
 ```bash
 python manage.py runserver
 ```
 
-## 5. Create a new app
+5️⃣ *Create New App (if needed)*
 ```bash
 django-admin startapp your_app
 ```
-
-# How to Git Commit and Push
-
-Follow these steps to commit your changes and push them to the remote repository:
-
-## 1. Clone the Repository
-If you haven't already cloned the repository, you can do so using the following command:
-
-```bash
-git clone https://github.com/KenyanAudo03/Campus_Interaction.git
-cd Campus_Interaction
-
-git checkout -b your-feature-branch
-git add .
-git commit -m "Add feature description or fix details"
-git push origin your-feature-branch
-```
-

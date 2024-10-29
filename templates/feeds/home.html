@@ -1,200 +1,46 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{%load static%}
 
-{% block title %}Home - Social Network{% endblock %}
+{% block title %}Feed{% endblock %}
 
 {% block content %}
-<div class="row">
+{% include "feeds/components/notifications/toast.html" %}
+
+<div class="row g-4">
     <!-- Left Sidebar -->
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Navigation</h5>
-                <div class="list-group list-group-flush">
-                    <a href="#" class="list-group-item list-group-item-action" data-filter="all">
-                        <i class="fas fa-globe me-2"></i> All Posts
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action" data-filter="following">
-                        <i class="fas fa-users me-2"></i> Following
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action" data-filter="trending">
-                        <i class="fas fa-fire me-2"></i> Trending
-                    </a>
-                </div>
-            </div>
-        </div>
+    <div class="col-lg-3 d-none d-lg-block">
+        {% include "feeds/components/sidebar/search.html" %}
+        {% include "feeds/components/sidebar/filters.html" %}
+        {% include "feeds/components/sidebar/suggested_users.html" %}
     </div>
 
     <!-- Main Feed -->
-    <div class="col-md-6">
-        <!-- Create Post Card -->
-        {% if user.is_authenticated %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <a href="{% url 'social:create_post_form' %}" class="btn btn-outline-primary btn-rounded w-100">
-                    <i class="fas fa-plus me-2"></i> Create New Post
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Trending Posts -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-fire me-2"></i> Trending Posts</h5>
-            </div>
-            <div class="card-body">
-                {% if trending_posts %}
-                    {% for post in trending_posts %}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex mb-3">
-                                <img src="{{ post.user.profile.get_avatar }}" class="rounded-circle me-2" width="40" height="40" alt="Avatar">
-                                <div>
-                                    <h6 class="mb-0">{{ post.user.username }}</h6>
-                                    <small class="text-muted">{{ post.created_at|timesince }} ago</small>
-                                </div>
-                            </div>
-                            <p class="card-text">{{ post.content }}</p>
-                            {% if post.image %}
-                                <img src="{{ post.image.url }}" class="img-fluid rounded mb-3" alt="Post image">
-                            {% endif %}
-                            {% if post.video %}
-                                <video class="w-100 rounded mb-3" controls>
-                                    <source src="{{ post.video.url }}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            {% endif %}
-                            <div class="d-flex justify-content-between">
-                                <span><i class="far fa-heart me-1"></i>{{ post.likes_count }}</span>
-                                <span><i class="far fa-comment me-1"></i>{{ post.comments.count }}</span>
-                                <span><i class="far fa-eye me-1"></i>{{ post.views_count }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-center text-muted my-3">No trending posts yet</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Posts Feed -->
-        <div id="posts-container"></div>
-        
-        <!-- Loading Spinner -->
-        <div id="loading-spinner" class="text-center d-none">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
+    <div class="col-lg-6">
+        {% include "feeds/components/posts/create_post.html" %}
+        {% include "feeds/components/posts/posts_container.html" %}
     </div>
 
     <!-- Right Sidebar -->
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Suggested Users</h5>
-                <p class="text-muted">Coming soon...</p>
-            </div>
-        </div>
+    <div class="col-lg-3 d-none d-lg-block">
+        {% include "feeds/components/sidebar/trending.html" %}
     </div>
 </div>
+
+{% include "feeds/components/posts/post_template.html" %}
+{% include "feeds/components/comments/comment_template.html" %}
+{% include "feeds/components/modals/engagement_modal.html" %}
+{% include "feeds/components/modals/report_modal.html" %}
+{% include "feeds/components/modals/share_modal.html" %}
 {% endblock %}
 
 {% block extra_js %}
-<script>
-let currentPage = 1;
-let currentFilter = 'all';
-let loading = false;
-let hasMore = true;
-
-function loadPosts(page = 1, filter = 'all') {
-    if (loading || !hasMore) return;
-    
-    loading = true;
-    $('#loading-spinner').removeClass('d-none');
-    
-    $.get(`{% url 'social:feed' %}?page=${page}&filter=${filter}`)
-        .done(function(response) {
-            if (page === 1) {
-                $('#posts-container').empty();
-            }
-            
-            response.posts.forEach(function(post) {
-                const postHtml = createPostHTML(post);
-                $('#posts-container').append(postHtml);
-            });
-            
-            hasMore = response.has_next;
-            currentPage = response.current_page;
-            
-            if (!hasMore) {
-                $('#loading-spinner').remove();
-            }
-        })
-        .fail(function(error) {
-            console.error('Error loading posts:', error);
-        })
-        .always(function() {
-            loading = false;
-            $('#loading-spinner').addClass('d-none');
-        });
-}
-
-function createPostHTML(post) {
-    return `
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="d-flex mb-3">
-                    <img src="/static/default-avatar.png" class="rounded-circle me-2" width="40" height="40" alt="Avatar">
-                    <div>
-                        <h6 class="mb-0">${post.user.username}</h6>
-                        <small class="text-muted">${new Date(post.created_at).toLocaleDateString()}</small>
-                    </div>
-                </div>
-                <p class="card-text">${post.content}</p>
-                ${post.image_url ? `<img src="${post.image_url}" class="img-fluid rounded mb-3" alt="Post image">` : ''}
-                ${post.video_url ? `
-                    <video class="w-100 rounded mb-3" controls>
-                        <source src="${post.video_url}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                ` : ''}
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-link p-0" onclick="likePost(${post.id})">
-                        <i class="far fa-heart me-1"></i>${post.likes_count}
-                    </button>
-                    <span><i class="far fa-comment me-1"></i>${post.comments_count}</span>
-                    <span><i class="far fa-eye me-1"></i>${post.views_count}</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Infinite scroll
-$(window).scroll(function() {
-    if ($(window).scrollTop() + $(window).height() > $(document).height() - 100) {
-        loadPosts(currentPage + 1, currentFilter);
-    }
-});
-
-// Filter click handlers
-$('[data-filter]').click(function(e) {
-    e.preventDefault();
-    currentFilter = $(this).data('filter');
-    currentPage = 1;
-    hasMore = true;
-    loadPosts(1, currentFilter);
-    
-    // Update active state
-    $('[data-filter]').removeClass('active');
-    $(this).addClass('active');
-});
-
-// Initial load
-$(document).ready(function() {
-    loadPosts();
-});
-</script>
+<script src="{% static 'js/feeds/api.js' %}"></script>
+<script src="{% static 'js/feeds/notifications.js' %}"></script>
+<script src="{% static 'js/feeds/posts.js' %}"></script>
+<script src="{% static 'js/feeds/comments.js' %}"></script>
+<script src="{% static 'js/feeds/engagement.js' %}"></script>
+<script src="{% static 'js/feeds/sharing.js' %}"></script>
+<script src="{% static 'js/feeds/sidebar.js' %}"></script>
+<script src="{% static 'js/feeds/modals.js' %}"></script>
 {% endblock %}
+

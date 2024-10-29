@@ -1,41 +1,207 @@
-<h2>{{ poll.title }}</h2>
-<p>{{ poll.description }}</p>
+{% extends 'base.html' %}
 
-{% if poll.poll_type == 'question' or poll.poll_type == 'opinion' %}
-    <form method="post">
-        {% csrf_token %}
-        {% for option in poll.options.all %}
-            <div>
-                <input type="radio" name="option" value="{{ option.id }}" id="option-{{ option.id }}">
-                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
-            </div>
-        {% empty %}
-            <p>No options available.</p> <!-- If no options are found -->
-        {% endfor %}
-        <button type="submit">Submit</button>
-    </form>
-{% else %}
-    <p>Invalid poll type.</p>
-{% endif %}
+{% block title %}Polls - Create Poll{% endblock %}
+
+{% block content %}
 
 <style>
-.correct {
-    background-color: green;
-    animation: correct-animation 1s;
-}
 
-.incorrect {
-    background-color: red;
-    animation: incorrect-animation 1s;
-}
 
-@keyframes correct-animation {
-    0% { background-color: white; }
-    100% { background-color: green; }
-}
-
-@keyframes incorrect-animation {
-    0% { background-color: white; }
-    100% { background-color: red; }
-}
 </style>
+
+    <form method="post" id="vote-form" >
+        <div class="titles">
+            <div class="banner-container">
+                <img src="{% if poll.banner_image %}{{ poll.banner_image.url }}{% else %}/media/path/to/default-image.jpg{% endif %}" alt="{{ poll.title }} banner" class="banner-image">
+                <div class="text-overlay">
+                    <h2>{{ poll.title }}</h2>
+                    <p>{{ poll.description }}</p>
+                </div>
+            </div>
+        </div>
+        
+        {% csrf_token %}
+        {% for option in poll.options.all %}
+            <div class="option-container" data-correct="{{ option.is_correct }}">
+                <input 
+                    type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+                    name="option{% if poll.multi_option %}[]{% endif %}" 
+                    value="{{ option.id }}" 
+                    id="option-{{ option.id }}"
+                    class="polls-options"
+                    {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+                    {% if poll.poll_type == 'question' %}onclick="checkOption(this)"{% endif %}> 
+                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
+            </div>
+            
+        {% empty %}
+            <p>No options available.</p>
+        {% endfor %}
+        <hr>
+        <div class="actions">
+        {% if not user_vote %}
+            <button type="submit">Submit</button>
+        {% endif %}
+        <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
+        <button id="share-button">Share</button>
+    </div>
+    </form>
+    
+    
+
+
+    {% if poll_link %}
+    <!-- Modal Structure -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h4>Share This Poll</h4>
+            <p><strong>Link:</strong> <a href="{{ poll_link }}" id="poll-link" target="_blank">{{ poll_link }}</a></p>
+            {% if qr_code_url %}
+                <p><strong>QR Code:</strong></p>
+                <img src="{{ qr_code_url }}" alt="QR Code for Poll Link">
+            {% endif %}
+            <button id="copy-button">Copy Link</button>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const shareButton = document.getElementById('share-button');
+        const modal = document.getElementById('share-modal');
+        const closeModal = document.querySelector('.close');
+        const copyButton = document.getElementById('copy-button');
+        const pollLink = document.getElementById('poll-link').href;
+
+        // Show the modal when the share button is clicked
+        shareButton.addEventListener('click', function() {
+            modal.style.display = 'block';
+        });
+
+        // Close the modal when the 'x' is clicked
+        closeModal.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        // Close the modal when clicking outside of the modal content
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Copy the link to the clipboard
+        copyButton.addEventListener('click', function() {
+            navigator.clipboard.writeText(pollLink)
+                .then(() => {
+                    alert('Link copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Error copying link: ', err);
+                });
+        });
+    });
+</script>
+
+{% endblock %}
+
+
+.question-container {
+    margin-bottom: 20px;
+}
+.question-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.question-input input[type="text"] {
+    flex-grow: 1;
+    padding: 8px;
+    margin-right: 10px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+.question-input input[type="file"] {
+    display: none;
+}
+.upload-btn {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 4px;
+}
+.file-info {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #333;
+}
+.delete-btn {
+    color: red;
+    cursor: pointer;
+    margin-left: 10px;
+}
+#options-container {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    display: none;
+}
+#options-container label {
+    margin-right: 10px;
+}
+img.preview-image {
+    margin-top: 10px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+.button {
+    background-color: #2981d9;
+    color: white;
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+<div id="questions-container">
+
+
+    <div class="question-container">
+<label for="question-1"><b>Answer 1:</b></label>
+<div class="question-input">
+    <input type="text" name="questions[]" id="question-1" autocomplete="off" maxlength="200" placeholder="Enter the answer" required>
+    <label class="upload-btn">
+        <i class="fa-solid fa-image"></i>
+        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
+    </label>
+</div>
+
+<div class="file-info">
+    <img class="preview-image" style="display:none;" alt="Preview">
+    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
+</div>
+</div>
+
+
+
+<div class="question-container">
+<label for="question-2"><b>Answer 2:</b></label>
+<div class="question-input">
+    <input type="text" name="questions[]" id="question-2" autocomplete="off" maxlength="200" placeholder="Enter the answer">
+    <label class="upload-btn">
+        <i class="fa-solid fa-image"></i>
+        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
+    </label>
+</div>
+<div class="file-info">
+    <img class="preview-image" style="display:none;" alt="Preview">
+    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
+</div>
+</div>
+</div>

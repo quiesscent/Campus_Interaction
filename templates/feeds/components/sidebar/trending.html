@@ -1,0 +1,27 @@
+<div class="card border-0 shadow-2">
+    <div class="card-body">
+        <h5 class="card-title d-flex align-items-center mb-3">
+            <i class="fas fa-chart-line me-2 text-primary"></i>
+            <span class="fw-bold">Trending Posts</span>
+        </h5>
+        <div id="trendingPosts">
+            {% for post in trending_posts %}
+            <div class="card bg-light border-0 mb-3 hover-shadow rounded-3">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="{{ post.user.profile.get_avatar_url }}" class="rounded-circle me-2"
+                            alt="{{ post.user.username }}'s avatar" width="32" height="32"
+                            style="object-fit: cover;">
+                        <h6 class="card-subtitle mb-0 text-muted">{{ post.user.username }}</h6>
+                    </div>
+                    <p class="card-text small">{{ post.content|truncatechars:100 }}</p>
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span><i class="fas fa-heart text-danger me-1"></i>{{ post.likes_count }}</span>
+                        <span><i class="fas fa-eye text-primary me-1"></i>{{ post.views_count }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

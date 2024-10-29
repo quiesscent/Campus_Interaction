@@ -1,0 +1,39 @@
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true"
+    data-mdb-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content border-0">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportModalLabel">Report Content</h5>
+                <button type="button" class="btn-close" data-mdb-modal-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reportForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="reportContentId">
+                    <input type="hidden" id="reportContentType">
+                    <div class="form-outline mb-4">
+                        <select class="form-select" id="reportType" required>
+                            <option value="">Select a reason...</option>
+                            <option value="spam">Spam or Misleading</option>
+                            <option value="inappropriate">Inappropriate Content</option>
+                            <option value="harassment">Harassment or Hate Speech</option>
+                            <option value="misinformation">False Information</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <label class="form-label" for="reportType">Reason for reporting</label>
+                        <div class="invalid-feedback">Please select a reason for reporting.</div>
+                    </div>
+                    <div class="form-outline mb-4">
+                        <textarea class="form-control" id="reportDescription" rows="3"></textarea>
+                        <label class="form-label" for="reportDescription">Additional Details (Optional)</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-mdb-modal-dismiss="modal"
+                    data-mdb-ripple-init>Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitReport" data-mdb-ripple-init>Submit
+                    Report</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,20 +1,19 @@
 from django.db import models
-from django.conf import settings
-from django.db.models import UniqueConstraint
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.db.models import F
 from django.core.validators import FileExtensionValidator
-from django.db.models.functions import TruncDate
+
+from forums.models import Forum
 
 def validate_file_size(value):
     filesize = value.size
-    if filesize > 10 * 1024 * 1024:  # 10MB limit
+    if filesize > 20 * 1024 * 1024:  # 20MB limit
         raise ValidationError("Maximum file size is 10MB")
 
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    forum = models.ForeignKey(Forum, on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
     content = models.TextField(max_length=500)  # Increased for more flexibility
     image = models.ImageField(
         upload_to='post_images/%Y/%m/',  # Organized by date
@@ -72,6 +71,7 @@ class Post(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+
 class PostLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
@@ -113,6 +113,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     likes_count = models.PositiveIntegerField(default=0)
+    likes = models.ManyToManyField(User, related_name='liked_comments', blank=True)
 
     class Meta:
         indexes = [

@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'social:home' %}" class="btn btn-outline-secondary btn-rounded">
+                        <a href="{% url 'feeds:home_feed' %}" class="btn btn-outline-secondary btn-rounded">
                             <i class="fas fa-arrow-left me-2"></i>Back
                         </a>
                         <button type="submit" class="btn btn-primary btn-rounded">
@@ -130,7 +130,7 @@ $(document).ready(function() {
         submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Creating...');
 
         $.ajax({
-            url: '{% url "social:create_post" %}',
+            url: '{% url "feeds:create_post" %}',
             type: 'POST',
             data: formData,
             processData: false,
@@ -152,7 +152,7 @@ $(document).ready(function() {
                     
                     // Redirect to home after a short delay
                     setTimeout(() => {
-                        window.location.href = '{% url "social:home" %}';
+                        window.location.href = '{% url "feeds:home_feed" %}';
                     }, 1500);
                 } else {
                     // Show error message

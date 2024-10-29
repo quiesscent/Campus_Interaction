@@ -1,7 +1,6 @@
-#forms.py
+#events/forms.py
 from django import forms
-from .models import Event, University, Comment
-from django_select2.forms import Select2Widget
+from .models import Event, Comment, EventRegistration
 
 
 class EventForm(forms.ModelForm):
@@ -83,3 +82,20 @@ class CommentForm(forms.ModelForm):
                 'placeholder': 'Write your comment...'
             })
         }
+
+
+class EventRegistrationForm(forms.ModelForm):
+    class Meta:
+        model = EventRegistration
+        fields = []
+
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop('event', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        if self.event and self.event.max_participants:
+            current_registrations = EventRegistration.objects.filter(event=self.event).count()
+            if current_registrations >= self.event.max_participants:
+                raise forms.ValidationError("Event has reached the maximum number of participants.")
+        return super().clean()
