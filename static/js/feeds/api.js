@@ -6,10 +6,22 @@ const API_ENDPOINTS = {
     DELETE_POST: (postId) => `/api/posts/${postId}/delete/`,
     LIKE_POST: (postId) => `/api/posts/${postId}/like/`,
     ADD_COMMENT: (postId) => `/api/posts/${postId}/comment/`,
+    LIKE_COMMENT: (commentId) => `/api/comments/${commentId}/like/`,
     VIEW_POST: (postId) => `/api/posts/${postId}/view/`,
     POST_ENGAGEMENT: (postId, type) => `/api/posts/${postId}/engagement/${type}/`,
     SEARCH_POSTS: '/api/posts/search/',
 };
+
+
+const viewPostDebounced = _.debounce(async (postId) => {
+    try {
+        await API.viewPost(postId);
+    } catch (error) {
+        console.error('Error viewing post:', error);
+    }
+}, 250, { leading: true, trailing: false });
+
+
 
 // Get CSRF token from cookie
 function getCSRFToken() {
@@ -29,7 +41,7 @@ function getCSRFToken() {
 }
 
 // Base API call function
-async function apiCall(endpoint, options = {}) {
+async function apiCall(endpoint, options = {}, retries = 3) {
     const defaultOptions = {
         headers: {
             'X-CSRFToken': getCSRFToken(),
@@ -53,18 +65,27 @@ async function apiCall(endpoint, options = {}) {
         }
     };
 
-    try {
-        const response = await fetch(endpoint, finalOptions);
-        const data = await response.json();
+    let lastError;
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            const response = await fetch(endpoint, finalOptions);
+            const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.message || 'API call failed');
+            if (!response.ok) {
+                throw new Error(data.message || 'API call failed');
+            }
+
+            return data;
+        } catch (error) {
+            lastError = error;
+            if (attempt < retries - 1) {
+                // Wait with exponential backoff before retrying
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                continue;
+            }
+            console.error('API Error:', error);
+            throw error;
         }
-
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
     }
 }
 
@@ -97,10 +118,20 @@ const API = {
         });
     },
 
+    
     async addComment(postId, content) {
+        const formData = new FormData();
+        formData.append('content', content);
+        
         return apiCall(API_ENDPOINTS.ADD_COMMENT(postId), {
             method: 'POST',
-            body: { content }
+            body: formData
+        });
+    },
+
+    async likeComment(commentId) {
+        return apiCall(API_ENDPOINTS.LIKE_COMMENT(commentId), {
+            method: 'POST'
         });
     },
 
@@ -121,3 +152,6 @@ const API = {
 
 // Export API object
 window.API = API;
+
+// Add it to the API object
+API.viewPostDebounced = viewPostDebounced;
