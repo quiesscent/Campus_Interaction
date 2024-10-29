@@ -13,6 +13,8 @@ const loadMoreBtn = document.getElementById('loadMoreBtn');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const postsError = document.getElementById('postsError');
 
+
+
 // Initialize infinite scroll
 function initInfiniteScroll() {
     const options = {
@@ -73,8 +75,8 @@ function renderPosts(posts) {
         const postElement = createPostElement(post);
         postsContainer.appendChild(postElement);
         
-        // Record view after rendering
-        API.viewPost(post.id).catch(console.error);
+        // Record view after rendering using debounced version
+        viewPostDebounced(post.id);
     });
 }
 
@@ -82,6 +84,7 @@ function renderPosts(posts) {
 function createPostElement(post) {
     const template = postTemplate.content.cloneNode(true);
     const postCard = template.querySelector('.post-card');
+    postCard.dataset.postId = post.id;
     
     // Set post ID
     postCard.dataset.postId = post.id;
@@ -200,6 +203,36 @@ function setupPostInteractions(postCard, post) {
             }));
         });
     });
+
+    // // Dropdown menu
+    // const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
+    // const dropdownMenu = postCard.querySelector('.post-dropdown-menu');
+
+    // if (dropdownBtn && dropdownMenu) {
+    //     new Popper.createPopper(dropdownBtn, dropdownMenu, {
+    //         placement: 'bottom-end',
+    //         modifiers: [
+    //             {
+    //                 name: 'offset',
+    //                 options: {
+    //                     offset: [0, 8],
+    //                 },
+    //             },
+    //         ],
+    //     });
+
+    //     dropdownBtn.addEventListener('click', () => {
+    //         dropdownMenu.classList.toggle('show');
+    //     });
+
+    //     document.addEventListener('click', (e) => {
+    //         if (!e.target.closest('.post-dropdown-btn') && !e.target.closest('.post-dropdown-menu')) {
+    //             dropdownMenu.classList.remove('show');
+    //         }
+    //     });
+    // }
+
+    
 }
 
 // Helper functions
