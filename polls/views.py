@@ -176,7 +176,7 @@ def vote_poll(request, poll_id):
             user_vote.save()  # Save the updated attempts count
             print("Deleting user vote...")
             user_vote.delete()  # Delete the user's vote after incrementing attempts
-            return redirect('vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
+            return redirect('polls:vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
 
         # Voting logic
         selected_options = request.POST.getlist('option') if poll.multi_option else [request.POST.get('option')]
@@ -189,7 +189,7 @@ def vote_poll(request, poll_id):
                     user_vote.save()
                 else:
                     Vote.objects.create(poll=poll, option=option, user=request.user, attempts=1)
-            return redirect('vote_poll', poll_id=poll.id)
+            return redirect('polls:vote_poll', poll_id=poll.id)
 
     # Calculate remaining attempts
     remaining_attempts = 2 - (user_vote.attempts if user_vote else 2)
