@@ -66,7 +66,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "Campus_Interaction.wsgi.application"
 ASGI_APPLICATION = "pof_project.asgi.application"
 
-CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [("localhost", 6379)],
+        },
+    },
+}
 
 DATABASES = {
     "default": {
