@@ -358,7 +358,7 @@ label {
     </div>
     
 
-    <form method="post" id="vote-form" onsubmit="return validateForm();" data-poll-type="{% if poll.poll_type == 'question' %}question{% else %}opinion{% endif %}">
+    <form method="post" id="vote-form" onsubmit="return validateForm();" data-poll-type="{% if poll.poll_type == 'question' %}question{% else %}opinion{% endif %}" style="background-color: {{ poll.background_color }};">
         <div class="banner-container">
             {% if poll.banner_image %}
                 <img src="{{ poll.banner_image.url }}" alt="{{ poll.title }} banner" class="banner-image">
