@@ -270,7 +270,7 @@ def add_comment(request, post_id):
     """
     # Add debugging logs
     logger.debug(f"Received POST data: {request.POST}")
-    
+
     form = CommentForm(request.POST)
     if form.is_valid():
         try:
@@ -304,6 +304,7 @@ def add_comment(request, post_id):
     # Add form errors to the log
     logger.error(f"Form validation errors: {form.errors}")
     return JsonResponse({"status": "error", "errors": form.errors}, status=400)
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -367,7 +368,9 @@ def retry_on_db_lock(func):
                     sleep(0.1 * attempt)  # Exponential backoff
                 else:
                     raise
+
     return wrapper
+
 
 @login_required
 @require_POST
@@ -417,6 +420,7 @@ def increment_view_count(request, post_id):
             )
 
     return JsonResponse({"status": "success", "message": "View already counted"})
+
 
 @login_required
 def post_detail(request, post_id):
