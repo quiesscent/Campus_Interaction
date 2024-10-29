@@ -230,7 +230,7 @@
     }
   }
 
-  form {
+  .search-form {
     display: flex;
     align-items: center;
     border-radius: 5px;
@@ -376,7 +376,7 @@
 <!-- Poll List -->
 <div class="polls-container">
   <div class="polls_items">
-    <form method="GET" action="{% url 'polls:base_poll' %}">
+    <form method="GET" action="{% url 'polls:base_poll' %}" class="search-form">
       <input
         type="text"
         id="search"

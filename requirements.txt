@@ -17,7 +17,7 @@ django-crispy-forms==2.3
 django-filter==23.2
 django-select2==8.2.1
 django-widget-tweaks==1.5.0
-djangorestframework==3.15.2
+djangorestframework==3.15.0
 drf-nested-routers==0.94.1
 google-auth==2.35.0
 google-auth-oauthlib==1.2.1
@@ -47,8 +47,3 @@ txaio==23.1.1
 typing_extensions==4.12.2
 urllib3==2.2.3
 zope.interface==7.1.0
-qrcode==8.0
-Django==5.1.2
-django-filter==23.2
-djangorestframework==3.15.2
-djangorestframework-nested==0.14.1
