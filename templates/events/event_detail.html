@@ -1,120 +1,291 @@
+{# event_detail.html #}
 {% extends 'base.html' %}
-{% block title %}Event Details{% endblock %}
+{% block title %}{{ event.title }} - Event Details{% endblock %}
 {% load event_filters %}
 
 {% block content %}
-<div class="container mt-5">
-    <!-- Show delete button only for the event organizer -->
-    {% if request.user == event.organizer.user %}
-        <button type="button" class="btn btn-danger mt-3 delete-event-btn" data-event-id="{{ event.id }}">Delete Event</button>
-    {% else %}
-        <p class="text-warning">Only the organizer can delete this event.</p>
-    {% endif %}
-
-    <div class="bg-white shadow-md p-4 rounded-lg">
-        <h1 class="text-3xl font-bold">{{ event.title }}</h1>
-
+<div class="container-fluid px-0">
+    <!-- Hero Section with Event Image -->
+    <div class="position-relative">
         {% if event.image %}
-            <div class="mt-4">
-                <img src="{{ event.image.url }}" alt="{{ event.title }}" class="img-fluid rounded">
+            <div class="event-hero" style="height: 50vh; overflow: hidden;">
+                <img src="{{ event.image.url }}" 
+                     alt="{{ event.title }}" 
+                     class="w-100 h-100 object-fit-cover">
+                <div class="position-absolute bottom-0 start-0 w-100 bg-gradient-dark p-4">
+                    <div class="container">
+                        <h1 class="text-white display-4 mb-2">{{ event.title }}</h1>
+                        <div class="d-flex align-items-center text-white">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            <span>{{ event.start_date|date:"F d, Y" }} - {{ event.end_date|date:"F d, Y" }}</span>
+                            <i class="fas fa-map-marker-alt ms-4 me-2"></i>
+                            <span>{{ event.location }}</span>
+                            <span class="badge bg-{{ event.status|lower }} ms-4">{{ event.status }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        {% endif %}
-        <p class="mt-2">{{ event.description }}</p>
-
-        {% if event.event_type == 'text' %}
-            <div class="mt-4">
-                <h3 class="font-semibold">Content:</h3>
-                <p>{{ event.content }}</p>
+        {% else %}
+            <div class="bg-primary text-white py-5">
+                <div class="container">
+                    <h1 class="display-4 mb-2">{{ event.title }}</h1>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        <span>{{ event.start_date|date:"F d, Y" }} - {{ event.end_date|date:"F d, Y" }}</span>
+                        <i class="fas fa-map-marker-alt ms-4 me-2"></i>
+                        <span>{{ event.location }}</span>
+                        <span class="badge bg-{{ event.status|lower }} ms-4">{{ event.status }}</span>
+                    </div>
+                </div>
             </div>
-        {% endif %}
-
-        <div class="mt-4">
-            <p class="text-gray-500"><strong>Date:</strong> {{ event.start_date }} - {{ event.end_date }}</p>
-            <p class="text-gray-500"><strong>Location:</strong> {{ event.location }}</p>
-            <p class="text-gray-500"><strong>Status:</strong> {{ event.status }}</p>
-        </div>
-
-        {% if not event.is_public %}
-            {% if not user_registered %}
-                <form method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="mt-4 btn btn-success btn-lg">Register for Event</button>
-                </form>
-            {% else %}
-                <p class="text-success mt-4">You are registered for this event!</p>
-            {% endif %}
         {% endif %}
     </div>
 
-    <!-- Comments Section -->
-    <div class="mt-5">
-        <h3>Comments</h3>
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row">
+            <!-- Left Column - Event Details -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h3 class="card-title h4 mb-4">About This Event</h3>
+                        <p class="lead mb-4">{{ event.description }}</p>
 
-        <!-- Comment Form -->
-        <form method="POST" action="{% url 'events:add_comment' event.id %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="commentContent">Your Comment</label>
-                <textarea name="content" id="commentContent" class="form-control" rows="4" placeholder="Write your comment here..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
-        </form>
-
-        <!-- Main comments toggle link -->
-        <a href="javascript:void(0);" id="toggle-main-comments" onclick="toggleComments()">See comments</a>
-
-        <!-- Main comments section (hidden by default) -->
-        <div id="main-comments" style="display: none;" class="mt-4">
-            {% for comment in comments %}
-                <div class="comment mt-3">
-                    <strong>{{ comment.user.user.username }}</strong>
-                    <p>{{ comment.content }}</p>
-                    <small>{{ comment.created_at }}</small>
-
-                    <!-- Like/Unlike button -->
-                    <button class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleLike({{ comment.id }})">
-                        {% if request.user.profile in comment.likes.all %}Unlike{% else %}Like{% endif %} ({{ comment.likes.count }})
-                    </button>
-
-                    <!-- Reply Form -->
-                    <form method="POST" action="{% url 'events:add_comment' event.id %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
-                        <textarea name="content" class="form-control mt-2" placeholder="Write a reply..."></textarea>
-                        <button type="submit" class="btn btn-link">Reply</button>
-                    </form>
-
-                    <!-- See replies link (toggle button) -->
-                    <a href="javascript:void(0);" onclick="toggleReplies({{ comment.id }})" class="text-primary">See replies</a>
-
-                    <!-- Replies section (hidden by default) -->
-                    <div id="replies-{{ comment.id }}" style="display: none; margin-left: 20px;">
-                        {% for reply in comment.replies.all %}
-                            <div class="reply mt-3">
-                                <strong>{{ reply.user.user.username }}</strong>
-                                <p>{{ reply.content }}</p>
-                                <small>{{ reply.created_at }}</small>
-
-                                <button class="btn btn-sm {% if request.user.profile in reply.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" onclick="toggleLike({{ reply.id }})">
-                                    {% if request.user.profile in reply.likes.all %}Unlike{% else %}Like{% endif %} ({{ reply.likes.count }})
-                                </button>
+                        {% if event.event_type == 'text' %}
+                            <div class="mt-4 p-4 bg-light rounded">
+                                <h4 class="mb-3">Event Content</h4>
+                                <div class="content-text">{{ event.content }}</div>
                             </div>
-                        {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
-            {% empty %}
-                <p>No comments yet. Be the first to comment!</p>
-            {% endfor %}
+
+                <!-- Comments Section -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="card-title h4 mb-0">Comments</h3>
+                            <button class="btn btn-link" onclick="toggleComments()">
+                                <i class="fas fa-comments"></i> Toggle Comments
+                            </button>
+                        </div>
+
+                        <!-- Comment Form -->
+                        <form method="POST" action="{% url 'events:add_comment' event.id %}" class="mb-4">
+                            {% csrf_token %}
+                            <div class="form-floating mb-3">
+                                <textarea name="content" class="form-control" 
+                                          placeholder="Share your thoughts..." 
+                                          id="commentContent" 
+                                          style="height: 100px"></textarea>
+                                <label for="commentContent">Share your thoughts...</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Post Comment
+                            </button>
+                        </form>
+
+                        <!-- Comments List -->
+                        <div id="main-comments" class="comment-section">
+                            {% for comment in comments %}
+                                <div class="comment-card mb-3">
+                                    <div class="d-flex align-items-start mb-2">
+                                        <div class="comment-avatar me-3">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                {{ comment.user.user.username|make_list|first|upper }}
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between">
+                                                <h6 class="mb-1">{{ comment.user.user.username }}</h6>
+                                                <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                                            </div>
+                                            <p class="mb-2">{{ comment.content }}</p>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <button class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" 
+                                                        onclick="toggleLike({{ comment.id }})">
+                                                    <i class="fas fa-heart"></i>
+                                                    <span class="ms-1">{{ comment.likes.count }}</span>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="toggleReplyForm({{ comment.id }})">
+                                                    <i class="fas fa-reply"></i> Reply
+                                                </button>
+                                            </div>
+
+                                            <!-- Reply Form (Hidden by default) -->
+                                            <div id="reply-form-{{ comment.id }}" class="reply-form mt-3" style="display: none;">
+                                                <form method="POST" action="{% url 'events:add_comment' event.id %}">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
+                                                    <div class="form-floating mb-2">
+                                                        <textarea name="content" class="form-control" 
+                                                                  placeholder="Write your reply..." 
+                                                                  style="height: 80px"></textarea>
+                                                        <label>Write your reply...</label>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-sm btn-primary">Post Reply</button>
+                                                </form>
+                                            </div>
+
+                                            <!-- Replies -->
+                                            {% if comment.replies.all %}
+                                                <div class="replies-section mt-3 ms-4">
+                                                    <a href="javascript:void(0);" 
+                                                       onclick="toggleReplies({{ comment.id }})" 
+                                                       class="text-primary mb-2 d-block">
+                                                        <i class="fas fa-chevron-down"></i>
+                                                        Show {{ comment.replies.count }} replies
+                                                    </a>
+                                                    <div id="replies-{{ comment.id }}" style="display: none;">
+                                                        {% for reply in comment.replies.all %}
+                                                            <div class="reply-card mb-2 border-start border-3 ps-3">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <h6 class="mb-1">{{ reply.user.user.username }}</h6>
+                                                                    <small class="text-muted">{{ reply.created_at|timesince }} ago</small>
+                                                                </div>
+                                                                <p class="mb-2">{{ reply.content }}</p>
+                                                                <button class="btn btn-sm {% if request.user.profile in reply.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" 
+                                                                        onclick="toggleLike({{ reply.id }})">
+                                                                    <i class="fas fa-heart"></i>
+                                                                    <span class="ms-1">{{ reply.likes.count }}</span>
+                                                                </button>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-comments fa-3x mb-3"></i>
+                                    <p>No comments yet. Be the first to share your thoughts!</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Event Actions and Info -->
+            <div class="col-lg-4">
+                <!-- Event Actions -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        {% if not event.is_public %}
+                            {% if not user_registered %}
+                                <form method="POST" class="mb-3">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-lg w-100">
+                                        <i class="fas fa-user-plus"></i> Register for Event
+                                    </button>
+                                </form>
+                            {% else %}
+                                <div class="alert alert-success mb-3">
+                                    <i class="fas fa-check-circle"></i> You're registered!
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if request.user == event.organizer.user %}
+                            <button type="button" 
+                                    class="btn btn-outline-danger w-100 delete-event-btn" 
+                                    data-event-id="{{ event.id }}">
+                                <i class="fas fa-trash"></i> Delete Event
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Event Information -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title h5 mb-4">Event Information</h4>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <i class="fas fa-user me-2 text-primary"></i>
+                                <strong>Organizer:</strong> {{ event.organizer.user.username }}
+                            </li>
+                            {% if event.max_participants %}
+                                <li class="mb-3">
+                                    <i class="fas fa-users me-2 text-primary"></i>
+                                    <strong>Capacity:</strong> {{ event.max_participants }} participants
+                                </li>
+                            {% endif %}
+                            <li class="mb-3">
+                                <i class="fas fa-lock{% if event.is_public %}-open{% endif %} me-2 text-primary"></i>
+                                <strong>Visibility:</strong> {{ event.is_public|yesno:"Public,Private" }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Custom Styles -->
+{% block extra_css %}
+<style>
+    .bg-gradient-dark {
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    }
+    .comment-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .reply-card {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.75rem;
+    }
+</style>
 {% endblock %}
 
+<!-- JavaScript -->
 {% block extra_js %}
 <script>
+function toggleComments() {
+    const commentsSection = document.getElementById("main-comments");
+    commentsSection.style.display = commentsSection.style.display === "none" ? "block" : "none";
+}
+
+function toggleReplies(commentId) {
+    const repliesSection = document.getElementById(`replies-${commentId}`);
+    repliesSection.style.display = repliesSection.style.display === "none" ? "block" : "none";
+}
+
+function toggleReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    replyForm.style.display = replyForm.style.display === "none" ? "block" : "none";
+}
+
+async function toggleLike(commentId) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    try {
+        const response = await fetch(`/events/comment/${commentId}/like/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            }
+        });
+        if (response.ok) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+// Delete Event Handler
 document.addEventListener('DOMContentLoaded', function() {
     const deleteButton = document.querySelector('.delete-event-btn');
-
     if (deleteButton) {
         deleteButton.addEventListener('click', async function() {
             const eventId = deleteButton.dataset.eventId;
@@ -131,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     if (response.ok) {
-                        alert("Event deleted successfully.");
                         window.location.href = '/events/';
                     } else {
                         const data = await response.json();
@@ -145,23 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-function toggleComments() {
-    const commentsSection = document.getElementById("main-comments");
-    const toggleLink = document.getElementById("toggle-main-comments");
-
-    if (commentsSection.style.display === "none") {
-        commentsSection.style.display = "block";
-        toggleLink.innerText = "Hide comments";
-    } else {
-        commentsSection.style.display = "none";
-        toggleLink.innerText = "See comments";
-    }
-}
-
-function toggleReplies(commentId) {
-    const repliesSection = document.getElementById(`replies-${commentId}`);
-    repliesSection.style.display = repliesSection.style.display === "none" ? "block" : "none";
-}
 </script>
+{% endblock %}
+
 {% endblock %}
