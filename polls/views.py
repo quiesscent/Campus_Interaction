@@ -104,9 +104,14 @@ def add_polls(request):
 @login_required
 def user_dashboard(request):
     polls = Poll.objects.filter(creator=request.user).order_by('-created_at')
+    
+    # Create a list of polls with their active status
+    polls_with_status = [(poll, poll.is_active) for poll in polls]  # No parentheses needed
+    
     return render(request, "polls/user_dashboard.html", {
-        'polls': polls
+        'polls_with_status': polls_with_status,
     })
+
 
 
 
@@ -126,9 +131,7 @@ def edit_poll(request, poll_id):
         option_formset = OptionFormSet(request.POST, queryset=poll.options.all())
 
         # Debug logging
-        print("Poll Form Valid: ", poll_form.is_valid())
-        print("Option Formset Valid: ", option_formset.is_valid())
-        print("Formset Data:", option_formset.data)  # Check the formset data
+
 
         if poll_form.is_valid() and option_formset.is_valid():
             poll_form.save()
@@ -204,28 +207,40 @@ def vote_poll(request, poll_id):
         'remaining_attempts': remaining_attempts,
     })
 
-
 def poll_results(request, poll_id):
     # Retrieve the poll by its ID
     poll = get_object_or_404(Poll, id=poll_id)
     options = Option.objects.filter(poll=poll)
 
     # Calculate total votes for the poll
-    total_votes = poll.total_votes()  # Assuming you have this method
-
+    total_votes = poll.total_votes()  # Assuming this method exists in the Poll model
+    
+    # Collect results to send to the template
     results = []
     for option in options:
-        # Use the related name 'votes' to count the number of votes for this option
-        votes_count = option.votes.count()  # Now this should work
-        percentage = (votes_count / total_votes * 100) if total_votes > 0 else 0  # Prevent division by zero
+        # Check if this option is the correct answer
+        is_correct = option.is_correct  # Assuming Option model has an `is_correct` field
+        votes = option.votes.count()  # Count of votes for this option
+        
+        # Get scored users only if the poll is public
+        scored_users = option.votes.values_list('user__username', flat=True) if poll.is_public else []
+
+        # Calculate percentage
+        percentage = (votes / total_votes * 100) if total_votes > 0 else 0
         results.append({
             'option_text': option.option_text,
-            'votes': votes_count,
+            'is_correct': is_correct,
+            'votes': votes,
+            'scored_users': scored_users,  # This now contains usernames (or user objects if desired)
             'percentage': percentage,
+            'option_image': option.option_image if option.option_image else None,  # Ensure option_image is included
         })
 
-    return render(request, 'polls/poll_results.html', {
+    context = {
         'poll': poll,
         'results': results,
-    })
-
+        'qr_code_url': poll.qr_code.url if poll.qr_code else None,
+        'poll_link': poll.link,
+    }
+    
+    return render(request, 'polls/poll_results.html', context)
