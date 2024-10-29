@@ -38,9 +38,10 @@
 
 .text-section h3 {
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 300;
     color: #333;
     margin-bottom: 8px;
+
     letter-spacing: 0.5px;
 }
 
@@ -50,17 +51,14 @@
     margin-top: 8px;
     line-height: 1.8;
 }
-
-
-/* General form styling */
 #vote-form {
     flex: 2; /* Allow the form to grow */
-    background: #fff; /* Set background for the form */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Box shadow for form */
-    border-radius: 8px; /* Rounded corners */
-    overflow: hidden; /* Hide overflow */
-    margin: 20px; /* Margin around the form */
-    padding: 20px; /* Padding inside the form */
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+    overflow: hidden; 
+    margin: 20px;
+    padding: 20px; 
 }
 
 /* Banner styling */
@@ -69,6 +67,9 @@
     width: 100%;
     height: 200px;
     overflow: hidden;
+}
+.banner-container img{
+    border-radius: 10px;
 }
 
 .banner-image {
@@ -307,8 +308,9 @@ label {
             padding: 20px;
             border-radius: 10px;
             text-align: center;
-            max-width: 500px;
+            max-width: 400px;
             width: 100%;
+            margin: 0 auto;
         }
 
         .qr-code {
@@ -364,9 +366,9 @@ label {
                 <img src="{{ poll.banner_image.url }}" alt="{{ poll.title }} banner" class="banner-image">
             {% else %}                
                 {% if poll.poll_type == 'question' %}
-                    <img src="http://localhost:8000/media/default_poll_banner/question_image.jpeg" alt="Default Question Banner" class="banner-image">
+                    <img src="http://localhost:8000/media/default_poll_banner/questions.jpg" alt="Default Question Banner" class="banner-image">
                 {% elif poll.poll_type == 'opinion' %}
-                    <img src="http://localhost:8000/media/default_poll_banner/opinion_image.png" alt="Default Opinion Banner" class="banner-image">
+                    <img src="http://localhost:8000/media/default_poll_banner/opinions.jpg" alt="Default Opinion Banner" class="banner-image">
                 {% else %}
                     <img src="http://localhost:8000/media/default_poll_banner/question_image.jpeg" alt="Default General Banner" class="banner-image">
                 {% endif %}
@@ -374,43 +376,44 @@ label {
         </div>
         {% csrf_token %}
         {% for option in poll.options.all %}
-            <div class="option-container" 
-                 data-correct="{{ option.is_correct }}" 
-                 onclick="toggleOption({{ option.id }}, {{ poll.multi_option|yesno:'true,false' }})">
-                
-                {% if option.option_image %}
-                    <img src="{{ option.option_image.url }}" alt="Option Image" class="option-img">
-                {% endif %}
-                
-                <input 
-                    type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
-                    name="option{% if poll.multi_option %}[]{% endif %}" 
-                    value="{{ option.id }}" 
-                    id="option-{{ option.id }}"
-                    class="polls-options"
-                    {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
-                    {% if user_vote %}disabled{% endif %}> 
+        <div class="option-container" 
+             data-correct="{{ option.is_correct }}" 
+             onclick="toggleOption({{ option.id }}, {{ poll.multi_option|yesno:'true,false' }})">
             
-                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
-            </div>
-        {% empty %}
-            <p>No options available.</p>
-        {% endfor %}
-    
-        <hr>
-        <div class="actions">
-            {% if not user_vote %}
-                <button type="submit">Submit</button>
-            {% endif %}
-            {% if poll.is_public %}
-                <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
+            {% if option.option_image %}
+                <img src="{{ option.option_image.url }}" alt="Option Image" class="option-img">
             {% endif %}
             
-            {% if poll.show_share_button %}
-                <button id="share-button" type="button">Share</button>
-            {% endif %}
-            
+            <input 
+                type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+                name="option{% if poll.multi_option %}[]{% endif %}" 
+                value="{{ option.id }}" 
+                id="option-{{ option.id }}"
+                class="polls-options"
+                {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+                {% if user_vote %}disabled{% endif %}> 
+          
+            <label for="option-{{ option.id }}">{{ option.option_text }}</label>
         </div>
+    {% empty %}
+        <p>No options available.</p>
+    {% endfor %}
+    
+    <hr>
+    <div class="actions">
+        {% if not user_vote %}
+            <button type="submit">Submit</button>
+        {% endif %}
+    
+        {% if poll.is_public and user_vote %}
+            <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
+        {% endif %}
+        
+        {% if poll.show_share_button %}
+            <button id="share-button" type="button">Share</button>
+        {% endif %}
+    </div>
+    
     </form>
 
     
@@ -508,6 +511,17 @@ label {
             }, 3000);
             return false; // Prevent form submission
         }
+        else if (pollType === 'question' && selectedOptions.length === 0) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#fff';
+            messageDiv.textContent = 'Please select at least one option before submitting.';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+            return false; // Prevent form submission
+        }
+
 
         messageDiv.style.display = 'none'; // Hide the message if valid
         return true; // Allow form submission

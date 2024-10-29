@@ -249,7 +249,7 @@
   </nav>
   <div class="poll-list">
     
-    {% for poll in polls %}
+    {% for poll, is_active in polls_with_status %}
     <div class="containerq">
         <!-- Poll Info Section -->
         <div class="poll-info" style="line-height: 1.2; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative;">
@@ -260,6 +260,9 @@
             <button id="{{ poll.id }}" onclick="copy_url('{{ poll.link }}')" class="copy-link" style="color:grey; font-size:12px; margin-left:10px; outline: none; border: none;">
                 <i class="fa-regular fa-copy"></i> copy
             </button><br>
+            <div id="toast" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #333; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000;">
+                Link copied to clipboard!
+            </div>
 
             <!-- Poll Stats -->
             <span style="font-size:14px;">
@@ -270,10 +273,12 @@
             </span>
             <span style="font-size:14px; margin-left:20px;">
                 <i class="fa-regular fa-calendar"></i> 
-                {% if poll.expiration_time %} 
+                {% if not is_active %}
+                    Expired
+                {% elif poll.expiration_time %}
                     {{ poll.expiration_time|date:"Y-m-d H:i" }}
-                {% else %} 
-                    No Expiration 
+                {% else %}
+                    No Expiration
                 {% endif %}
             </span>
         </div>
