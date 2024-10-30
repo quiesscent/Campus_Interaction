@@ -20,7 +20,7 @@
     min-width: 320px;
     max-width: 600px;
     background-color: #ffffff;
-    margin-top: 32px;
+    margin-top: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     font-family: Arial, sans-serif;
@@ -50,6 +50,8 @@
     color: #555;
     margin-top: 8px;
     line-height: 1.8;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    word-wrap: break-word; 
 }
 #vote-form {
     flex: 2; /* Allow the form to grow */
@@ -385,14 +387,14 @@ label {
             {% endif %}
             
             <input 
-                type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
-                name="option{% if poll.multi_option %}[]{% endif %}" 
-                value="{{ option.id }}" 
-                id="option-{{ option.id }}"
-                class="polls-options"
-                {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
-                {% if user_vote %}disabled{% endif %}> 
-          
+            type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+            name="option{% if poll.multi_option %}[]{% endif %}" 
+            value="{{ option.id }}" 
+            id="option-{{ option.id }}" 
+            class="polls-options"
+            {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+            {% if user_vote %}disabled{% endif %}
+        >
             <label for="option-{{ option.id }}">{{ option.option_text }}</label>
         </div>
     {% empty %}
