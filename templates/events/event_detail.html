@@ -9,9 +9,7 @@
     <div class="position-relative">
         {% if event.image %}
             <div class="event-hero" style="height: 50vh; overflow: hidden;">
-                <img src="{{ event.image.url }}" 
-                     alt="{{ event.title }}" 
-                     class="w-100 h-100 object-fit-cover">
+                <img src="{{ event.image.url }}" alt="{{ event.title }}" class="w-100 h-100 object-fit-cover">
                 <div class="position-absolute bottom-0 start-0 w-100 bg-gradient-dark p-4">
                     <div class="container">
                         <h1 class="text-white display-4 mb-2">{{ event.title }}</h1>
@@ -65,19 +63,16 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h3 class="card-title h4 mb-0">Comments</h3>
-                            <button class="btn btn-link" onclick="toggleComments()">
+                            <button class="btn btn-link" onclick="toggleComments()" aria-expanded="false">
                                 <i class="fas fa-comments"></i> Toggle Comments
                             </button>
                         </div>
 
                         <!-- Comment Form -->
-                        <form method="POST" action="{% url 'events:add_comment' event.id %}" class="mb-4">
+                        <form method="POST" action="{% url 'events:add_comment' event.id %}" class="mb-4" id="commentForm">
                             {% csrf_token %}
                             <div class="form-floating mb-3">
-                                <textarea name="content" class="form-control" 
-                                          placeholder="Share your thoughts..." 
-                                          id="commentContent" 
-                                          style="height: 100px"></textarea>
+                                <textarea name="content" class="form-control" placeholder="Share your thoughts..." id="commentContent" style="height: 100px"></textarea>
                                 <label for="commentContent">Share your thoughts...</label>
                             </div>
                             <button type="submit" class="btn btn-primary">
@@ -88,77 +83,7 @@
                         <!-- Comments List -->
                         <div id="main-comments" class="comment-section">
                             {% for comment in comments %}
-                                <div class="comment-card mb-3">
-                                    <div class="d-flex align-items-start mb-2">
-                                        <div class="comment-avatar me-3">
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
-                                                 style="width: 40px; height: 40px;">
-                                                {{ comment.user.user.username|make_list|first|upper }}
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex justify-content-between">
-                                                <h6 class="mb-1">{{ comment.user.user.username }}</h6>
-                                                <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
-                                            </div>
-                                            <p class="mb-2">{{ comment.content }}</p>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <button class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" 
-                                                        onclick="toggleLike({{ comment.id }})">
-                                                    <i class="fas fa-heart"></i>
-                                                    <span class="ms-1">{{ comment.likes.count }}</span>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        onclick="toggleReplyForm({{ comment.id }})">
-                                                    <i class="fas fa-reply"></i> Reply
-                                                </button>
-                                            </div>
-
-                                            <!-- Reply Form (Hidden by default) -->
-                                            <div id="reply-form-{{ comment.id }}" class="reply-form mt-3" style="display: none;">
-                                                <form method="POST" action="{% url 'events:add_comment' event.id %}">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
-                                                    <div class="form-floating mb-2">
-                                                        <textarea name="content" class="form-control" 
-                                                                  placeholder="Write your reply..." 
-                                                                  style="height: 80px"></textarea>
-                                                        <label>Write your reply...</label>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-sm btn-primary">Post Reply</button>
-                                                </form>
-                                            </div>
-
-                                            <!-- Replies -->
-                                            {% if comment.replies.all %}
-                                                <div class="replies-section mt-3 ms-4">
-                                                    <a href="javascript:void(0);" 
-                                                       onclick="toggleReplies({{ comment.id }})" 
-                                                       class="text-primary mb-2 d-block">
-                                                        <i class="fas fa-chevron-down"></i>
-                                                        Show {{ comment.replies.count }} replies
-                                                    </a>
-                                                    <div id="replies-{{ comment.id }}" style="display: none;">
-                                                        {% for reply in comment.replies.all %}
-                                                            <div class="reply-card mb-2 border-start border-3 ps-3">
-                                                                <div class="d-flex justify-content-between">
-                                                                    <h6 class="mb-1">{{ reply.user.user.username }}</h6>
-                                                                    <small class="text-muted">{{ reply.created_at|timesince }} ago</small>
-                                                                </div>
-                                                                <p class="mb-2">{{ reply.content }}</p>
-                                                                <button class="btn btn-sm {% if request.user.profile in reply.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}" 
-                                                                        onclick="toggleLike({{ reply.id }})">
-                                                                    <i class="fas fa-heart"></i>
-                                                                    <span class="ms-1">{{ reply.likes.count }}</span>
-                                                                </button>
-                                                            </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
+                                {% include 'events/partials/comment.html' %}
                             {% empty %}
                                 <div class="text-center text-muted py-4">
                                     <i class="fas fa-comments fa-3x mb-3"></i>
@@ -172,28 +97,23 @@
 
             <!-- Right Column - Event Actions and Info -->
             <div class="col-lg-4">
-                <!-- Event Actions -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        {% if not event.is_public %}
-                            {% if not user_registered %}
-                                <form method="POST" class="mb-3">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-success btn-lg w-100">
-                                        <i class="fas fa-user-plus"></i> Register for Event
-                                    </button>
-                                </form>
-                            {% else %}
-                                <div class="alert alert-success mb-3">
-                                    <i class="fas fa-check-circle"></i> You're registered!
-                                </div>
-                            {% endif %}
+                        {% if not event.is_public and not user_registered %}
+                            <form method="POST" class="mb-3">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-user-plus"></i> Register for Event
+                                </button>
+                            </form>
+                        {% elif user_registered %}
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-check-circle"></i> You're registered!
+                            </div>
                         {% endif %}
 
                         {% if request.user == event.organizer.user %}
-                            <button type="button" 
-                                    class="btn btn-outline-danger w-100 delete-event-btn" 
-                                    data-event-id="{{ event.id }}">
+                            <button type="button" class="btn btn-outline-danger w-100 delete-event-btn" data-event-id="{{ event.id }}">
                                 <i class="fas fa-trash"></i> Delete Event
                             </button>
                         {% endif %}
@@ -230,6 +150,9 @@
 <!-- Custom Styles -->
 {% block extra_css %}
 <style>
+    .alert {
+        animation: slideIn 0.3s ease-out;
+    }
     .bg-gradient-dark {
         background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
     }
@@ -244,78 +167,388 @@
         border-radius: 6px;
         padding: 0.75rem;
     }
+    /* CSS for smooth toggle animations */
+   .comment-section, .reply-section {
+    transition: max-height 0.4s ease-in-out;
+    overflow: hidden;
+    .comment-card, .reply-card {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+    .reply-form {
+        margin-top: 1rem;
+    }
+    
+}
+
 </style>
 {% endblock %}
 
 <!-- JavaScript -->
 {% block extra_js %}
 <script>
-function toggleComments() {
-    const commentsSection = document.getElementById("main-comments");
-    commentsSection.style.display = commentsSection.style.display === "none" ? "block" : "none";
-}
+    document.addEventListener('DOMContentLoaded', function () {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-function toggleReplies(commentId) {
-    const repliesSection = document.getElementById(`replies-${commentId}`);
-    repliesSection.style.display = repliesSection.style.display === "none" ? "block" : "none";
-}
+        // Cache selectors
+        const mainCommentForm = document.querySelector('form[action*="add_comment"]');
+        const deleteButton = document.querySelector('.delete-event-btn');
 
+        // Event handlers for main comment form submission
+        if (mainCommentForm) {
+            mainCommentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitComment(this, mainCommentForm);
+            });
+        }
+
+        // Event handlers for reply form submissions
+        document.querySelectorAll('.reply-form form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitComment(this, form);
+            });
+        });
+
+        // Delete event handler
+        if (deleteButton) {
+            deleteButton.addEventListener('click', async () => {
+                const eventId = deleteButton.dataset.eventId;
+                if (confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+                    await deleteEvent(eventId, csrfToken);
+                }
+            });
+        }
+    });
+
+    function toggleElement(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style.display = element.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    function toggleComments() {
+        toggleElement("main-comments");
+    }
+
+    function toggleReplies(commentId) {
+        toggleElement(`replies-${commentId}`);
+        const repliesDiv = document.getElementById(`replies-${commentId}`);
+        const toggleButton = repliesDiv.previousElementSibling;
+        const isHidden = repliesDiv.style.display === 'none';
+        toggleButton.innerHTML = `
+            <i class="fas fa-chevron-${isHidden ? 'up' : 'down'}"></i>
+            ${isHidden ? 'Hide' : 'Show'} replies
+        `;
+    }
+
+    function toggleReplyForm(commentId) {
+        toggleElement(`reply-form-${commentId}`);
+    }
+
+    async function toggleLike(commentId) {
+        try {
+            const response = await fetch(`/events/comment/${commentId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                const likeButton = document.querySelector(`button[onclick="toggleLike(${commentId})"]`);
+                const likeCount = likeButton.querySelector('span');
+
+                // Toggle button appearance
+                likeButton.classList.toggle('btn-danger');
+                likeButton.classList.toggle('btn-outline-danger');
+
+                // Update like count
+                likeCount.textContent = data.likes_count;
+            }
+        } catch (error) {
+            showNotification('Error updating like', 'error');
+        }
+    }
+
+    async function deleteEvent(eventId, csrfToken) {
+        try {
+            const response = await fetch(`/events/${eventId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                window.location.href = '/events/';
+            } else {
+                const data = await response.json();
+                alert(data.message || "Failed to delete event.");
+            }
+        } catch (error) {
+            alert("Error deleting event.");
+        }
+    }
+
+    function submitComment(form, originalForm) {
+        const formData = new FormData(form);
+        const isReply = formData.get('parent_comment_id') !== null;
+        const mainCommentsContainer = document.getElementById('main-comments');
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        // Add loading spinner to form submit button
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-border spinner-border-sm ms-2';
+        submitButton.appendChild(spinner);
+        submitButton.disabled = true;  // Disable button to prevent multiple submissions
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+            },
+            credentials: 'same-origin',
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    handleCommentSubmission(data, isReply, formData, mainCommentsContainer);
+                } else {
+                    showNotification(data.errors || 'Error posting comment', 'error');
+                }
+            })
+            .catch(() => showNotification('Error posting comment', 'error'))
+            .finally(() => {
+                spinner.remove();
+                submitButton.disabled = false;
+            });
+    }
+
+    function handleCommentSubmission(data, isReply, formData, mainCommentsContainer) {
+        if (isReply) {
+            const parentId = formData.get('parent_comment_id');
+            const repliesContainer = document.getElementById(`replies-${parentId}`);
+
+            if (repliesContainer) {
+                repliesContainer.innerHTML = data.comment_html + repliesContainer.innerHTML;
+            } else {
+                const parentComment = document.getElementById(`comment-${parentId}`);
+                const repliesSection = document.createElement('div');
+                repliesSection.className = 'replies-section mt-3 ms-4';
+                repliesSection.innerHTML = `
+                    <a href="javascript:void(0);" onclick="toggleReplies(${parentId})" class="text-primary mb-2 d-block">
+                        <i class="fas fa-chevron-down"></i> Show 1 reply
+                    </a>
+                    <div id="replies-${parentId}" style="display: none;">
+                        ${data.comment_html}
+                    </div>
+                `;
+                parentComment.querySelector('.flex-grow-1').appendChild(repliesSection);
+            }
+
+            toggleReplyForm(parentId);
+        } else {
+            mainCommentsContainer.insertAdjacentHTML('afterbegin', data.comment_html);
+            // Remove empty state if it exists
+            const emptyState = mainCommentsContainer.querySelector('.text-center.text-muted');
+            if (emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        form.reset();
+        showNotification('Comment posted successfully!', 'success');
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '1050';
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    let currentPage = 1;
+
+    function loadMoreComments(eventId) {
+        currentPage += 1;
+        $.ajax({
+            url: `/events/${eventId}/load-more-comments?page=${currentPage}`,
+            type: 'GET',
+            success: function(response) {
+                if (response.comments_html) {
+                    $('#comments-container').append(response.comments_html);
+                } else {
+                    $('#load-more-button').hide();
+                }
+            },
+            error: function(xhr) {
+                console.error("Error loading comments:", xhr);
+            }
+        });
+    }
+
+    function addComment(eventId) {
+        const content = $('#comment-input').val();
+        const parentCommentId = $('#parent-comment-id').val();
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+        $.ajax({
+            url: `/events/${eventId}/comment/`,
+            type: 'POST',
+            data: {
+                content: content,
+                parent_comment_id: parentCommentId,
+                csrfmiddlewaretoken: csrfToken
+            },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                $('#comments-container').append(response.comment_html);
+                $('#comment-input').val(''); // Clear the input
+                $('#parent-comment-id').val(''); // Clear the parent comment ID
+            },
+            error: function(xhr) {
+                console.error("Error adding comment:", xhr);
+            }
+        });
+    }
+// Updated JavaScript for handling comments
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Handle main comment form submission
+    const mainCommentForm = document.getElementById('commentForm');
+    if (mainCommentForm) {
+        mainCommentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleCommentSubmit(this);
+        });
+    }
+
+    // Function to handle comment submission
+    async function handleCommentSubmit(form) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        const formData = new FormData(form);
+        const eventId = window.location.pathname.split('/')[2]; // Get event ID from URL
+
+        try {
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Posting...';
+
+            const response = await fetch(`/events/${eventId}/comment/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error posting comment');
+            }
+
+            if (data.status === 'success') {
+                // Clear form
+                form.reset();
+
+                // Handle the response
+                const parentId = formData.get('parent_comment_id');
+                if (parentId) {
+                    // Handle reply
+                    const repliesContainer = document.getElementById(`replies-${parentId}`);
+                    if (repliesContainer) {
+                        repliesContainer.insertAdjacentHTML('afterbegin', data.comment_html);
+                        toggleReplyForm(parentId); // Hide reply form after successful submission
+                    }
+                } else {
+                    // Handle main comment
+                    const commentsContainer = document.getElementById('main-comments');
+                    commentsContainer.insertAdjacentHTML('afterbegin', data.comment_html);
+                }
+
+                showNotification('Comment posted successfully!', 'success');
+            } else {
+                throw new Error(data.message || 'Error posting comment');
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Post Comment';
+        }
+    }
+
+    // Function to show notifications
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '1050';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Handle reply forms
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.reply-button')) {
+            const commentId = e.target.dataset.commentId;
+            toggleReplyForm(commentId);
+        }
+    });
+
+    // Initialize reply forms
+    document.querySelectorAll('.reply-form form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleCommentSubmit(this);
+        });
+    });
+});
+
+// Function to toggle reply form visibility
 function toggleReplyForm(commentId) {
     const replyForm = document.getElementById(`reply-form-${commentId}`);
-    replyForm.style.display = replyForm.style.display === "none" ? "block" : "none";
-}
-
-async function toggleLike(commentId) {
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    try {
-        const response = await fetch(`/events/comment/${commentId}/like/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            }
-        });
-        if (response.ok) {
-            location.reload();
+    if (replyForm) {
+        const isHidden = replyForm.style.display === 'none';
+        replyForm.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            replyForm.querySelector('textarea').focus();
         }
-    } catch (error) {
-        console.error("Error:", error);
     }
 }
 
-// Delete Event Handler
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteButton = document.querySelector('.delete-event-btn');
-    if (deleteButton) {
-        deleteButton.addEventListener('click', async function() {
-            const eventId = deleteButton.dataset.eventId;
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            if (confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
-                try {
-                    const response = await fetch(`/events/${eventId}/delete/`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRFToken': csrfToken,
-                            'Content-Type': 'application/json',
-                        }
-                    });
-
-                    if (response.ok) {
-                        window.location.href = '/events/';
-                    } else {
-                        const data = await response.json();
-                        alert(data.message || "Failed to delete event.");
-                    }
-                } catch (error) {
-                    console.error("Error:", error);
-                    alert("Error deleting event.");
-                }
-            }
-        });
+// Function to toggle replies visibility
+function toggleReplies(commentId) {
+    const repliesContainer = document.getElementById(`replies-${commentId}`);
+    const toggleButton = document.querySelector(`button[onclick="toggleReplies(${commentId})"]`);
+    if (repliesContainer && toggleButton) {
+        const isHidden = repliesContainer.style.display === 'none';
+        repliesContainer.style.display = isHidden ? 'block' : 'none';
+        toggleButton.innerHTML = isHidden ? 'Hide replies' : 'Show replies';
     }
-});
+}
 </script>
 {% endblock %}
-
 {% endblock %}
