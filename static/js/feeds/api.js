@@ -9,6 +9,8 @@ const API_ENDPOINTS = {
     LIKE_COMMENT: (commentId) => `/api/comments/${commentId}/like/`,
     VIEW_POST: (postId) => `/api/posts/${postId}/view/`,
     POST_ENGAGEMENT: (postId, type) => `/api/posts/${postId}/engagement/${type}/`,
+    REPORT_POST: (postId) => `/api/posts/${postId}/report/`,
+    REPORT_COMMENT: (commentId) => `/api/comments/${commentId}/report/`,
     SEARCH_POSTS: '/api/posts/search/',
 };
 
@@ -147,6 +149,26 @@ const API = {
 
     async searchPosts(query, page = 1) {
         return apiCall(`${API_ENDPOINTS.SEARCH_POSTS}?q=${encodeURIComponent(query)}&page=${page}`);
+    },
+
+    async reportPost(postId, reportType, description = '') {
+        return apiCall(API_ENDPOINTS.REPORT_POST(postId), {
+            method: 'POST',
+            body: {
+                report_type: reportType,
+                description: description
+            }
+        });
+    },
+
+    async reportComment(commentId, reportType, description = '') {
+        return apiCall(API_ENDPOINTS.REPORT_COMMENT(commentId), {
+            method: 'POST',
+            body: {
+                report_type: reportType,
+                description: description
+            }
+        });
     }
 };
 
