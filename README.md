@@ -65,7 +65,7 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 - [ ] **Feeds & Trending** - Frontend (Fabian)
 - [✅] **Feeds & Trending** - Backend (Fidel)
 - [ ] **Polls** - Frontend (Debby)
-- [ ] **Polls** - Backend (Victor)
+- [✅] **Polls** - Backend (Victor)
 - [ ] **Event Calendar** - Frontend (Saints)
 - [ ] **Event Calendar** - Backend (Incognito)
 
