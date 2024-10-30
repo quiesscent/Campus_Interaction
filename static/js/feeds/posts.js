@@ -3,7 +3,21 @@ const PostsState = {
     currentPage: 1,
     currentFilter: 'all',
     loading: false,
-    hasMore: true
+    hasMore: true,
+    searchQuery: '',
+    posts: new Map(), // Track loaded posts
+    
+    reset() {
+        this.currentPage = 1;
+        this.hasMore = true;
+        this.posts.clear();
+    },
+    
+    addPosts(newPosts) {
+        newPosts.forEach(post => {
+            this.posts.set(post.id, post);
+        });
+    }
 };
 
 // DOM Elements
@@ -37,8 +51,7 @@ function initInfiniteScroll() {
 // Load initial posts
 async function loadPosts(filter = 'all', reset = false) {
     if (reset) {
-        PostsState.currentPage = 1;
-        PostsState.hasMore = true;
+        PostsState.reset();
         postsContainer.innerHTML = '';
     }
 
@@ -48,24 +61,46 @@ async function loadPosts(filter = 'all', reset = false) {
         PostsState.loading = true;
         showLoading();
 
-        const data = await API.getFeed(PostsState.currentPage, filter);
+        const endpoint = PostsState.searchQuery
+            ? `${API_ENDPOINTS.SEARCH_POSTS}?q=${encodeURIComponent(PostsState.searchQuery)}&page=${PostsState.currentPage}`
+            : `${API_ENDPOINTS.FEED_LIST}?page=${PostsState.currentPage}&filter=${filter}`;
+
+        const data = await apiCall(endpoint);
         
-        if (data.posts.length === 0) {
+        if (data.posts?.length === 0) {
             PostsState.hasMore = false;
-            hideLoading();
+            if (reset && !PostsState.posts.size) {
+                showEmptyState();
+            }
             return;
         }
 
+        PostsState.addPosts(data.posts);
         renderPosts(data.posts);
         PostsState.currentPage = data.current_page + 1;
         PostsState.hasMore = data.has_next;
         hideError();
     } catch (error) {
-        showError();
+        handleLoadError(error);
     } finally {
         PostsState.loading = false;
         hideLoading();
         updateLoadMoreButton();
+    }
+}
+
+function handleLoadError(error) {
+    console.error('Load error:', error);
+    
+    const errorMessage = error.status === 429 
+        ? 'Too many requests. Please wait a moment.'
+        : 'Error loading posts. Please try again.';
+    
+    showError(errorMessage);
+    
+    if (error.status === 401) {
+        // Handle unauthorized access
+        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
     }
 }
 
@@ -142,7 +177,8 @@ function createPostElement(post) {
     return postCard;
 }
 
-// Setup post interactions
+// In posts.js, update the setupPostInteractions function:
+
 function setupPostInteractions(postCard, post) {
     const likeBtn = postCard.querySelector('.post-like-btn');
     const commentBtn = postCard.querySelector('.post-comment-btn');
@@ -152,10 +188,8 @@ function setupPostInteractions(postCard, post) {
     const deleteBtn = postCard.querySelector('.post-delete');
     const reportBtn = postCard.querySelector('.post-report');
     const engagementBtns = postCard.querySelectorAll('.view-engagement');
-    const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
-    const dropdownMenu = postCard.querySelector('.post-dropdown-menu');
-
-    // Show/hide owner/non-owner actions based on ownership
+    
+    // Set up visibility based on ownership
     if (post.is_owner) {
         ownerActions?.classList.remove('d-none');
         nonOwnerActions?.classList.add('d-none');
@@ -164,24 +198,44 @@ function setupPostInteractions(postCard, post) {
         nonOwnerActions?.classList.remove('d-none');
     }
 
-    // Delete button (only for owners)
+    // Like button handler using handlePostInteraction
+    if (likeBtn) {
+        likeBtn.addEventListener('click', async () => {
+            const likesCount = postCard.querySelector('.post-likes-count');
+            const icon = likeBtn.querySelector('i');
+            
+            await handlePostInteraction(
+                post.id,
+                () => API.likePost(post.id),
+                (response) => {
+                    likesCount.textContent = response.likes_count;
+                    icon.classList.toggle('far');
+                    icon.classList.toggle('fas');
+                    icon.classList.toggle('text-danger');
+                }
+            );
+        });
+    }
+
+    // Delete button handler using handlePostInteraction
     if (deleteBtn && post.is_owner) {
         deleteBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to delete this post?')) {
-                try {
-                    await API.deletePost(post.id);
-                    postCard.remove();
-                    showNotification('Post deleted successfully', 'success');
-                } catch (error) {
-                    showNotification('Error deleting post', 'error');
-                }
+                await handlePostInteraction(
+                    post.id,
+                    () => API.deletePost(post.id),
+                    () => {
+                        postCard.remove();
+                        showNotification('Post deleted successfully', 'success');
+                    }
+                );
             }
         });
     }
 
-    // Report button (only for non-owners)
+    // Report button handler using handlePostInteraction
     if (reportBtn && !post.is_owner) {
-        reportBtn.addEventListener('click', () => {
+        reportBtn.addEventListener('click', async () => {
             if (window.reportModal) {
                 window.reportModal.setupReport(post.id, 'post');
                 const reportModalElement = document.getElementById('reportModal');
@@ -191,31 +245,23 @@ function setupPostInteractions(postCard, post) {
         });
     }
 
-    // Like button
-    likeBtn.addEventListener('click', async () => {
-        try {
-            const response = await API.likePost(post.id);
-            const likesCount = postCard.querySelector('.post-likes-count');
-            likesCount.textContent = response.likes_count;
-            
-            const icon = likeBtn.querySelector('i');
-            icon.classList.toggle('far');
-            icon.classList.toggle('fas');
-            icon.classList.toggle('text-danger');
-        } catch (error) {
-            showNotification('Error liking post', 'error');
-        }
-    });
+    // Comment button (opens modal/section)
+    if (commentBtn) {
+        commentBtn.addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('openComments', { 
+                detail: post.id 
+            }));
+        });
+    }
     
-    // Comment button
-    commentBtn.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('openComments', { detail: post.id }));
-    });
-    
-    // Share button
-    shareBtn.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('sharePost', { detail: post }));
-    });
+    // Share button (opens modal)
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('sharePost', { 
+                detail: post 
+            }));
+        });
+    }
     
     // Engagement buttons
     engagementBtns.forEach(btn => {
@@ -226,21 +272,27 @@ function setupPostInteractions(postCard, post) {
             }));
         });
     });
+}
 
-    // Dropdown menu
-    if (dropdownBtn && dropdownMenu) {
-        dropdownBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdownMenu.classList.toggle('show');
-            dropdownBtn.setAttribute('aria-expanded', dropdownMenu.classList.contains('show'));
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.remove('show');
-                dropdownBtn.setAttribute('aria-expanded', 'false');
-            }
-        });
+// Add this helper function to handle post interactions
+async function handlePostInteraction(postId, action, updateUI) {
+    try {
+        const response = await action();
+        updateUI(response);
+    } catch (error) {
+        if (error.status === 401) {
+            showNotification('Please log in to perform this action', 'error');
+        } else if (error.status === 403) {
+            showNotification('You do not have permission to perform this action', 'error');
+        } else if (error.status === 404) {
+            showNotification('This post is no longer available', 'error');
+            // Optionally remove the post from view
+            const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+            postElement?.remove();
+        } else {
+            showNotification('Error performing action', 'error');
+        }
+        throw error;
     }
 }
 

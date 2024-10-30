@@ -51,13 +51,6 @@ async function apiCall(endpoint, options = {}, retries = 3) {
         credentials: 'same-origin'
     };
 
-    if (options.method && options.method !== 'GET') {
-        if (!(options.body instanceof FormData)) {
-            defaultOptions.headers['Content-Type'] = 'application/json';
-            if (options.body) options.body = JSON.stringify(options.body);
-        }
-    }
-
     const finalOptions = {
         ...defaultOptions,
         ...options,
@@ -67,29 +60,56 @@ async function apiCall(endpoint, options = {}, retries = 3) {
         }
     };
 
+    if (options.method && options.method !== 'GET') {
+        if (!(options.body instanceof FormData)) {
+            finalOptions.headers['Content-Type'] = 'application/json';
+            if (options.body) finalOptions.body = JSON.stringify(options.body);
+        }
+    }
+
     let lastError;
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
             const response = await fetch(endpoint, finalOptions);
-            const data = await response.json();
+            
+            // Handle non-JSON responses
+            const contentType = response.headers.get('content-type');
+            const data = contentType?.includes('application/json') 
+                ? await response.json()
+                : await response.text();
 
             if (!response.ok) {
-                throw new Error(data.message || 'API call failed');
+                const error = new Error(
+                    typeof data === 'object' ? data.message : 'API call failed'
+                );
+                error.status = response.status;
+                error.data = data;
+                throw error;
             }
 
             return data;
         } catch (error) {
             lastError = error;
-            if (attempt < retries - 1) {
-                // Wait with exponential backoff before retrying
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+            if (attempt < retries - 1 && isRetryableError(error)) {
+                await new Promise(resolve => 
+                    setTimeout(resolve, Math.pow(2, attempt) * 100)
+                );
                 continue;
             }
-            console.error('API Error:', error);
-            throw error;
+            throw lastError;
         }
     }
 }
+
+
+// Helper to determine if error is retryable
+function isRetryableError(error) {
+    return error.status === 429 || // Rate limiting
+           error.status >= 500 || // Server errors
+           error.message.includes('network'); // Network errors
+}
+
+
 
 // Feed API functions
 const API = {
