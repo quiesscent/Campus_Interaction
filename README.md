@@ -79,7 +79,7 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 - [✅] **Student Profiles** - Full Stack (Fidel)
 
 - ### Polls
-- [ ] **Polls Creation and Views** - Frontend (Debby)
+- [✅] **Polls Creation and Views** - Frontend (Debby)
 - [✅] **Polls Creation and Views** - Backend (Victor)
 
 
