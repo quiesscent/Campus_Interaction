@@ -11,12 +11,6 @@ const PostsState = {
         this.currentPage = 1;
         this.hasMore = true;
         this.posts.clear();
-    },
-    
-    addPosts(newPosts) {
-        newPosts.forEach(post => {
-            this.posts.set(post.id, post);
-        });
     }
 };
 
@@ -28,34 +22,75 @@ const loadingSpinner = document.getElementById('loadingSpinner');
 const postsError = document.getElementById('postsError');
 
 
+// Initialize filter handling
+function initFilterHandlers() {
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            // Prevent default button behavior
+            e.preventDefault();
+            
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            button.classList.add('active');
+            
+            const filter = button.dataset.filter;
+            
+            // Only trigger if it's a new filter
+            if (filter !== PostsState.currentFilter) {
+                PostsState.currentFilter = filter;
+                // Clear existing posts and load new ones
+                postsContainer.innerHTML = '';
+                PostsState.reset();
+                loadPosts(filter, true);
+            }
+        });
+    });
+}
 
-// Initialize infinite scroll
+
+// Initialize infinite scroll with proper cleanup
 function initInfiniteScroll() {
+    // Remove any existing observer
+    if (window.postsObserver) {
+        window.postsObserver.disconnect();
+    }
+    
     const options = {
         root: null,
         rootMargin: '100px',
         threshold: 0.1
     };
 
-    const observer = new IntersectionObserver((entries) => {
+    window.postsObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting && !PostsState.loading && PostsState.hasMore) {
-                loadMorePosts();
+                loadPosts(PostsState.currentFilter);
             }
         });
     }, options);
 
-    if (loadMoreBtn) observer.observe(loadMoreBtn);
+    if (loadMoreBtn) {
+        window.postsObserver.observe(loadMoreBtn);
+    }
 }
 
-// Load initial posts
+// Load posts with proper state management
 async function loadPosts(filter = 'all', reset = false) {
+    // Prevent multiple simultaneous loads
+    if (PostsState.loading) return;
+    
+    // Reset if requested
     if (reset) {
         PostsState.reset();
         postsContainer.innerHTML = '';
     }
 
-    if (!PostsState.hasMore || PostsState.loading) return;
+    // Don't load if we're out of posts
+    if (!PostsState.hasMore) return;
 
     try {
         PostsState.loading = true;
@@ -67,19 +102,25 @@ async function loadPosts(filter = 'all', reset = false) {
 
         const data = await apiCall(endpoint);
         
-        if (data.posts?.length === 0) {
+        if (!data.posts || data.posts.length === 0) {
             PostsState.hasMore = false;
-            if (reset && !PostsState.posts.size) {
+            if (PostsState.posts.size === 0) {
                 showEmptyState();
             }
             return;
         }
 
-        PostsState.addPosts(data.posts);
-        renderPosts(data.posts);
+        // Process new posts
+        const newPosts = data.posts.filter(post => !PostsState.posts.has(post.id));
+        newPosts.forEach(post => PostsState.posts.set(post.id, post));
+        
+        // Only render new posts
+        renderPosts(newPosts);
+        
         PostsState.currentPage = data.current_page + 1;
         PostsState.hasMore = data.has_next;
         hideError();
+
     } catch (error) {
         handleLoadError(error);
     } finally {
@@ -88,6 +129,18 @@ async function loadPosts(filter = 'all', reset = false) {
         updateLoadMoreButton();
     }
 }
+
+// Show empty state
+function showEmptyState() {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'text-center py-5';
+    emptyState.innerHTML = `
+        <i class="fas fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+        <h5 class="text-muted">No posts to show</h5>
+    `;
+    postsContainer.appendChild(emptyState);
+}
+
 
 function handleLoadError(error) {
     console.error('Load error:', error);
@@ -104,27 +157,35 @@ function handleLoadError(error) {
     }
 }
 
-// Render posts
+// Render posts with duplicate prevention
 function renderPosts(posts) {
+    const fragment = document.createDocumentFragment();
+    
     posts.forEach(post => {
-        const postElement = createPostElement(post);
-        postsContainer.appendChild(postElement);
-        
-        // Record view after rendering using debounced version
-        viewPostDebounced(post.id);
+        // Check if post already exists in DOM
+        if (!document.querySelector(`[data-post-id="${post.id}"]`)) {
+            const postElement = createPostElement(post);
+            fragment.appendChild(postElement);
+        }
     });
+    
+    postsContainer.appendChild(fragment);
 }
 
 // Create post element from template
 function createPostElement(post) {
-    console.log('Post owner status:', post.is_owner);
-    const template = postTemplate.content.cloneNode(true);
-    const postCard = template.querySelector('.post-card');
-    postCard.dataset.postId = post.id;
+    const element = postTemplate.content.cloneNode(true);
+    const postCard = element.querySelector('.post-card');
     
-    // Set post ID
+    // Clean up any existing event listeners
+    const oldPost = document.querySelector(`[data-post-id="${post.id}"]`);
+    if (oldPost) {
+        oldPost.remove();
+    }
+
+    // Set post ID immediately
     postCard.dataset.postId = post.id;
-    
+
     // Set user info
     const avatar = postCard.querySelector('.post-avatar');
     avatar.src = post.user.avatar_url || '/static/images/default-avatar.png';
@@ -358,12 +419,21 @@ function updateLoadMoreButton() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Initial load
     loadPosts();
     initInfiniteScroll();
+    initFilterHandlers();
     
-    // Listen for filter changes
+    // Clean up old event listeners
+    window.removeEventListener('changeFilter', null);
+    
+    // Add new filter change listener
     window.addEventListener('changeFilter', (event) => {
-        PostsState.currentFilter = event.detail;
-        loadPosts(event.detail, true);
+        const newFilter = event.detail;
+        if (newFilter !== PostsState.currentFilter) {
+            PostsState.currentFilter = newFilter;
+            loadPosts(newFilter, true);
+        }
     });
 });
+
