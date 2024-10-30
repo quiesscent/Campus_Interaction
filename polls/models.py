@@ -7,6 +7,7 @@ from django.conf import settings
 import qrcode
 from datetime import timedelta
 from io import BytesIO
+import pytz
 
 class Poll(models.Model):
     POLL_TYPE_CHOICES = (
@@ -31,10 +32,15 @@ class Poll(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)  # Automatically set to now when created
 
     
+    @property
     def is_active(self):
-        """Checks if the poll is still active based on expiration time and allow_expiration."""
-        if self.allow_expiration:
-            return not self.expiration_time or timezone.now() < self.expiration_time
+        """Checks if the poll is still active based on expiration time and allow_expiration in Kenyan timezone."""
+        kenya_timezone = pytz.timezone("Africa/Nairobi")
+        now_in_kenya = timezone.now().astimezone(kenya_timezone)
+
+        if self.allow_expiration and self.expiration_time:
+            expiration_in_kenya = self.expiration_time.astimezone(kenya_timezone)
+            return now_in_kenya < expiration_in_kenya
         return True
 
     def increment_view_count(self):

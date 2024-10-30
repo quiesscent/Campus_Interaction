@@ -1,207 +1,577 @@
 {% extends 'base.html' %}
 
-{% block title %}Polls - Create Poll{% endblock %}
+{% block title %}{{ poll.title }}{% endblock %}
 
 {% block content %}
 
 <style>
+/* General form styling */
+.poll-container {
+    display: flex; /* Use flexbox for layout */
+    justify-content: space-between; /* Space between left and right sections */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    max-width: 900px; /* Set a max width for the container */
+    margin: 20px auto; /* Center the container */
+}
+
+.text-section {
+    flex: 0.5;
+    padding: 24px;
+    min-width: 320px;
+    max-width: 600px;
+    background-color: #ffffff;
+    margin-top: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+.text-section h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4a90e2;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.text-section h3 {
+    font-size: 20px;
+    font-weight: 300;
+    color: #333;
+    margin-bottom: 8px;
+
+    letter-spacing: 0.5px;
+}
+
+.text-section p {
+    font-size: 16px;
+    color: #555;
+    margin-top: 8px;
+    line-height: 1.8;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    word-wrap: break-word; 
+}
+#vote-form {
+    flex: 2; /* Allow the form to grow */
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+    border-radius: 8px; 
+    overflow: hidden; 
+    margin: 20px;
+    padding: 20px; 
+}
+
+/* Banner styling */
+.banner-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+.banner-container img{
+    border-radius: 10px;
+}
+
+.banner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.7);
+}
+
+/* Image Styling */
+.option-img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-right: 10px;
+}
+
+/* Poll Options Styling */
+.option-container {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s;
+    cursor: pointer;
+}
+
+.option-container:hover {
+    background-color: #f1f1f1;
+}
+
+.polls-options {
+    margin-right: 12px;
+    accent-color: #007bff;
+    cursor: pointer;
+    transform: scale(1.2); /* Makes checkboxes/radios slightly larger */
+}
+
+label {
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Media Query for Smaller Screens */
+@media (max-width: 768px) {
+    .poll-container {
+        flex-direction: column; /* Stack elements on smaller screens */
+    }
+
+    .text-section {
+        order: 0; /* Title and description remain at the top */
+        margin-bottom: 20px; /* Add some spacing */
+    }
+
+    #vote-form {
+        order: 1; /* Form goes below title and description */
+        margin: 0; /* Remove margin on form for small screens */
+    }
+}
 
 
+
+/* Empty option message */
+.empty-option {
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+/* Actions styling */
+.actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8f8f8;
+    border-top: 1px solid #ddd;
+}
+
+.actions button,
+.actions .view_result, .close_it {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    text-decoration: none;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.actions button:hover,
+.actions .view_result:hover {
+    background-color: #0056b3;
+}
+
+.view_result {
+    background-color: #28a745;
+}
+
+#share-button {
+    background-color: #ffc107;
+    color: #333;
+}
+
+#share-button:hover {
+    background-color: #e0a800;
+}
+
+/* Additional spacing for the whole form */
+#vote-form hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 10px 0;
+}
+
+.poll_navbar {
+    padding: 10px 20px;
+  }
+  .navbar-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  @import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+  .poll_navbar .logo {
+    font-size: 30px;
+    color: #333;
+    text-decoration: none;
+    font-family: "Roboto", sans-serif;
+    font-weight: 900;
+    font-style: normal;
+  }
+
+  /* Button Styling */
+  .create-poll-btn {
+    background-color: blue; /* Green */
+    color: #fff;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .create-poll-btn:hover {
+    background-color: #4a56e2;
+    color: #fff;
+  }
+
+  .toggle-filters-btn {
+    background-color: #4a56e2; 
+    color: #fff;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .toggle-filters-btn:hover {
+    background-color: #1c216d;
+  }
+
+  /* Flex container for buttons */
+  .navbar-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .dashboard {
+    color: #555;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .dashboard:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  .message {
+    display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 15px 30px;
+        border-radius: 10px;
+        text-align: center;
+        opacity: 1;
+        transition: opacity 1s ease-in-out;
+        z-index: 1000;
+}
+.embed-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .embed-popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .qr-code {
+            width: 120px; 
+            height: 120px;
+            object-fit: cover; 
+            border: 2px solid #3480c7; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: block; 
+            margin: 0 auto; 
+            padding: 5px; 
+            background-color: #ffffff; 
+        }
+
+        .poll_link {
+            display: block;
+            text-decoration: none;
+            color: #3480c7;
+            font-size: 16px;
+            transition: color 0.3s ease;
+            padding: 10px;
+            border-radius: 6px;
+            outline: none;
+        }
 </style>
 
-    <form method="post" id="vote-form" >
-        <div class="titles">
-            <div class="banner-container">
-                <img src="{% if poll.banner_image %}{{ poll.banner_image.url }}{% else %}/media/path/to/default-image.jpg{% endif %}" alt="{{ poll.title }} banner" class="banner-image">
-                <div class="text-overlay">
-                    <h2>{{ poll.title }}</h2>
-                    <p>{{ poll.description }}</p>
-                </div>
-            </div>
-        </div>
+<nav class="poll_navbar">
+    <div class="navbar-buttons">
+      <a  href="{% url 'polls:vote_poll' poll.id %}"class="logo">Voting Bay</a>
+      <a href="{% url 'polls:add_polls' %}" class="create-poll-btn"
+        >+ Create New Poll</a
+      >
+    </div>
+    <a  href="{% url 'polls:base_poll' %}" class="dashboard">All Polls</a>
+  </nav>
+
+  <div id="message" class="message" style="display: none;"></div>
+  <div class="poll-container">
+    <div class="text-section">
+        <h1>{{ poll.poll_type }} Poll</h1>
+        <h3>Title: {{ poll.title }}</h3>
         
+        {% if poll.description %}
+            <p>Description: {{ poll.description }}</p>
+        {% endif %}
+    </div>
+    
+
+    <form method="post" id="vote-form" onsubmit="return validateForm();" data-poll-type="{% if poll.poll_type == 'question' %}question{% else %}opinion{% endif %}">
+        <div class="banner-container">
+            {% if poll.banner_image %}
+                <img src="{{ poll.banner_image.url }}" alt="{{ poll.title }} banner" class="banner-image">
+            {% else %}                
+                {% if poll.poll_type == 'question' %}
+                    <img src="http://localhost:8000/media/default_poll_banner/questions.jpg" alt="Default Question Banner" class="banner-image">
+                {% elif poll.poll_type == 'opinion' %}
+                    <img src="http://localhost:8000/media/default_poll_banner/opinions.jpg" alt="Default Opinion Banner" class="banner-image">
+                {% else %}
+                    <img src="http://localhost:8000/media/default_poll_banner/question_image.jpeg" alt="Default General Banner" class="banner-image">
+                {% endif %}
+            {% endif %}
+        </div>
         {% csrf_token %}
         {% for option in poll.options.all %}
-            <div class="option-container" data-correct="{{ option.is_correct }}">
-                <input 
-                    type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
-                    name="option{% if poll.multi_option %}[]{% endif %}" 
-                    value="{{ option.id }}" 
-                    id="option-{{ option.id }}"
-                    class="polls-options"
-                    {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
-                    {% if poll.poll_type == 'question' %}onclick="checkOption(this)"{% endif %}> 
-                <label for="option-{{ option.id }}">{{ option.option_text }}</label>
-            </div>
+        <div class="option-container" 
+             data-correct="{{ option.is_correct }}" 
+             onclick="toggleOption({{ option.id }}, {{ poll.multi_option|yesno:'true,false' }})">
             
-        {% empty %}
-            <p>No options available.</p>
-        {% endfor %}
-        <hr>
-        <div class="actions">
+            {% if option.option_image %}
+                <img src="{{ option.option_image.url }}" alt="Option Image" class="option-img">
+            {% endif %}
+            
+            <input 
+            type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
+            name="option{% if poll.multi_option %}[]{% endif %}" 
+            value="{{ option.id }}" 
+            id="option-{{ option.id }}" 
+            class="polls-options"
+            {% if user_vote and user_vote.option.id == option.id %}checked{% endif %}
+            {% if user_vote %}disabled{% endif %}
+        >
+            <label for="option-{{ option.id }}">{{ option.option_text }}</label>
+        </div>
+    {% empty %}
+        <p>No options available.</p>
+    {% endfor %}
+    
+    <hr>
+    <div class="actions">
         {% if not user_vote %}
             <button type="submit">Submit</button>
         {% endif %}
-        <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
-        <button id="share-button">Share</button>
+    
+        {% if poll.is_public and user_vote %}
+            <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
+        {% endif %}
+        
+        {% if poll.show_share_button %}
+            <button id="share-button" type="button">Share</button>
+        {% endif %}
     </div>
+    
     </form>
-    
+
     
 
 
-    {% if poll_link %}
-    <!-- Modal Structure -->
-    <div id="share-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h4>Share This Poll</h4>
-            <p><strong>Link:</strong> <a href="{{ poll_link }}" id="poll-link" target="_blank">{{ poll_link }}</a></p>
-            {% if qr_code_url %}
-                <p><strong>QR Code:</strong></p>
-                <img src="{{ qr_code_url }}" alt="QR Code for Poll Link">
-            {% endif %}
-            <button id="copy-button">Copy Link</button>
-        </div>
+{% if poll_link %}
+<!-- Modal Structure -->
+<div id="embedPopupOverlay" class="embed-popup-overlay" onclick="closeEmbedPopup(event)">
+    <div class="embed-popup-content" onclick="event.stopPropagation()"><div style="font-weight: bold;">Scan QR code</div>
+    <img src="{{ qr_code_url }}" class="qr-code">
+        
+       <br> <input type="text" value="{{ poll_link }}" style="width:100%;" readonly id="embedLink" class="poll_link">
+        <br><a href="" style="color: #3480c7; text-decoration: underline; font-size:14px;" onclick="copyInputToClipboard()">Copy link</a>
+        <br><button onclick="closeEmbedPopup()" style="margin-top:10px; font-size:14px;" type="button" class="close_it">Close</button>
     </div>
+</div>
 {% endif %}
 
+
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const shareButton = document.getElementById('share-button');
-        const modal = document.getElementById('share-modal');
-        const closeModal = document.querySelector('.close');
-        const copyButton = document.getElementById('copy-button');
-        const pollLink = document.getElementById('poll-link').href;
+    document.getElementById('vote-form').addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent default form submission
 
-        // Show the modal when the share button is clicked
-        shareButton.addEventListener('click', function() {
-            modal.style.display = 'block';
-        });
-
-        // Close the modal when the 'x' is clicked
-        closeModal.addEventListener('click', function() {
-            modal.style.display = 'none';
-        });
-
-        // Close the modal when clicking outside of the modal content
-        window.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-
-        // Copy the link to the clipboard
-        copyButton.addEventListener('click', function() {
-            navigator.clipboard.writeText(pollLink)
-                .then(() => {
-                    alert('Link copied to clipboard!');
-                })
-                .catch(err => {
-                    console.error('Error copying link: ', err);
-                });
-        });
+        if (validateForm()) {
+            showThankYouMessage(); 
+            // Submit the form after a brief delay to allow users to see the message
+            setTimeout(() => {
+                this.submit(); // Submit the form
+            }, 2000); // Delay before submission
+        }
     });
+
+    function toggleOption(optionId, isMultiOption) {
+        const checkbox = document.getElementById(`option-${optionId}`);
+        const pollType = document.getElementById('vote-form').getAttribute('data-poll-type');
+
+        if (!checkbox.disabled) {
+            if (isMultiOption) {
+                checkbox.checked = !checkbox.checked;
+            } else {
+                // Deselect all options and reset their styles
+                document.querySelectorAll('.polls-options').forEach(option => {
+                    option.checked = false;
+                    option.closest('.option-container').style.backgroundColor = ''; // Reset background
+                });
+                checkbox.checked = true;
+
+                // Provide feedback for question-type polls
+                if (pollType === 'question') {
+                    const optionContainer = checkbox.closest('.option-container');
+                    const isCorrect = optionContainer.getAttribute('data-correct') === 'True';
+                    optionContainer.style.backgroundColor = isCorrect ? 'lightgreen' : 'lightcoral'; // Correct or incorrect color
+                    
+                    // Display feedback message
+                    showFeedbackMessage(isCorrect);
+
+                    // Automatically submit the form after showing feedback
+                    setTimeout(() => {
+                        document.getElementById('vote-form').submit();
+                    }, 1000); // Submit after 1 second
+                } else {
+                    // Indicate selection for opinion polls
+                    const optionContainer = checkbox.closest('.option-container');
+                    optionContainer.style.backgroundColor = 'lightblue'; // Indicate selection
+                }
+            }
+        }
+    }
+
+    function showFeedbackMessage(isCorrect) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#fff';
+        messageDiv.textContent = isCorrect ? 'Correct! 🎉' : 'Incorrect. Please try again!'; // Custom message based on correctness
+
+        // Hide the message after a short duration
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000); // Message visible for 3 seconds
+    }
+
+    function validateForm() {
+        const selectedOptions = document.querySelectorAll('.polls-options:checked');
+        const messageDiv = document.getElementById('message');
+        const pollType = document.getElementById('vote-form').getAttribute('data-poll-type');
+
+        if (pollType === 'opinion' && selectedOptions.length === 0) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#fff';
+            messageDiv.textContent = 'Please select at least one option before submitting.';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+            return false; // Prevent form submission
+        }
+        else if (pollType === 'question' && selectedOptions.length === 0) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#fff';
+            messageDiv.textContent = 'Please select at least one option before submitting.';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+            return false; // Prevent form submission
+        }
+
+
+        messageDiv.style.display = 'none'; // Hide the message if valid
+        return true; // Allow form submission
+    }
+
+    function showThankYouMessage() {
+        const messageDiv = document.getElementById('message');
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#fff';
+        messageDiv.textContent = 'Thank You for voting!';
+
+        // Optionally refresh or redirect after a delay
+        setTimeout(() => {
+            location.reload();
+        }, 2000); // 2 seconds delay
+    }
 </script>
 
+<script>
+    // Function to show the modal
+    document.getElementById('share-button').onclick = function() {
+        document.getElementById('embedPopupOverlay').style.display = 'flex';
+        document.addEventListener('keydown', handleKeydown); // Add keydown event listener
+    };
+
+    // Function to close the modal
+    function closeEmbedPopup(event) {
+        const overlay = document.getElementById('embedPopupOverlay');
+        overlay.style.display = 'none';
+        document.removeEventListener('keydown', handleKeydown); // Remove the event listener
+    }
+
+    // Function to handle keydown events
+    function handleKeydown(event) {
+        if (event.key === "Escape") { // Check if the pressed key is the Escape key
+            closeEmbedPopup();
+        }
+    }
+
+    // Function to copy the input to clipboard
+    function copyInputToClipboard() {
+        const input = document.getElementById('embedLink');
+        input.select();
+        input.setSelectionRange(0, 99999); // For mobile devices
+        document.execCommand('copy');
+        alert("Link copied to clipboard"); // Alert user
+    }
+</script>
+
+
 {% endblock %}
-
-
-.question-container {
-    margin-bottom: 20px;
-}
-.question-input {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-}
-.question-input input[type="text"] {
-    flex-grow: 1;
-    padding: 8px;
-    margin-right: 10px;
-    background-color: #fff;
-    box-sizing: border-box;
-}
-.question-input input[type="file"] {
-    display: none;
-}
-.upload-btn {
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    box-sizing: border-box;
-    border-radius: 4px;
-}
-.file-info {
-    margin-left: 10px;
-    font-size: 14px;
-    color: #333;
-}
-.delete-btn {
-    color: red;
-    cursor: pointer;
-    margin-left: 10px;
-}
-#options-container {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #f9f9f9;
-    display: none;
-}
-#options-container label {
-    margin-right: 10px;
-}
-img.preview-image {
-    margin-top: 10px;
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-}
-.button {
-    background-color: #2981d9;
-    color: white;
-    border: none;
-    padding: 12px;
-    cursor: pointer;
-    border-radius: 8px;
-}
-<div id="questions-container">
-
-
-    <div class="question-container">
-<label for="question-1"><b>Answer 1:</b></label>
-<div class="question-input">
-    <input type="text" name="questions[]" id="question-1" autocomplete="off" maxlength="200" placeholder="Enter the answer" required>
-    <label class="upload-btn">
-        <i class="fa-solid fa-image"></i>
-        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
-    </label>
-</div>
-
-<div class="file-info">
-    <img class="preview-image" style="display:none;" alt="Preview">
-    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
-</div>
-</div>
-
-
-
-<div class="question-container">
-<label for="question-2"><b>Answer 2:</b></label>
-<div class="question-input">
-    <input type="text" name="questions[]" id="question-2" autocomplete="off" maxlength="200" placeholder="Enter the answer">
-    <label class="upload-btn">
-        <i class="fa-solid fa-image"></i>
-        <input type="file" name="images[]" accept="image/*" onchange="handleFileUpload(this, false)">
-    </label>
-</div>
-<div class="file-info">
-    <img class="preview-image" style="display:none;" alt="Preview">
-    <span class="delete-btn" style="display:none;" onclick="deleteFile(this)">Delete</span>
-</div>
-</div>
-</div>

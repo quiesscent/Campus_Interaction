@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .models import Poll, Option, Vote
-from .forms import PollForm, OptionFormSet
+from .forms import PollForm, OptionFormSet, EditPollForm
 from django.db.models import Q
 from datetime import timedelta
 import logging
@@ -104,9 +104,14 @@ def add_polls(request):
 @login_required
 def user_dashboard(request):
     polls = Poll.objects.filter(creator=request.user).order_by('-created_at')
+    
+    # Create a list of polls with their active status
+    polls_with_status = [(poll, poll.is_active) for poll in polls]  # No parentheses needed
+    
     return render(request, "polls/user_dashboard.html", {
-        'polls': polls
+        'polls_with_status': polls_with_status,
     })
+
 
 
 
@@ -115,34 +120,44 @@ def delete_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
     if request.method == 'POST':
         poll.delete()
-        return redirect('polls:user_dashboard') 
+        return redirect('polls:user_dashboard')
+
 
 @login_required
 def edit_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
+    existing_options = poll.options.all()
 
     if request.method == 'POST':
-        poll_form = PollForm(request.POST, request.FILES, instance=poll)
-        option_formset = OptionFormSet(request.POST, queryset=poll.options.all())
-
-        # Debug logging
-        print("Poll Form Valid: ", poll_form.is_valid())
-        print("Option Formset Valid: ", option_formset.is_valid())
-        print("Formset Data:", option_formset.data)  # Check the formset data
+        poll_form = EditPollForm(request.POST, request.FILES, instance=poll)
+        option_formset = OptionFormSet(request.POST, request.FILES, queryset=existing_options)
 
         if poll_form.is_valid() and option_formset.is_valid():
-            poll_form.save()
-            option_formset.save()
-            print("Redirecting to user_dashboard")
-            return redirect('user_dashboard')
+            poll = poll_form.save()
+
+            # Save the banner image if it exists
+            if 'banner_image' in request.FILES:
+                poll.banner_image = request.FILES['banner_image']
+                poll.save()
+
+            # Save options from the formset
+            for option_form in option_formset:
+                if option_form.cleaned_data.get('option_text') or option_form.cleaned_data.get('option_image'):
+                    option = option_form.save(commit=False)
+                    option.poll = poll
+                    if 'option_image' in option_form.cleaned_data and option_form.cleaned_data['option_image']:
+                        option.option_image = option_form.cleaned_data['option_image']
+                    option.save()
+
+            return redirect('polls:user_dashboard')
         else:
-            # Print form errors to debug
-            print("Poll Form Errors: ", poll_form.errors)
-            print("Option Formset Errors: ", option_formset.errors)
+            logger.error("Poll Form Errors: %s", poll_form.errors)
+            logger.error("Option Formset Errors: %s", option_formset.errors)
 
     else:
-        poll_form = PollForm(instance=poll)
-        option_formset = OptionFormSet(queryset=poll.options.all())
+        # Initialize the forms with the existing poll and options data
+        poll_form = EditPollForm(instance=poll)
+        option_formset = OptionFormSet(queryset=existing_options)
 
     return render(request, 'polls/edit_poll.html', {
         'poll_form': poll_form,
@@ -150,11 +165,15 @@ def edit_poll(request, poll_id):
         'poll': poll,
     })
 
-
 @login_required
 def vote_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
-    poll.increment_view_count()
+
+    # Increment view count only if the user hasn't viewed the poll before
+    if not request.session.get(f'viewed_poll_{poll.id}', False):
+        poll.increment_view_count()
+        request.session[f'viewed_poll_{poll.id}'] = True  # Mark this poll as viewed in the session
+
     options = poll.options.all()
     print(f"Options for poll ID {poll_id}: {[option.id for option in options]}")
     user_vote = None
@@ -176,7 +195,7 @@ def vote_poll(request, poll_id):
             user_vote.save()  # Save the updated attempts count
             print("Deleting user vote...")
             user_vote.delete()  # Delete the user's vote after incrementing attempts
-            return redirect('vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
+            return redirect('polls:vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
 
         # Voting logic
         selected_options = request.POST.getlist('option') if poll.multi_option else [request.POST.get('option')]
@@ -189,7 +208,7 @@ def vote_poll(request, poll_id):
                     user_vote.save()
                 else:
                     Vote.objects.create(poll=poll, option=option, user=request.user, attempts=1)
-            return redirect('vote_poll', poll_id=poll.id)
+            return redirect('polls:vote_poll', poll_id=poll.id)
 
     # Calculate remaining attempts
     remaining_attempts = 2 - (user_vote.attempts if user_vote else 2)
@@ -211,21 +230,34 @@ def poll_results(request, poll_id):
     options = Option.objects.filter(poll=poll)
 
     # Calculate total votes for the poll
-    total_votes = poll.total_votes()  # Assuming you have this method
-
+    total_votes = poll.total_votes()  # Assuming this method exists in the Poll model
+    
+    # Collect results to send to the template
     results = []
     for option in options:
-        # Use the related name 'votes' to count the number of votes for this option
-        votes_count = option.votes.count()  # Now this should work
-        percentage = (votes_count / total_votes * 100) if total_votes > 0 else 0  # Prevent division by zero
+        # Check if this option is the correct answer
+        is_correct = option.is_correct  # Assuming Option model has an `is_correct` field
+        votes = option.votes.count()  # Count of votes for this option
+        
+        # Get scored users only if the poll is public
+        scored_users = option.votes.values_list('user__username', flat=True) if poll.is_public else []
+
+        # Calculate percentage
+        percentage = (votes / total_votes * 100) if total_votes > 0 else 0
         results.append({
             'option_text': option.option_text,
-            'votes': votes_count,
+            'is_correct': is_correct,
+            'votes': votes,
+            'scored_users': scored_users,  # This now contains usernames (or user objects if desired)
             'percentage': percentage,
+            'option_image': option.option_image if option.option_image else None,  # Ensure option_image is included
         })
 
-    return render(request, 'polls/poll_results.html', {
+    context = {
         'poll': poll,
         'results': results,
-    })
-
+        'qr_code_url': poll.qr_code.url if poll.qr_code else None,
+        'poll_link': poll.link,
+    }
+    
+    return render(request, 'polls/poll_results.html', context)
