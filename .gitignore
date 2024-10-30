@@ -30,7 +30,7 @@ media/poll_banner/*
 !media/poll_banner/.gitkeep
 static/collected/
 *.log
-!media/default_poll_banner/
+
 # Environment variables
 .env
 **/.env
