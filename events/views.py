@@ -226,3 +226,4 @@ def campus_autocomplete(request):
         return JsonResponse(results, safe=False)
 
     return JsonResponse([], safe=False)
+
