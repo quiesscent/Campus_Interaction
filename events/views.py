@@ -15,6 +15,7 @@ from profiles.models import Profile
 from .models import Event, EventRegistration, Comment, EventReaction
 from .forms import EventForm, CommentForm, EventRegistrationForm
 import json
+from django.core.paginator import EmptyPage, InvalidPage
 from django.template.loader import render_to_string
 
 # Set up logging
@@ -109,23 +110,6 @@ def create_event(request):
 
     return render(request, 'events/create_event.html', {'form': form})
 
-@login_required
-def load_more_comments(request, event_id):
-    event = get_object_or_404(Event, id=event_id)
-    page = request.GET.get('page', 1)
-    comments = Comment.objects.filter(event=event).order_by('-created_at')
-    paginator = Paginator(comments, 5)  # Display 5 comments per page
-
-    if int(page) > paginator.num_pages:
-        return JsonResponse({'comments_html': ''})  # No more pages
-    
-    comments_page = paginator.get_page(page)
-    comments_html = render(request, 'events/partials/comments_pagination.html', {
-        'comments': comments_page,
-    }).content.decode('utf-8')
-
-
-# views.py
 
 @login_required
 @require_POST
