@@ -80,16 +80,13 @@ function initInfiniteScroll() {
 
 // Load posts with proper state management
 async function loadPosts(filter = 'all', reset = false) {
-    // Prevent multiple simultaneous loads
     if (PostsState.loading) return;
     
-    // Reset if requested
     if (reset) {
         PostsState.reset();
         postsContainer.innerHTML = '';
     }
 
-    // Don't load if we're out of posts
     if (!PostsState.hasMore) return;
 
     try {
@@ -105,7 +102,16 @@ async function loadPosts(filter = 'all', reset = false) {
         if (!data.posts || data.posts.length === 0) {
             PostsState.hasMore = false;
             if (PostsState.posts.size === 0) {
-                showEmptyState();
+                const emptyMessage = PostsState.searchQuery
+                    ? `No posts found for "${PostsState.searchQuery}"`
+                    : 'No posts to show';
+                    
+                postsContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-${PostsState.searchQuery ? 'search' : 'inbox'} text-muted mb-3" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted">${emptyMessage}</h5>
+                    </div>
+                `;
             }
             return;
         }
@@ -435,5 +441,15 @@ document.addEventListener('DOMContentLoaded', () => {
             loadPosts(newFilter, true);
         }
     });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (!e.target.value.trim()) {
+                PostsState.searchQuery = '';
+                loadPosts(PostsState.currentFilter, true);
+            }
+        });
+    }
 });
 
