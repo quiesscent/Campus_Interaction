@@ -523,7 +523,17 @@ overflow: hidden;
                       <span class="expired">Inactive</span>
                   {% endif %}
               </p>
-              <small> <i class="fa-regular fa-eye"></i>{{poll.view_count}}</small>
+              <style>
+                .reaction_views_comment{
+                  display: flex !important;;
+                  gap: 13px;
+                }
+              </style>
+              <div class="reaction_views_comment">
+              <small> <i class="fa-regular fa-eye"></i> {{poll.view_count}}</small>
+              <small> <i class="fa-regular fa-heart"></i> {{ poll.reaction_count }}</small>
+              <small> <i class="fa-regular fa-comment"></i> {{ poll.comment_count }}</small>
+            </div>
           </div>
       </li>
       {% empty %}
