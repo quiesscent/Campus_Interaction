@@ -14,7 +14,8 @@ from django.views.decorators.http import require_http_methods
 from profiles.models import Profile
 from .models import Event, EventRegistration, Comment, EventReaction
 from .forms import EventForm, CommentForm, EventRegistrationForm
-
+import json
+from django.template.loader import render_to_string
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -109,31 +110,131 @@ def create_event(request):
     return render(request, 'events/create_event.html', {'form': form})
 
 @login_required
-def add_comment(request, event_id):
+def load_more_comments(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    user_profile, _ = Profile.objects.get_or_create(user=request.user)
+    page = request.GET.get('page', 1)
+    comments = Comment.objects.filter(event=event).order_by('-created_at')
+    paginator = Paginator(comments, 5)  # Display 5 comments per page
 
-    if request.method == 'POST':
+    if int(page) > paginator.num_pages:
+        return JsonResponse({'comments_html': ''})  # No more pages
+    
+    comments_page = paginator.get_page(page)
+    comments_html = render(request, 'events/partials/comments_pagination.html', {
+        'comments': comments_page,
+    }).content.decode('utf-8')
+
+
+# views.py
+
+@login_required
+@require_POST
+@require_http_methods(["POST"])
+def add_comment(request, event_id):
+    """Add a new comment or reply to an event."""
+    try:
+        # Get the event
+        event = get_object_or_404(Event, id=event_id)
+        
+        # Create a form instance with the POST data
         form = CommentForm(request.POST)
-        parent_comment_id = request.POST.get('parent_comment_id')
-
+        
+        # Check if it's an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         if form.is_valid():
+            # Create comment instance but don't save yet
             comment = form.save(commit=False)
             comment.event = event
-            comment.user = user_profile
+            comment.user = request.user.profile  # Assuming you have a profile relation
             
-            # Check if this is a reply
-            if parent_comment_id:
-                comment.parent = get_object_or_404(Comment, id=parent_comment_id)
+            # Handle parent comment for replies
+            parent_id = request.POST.get('parent_comment_id')
+            if parent_id:
+                try:
+                    parent_comment = Comment.objects.get(id=parent_id)
+                    comment.parent = parent_comment
+                except Comment.DoesNotExist:
+                    if is_ajax:
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': 'Parent comment not found'
+                        }, status=400)
+                    else:
+                        messages.error(request, 'Parent comment not found')
+                        return redirect('events:event_detail', event_id=event_id)
             
+            # Save the comment
             comment.save()
-            messages.success(request, "Comment added successfully!")
+            
+            if is_ajax:
+                # Render the comment HTML
+                comment_html = render_to_string('events/partials/comment.html', {
+                    'comment': comment,
+                    'event': event
+                }, request=request)
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'comment_html': comment_html,
+                    'comment_id': comment.id
+                })
+            else:
+                messages.success(request, 'Comment added successfully!')
+                return redirect('events:event_detail', event_id=event_id)
+        else:
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid form data',
+                    'errors': form.errors
+                }, status=400)
+            else:
+                messages.error(request, 'Please correct the errors below.')
+                return redirect('events:event_detail', event_id=event_id)
+                
+    except Exception as e:
+        print(f"Error in add_comment: {str(e)}")  # Add logging for debugging
+        if is_ajax:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'An error occurred while processing your request'
+            }, status=500)
+        else:
+            messages.error(request, 'An error occurred while processing your request')
             return redirect('events:event_detail', event_id=event_id)
+@login_required
+def load_more_comments(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    page = int(request.GET.get('page', 1))
+    comments_per_page = 5
 
-    messages.error(request, "Failed to add comment.")
-    return redirect('events:event_detail', event_id=event_id)
+    comments = Comment.objects.filter(
+        event=event,
+        parent=None
+    ).select_related(
+        'user__user'
+    ).prefetch_related(
+        'replies'
+    ).order_by('-created_at')
 
+    paginator = Paginator(comments, comments_per_page)
 
+    try:
+        comments_page = paginator.page(page)
+    except (EmptyPage, InvalidPage):
+        return JsonResponse({'comments_html': '', 'has_next': False})
+
+    comments_html = render_to_string(
+        'events/partials/comments_pagination.html',
+        {'comments': comments_page, 'event': event},
+        request=request
+    )
+
+    return JsonResponse({
+        'comments_html': comments_html,
+        'has_next': comments_page.has_next()
+    })
 @login_required
 @require_POST
 def toggle_comment_like(request, comment_id):
@@ -226,3 +327,4 @@ def campus_autocomplete(request):
         return JsonResponse(results, safe=False)
 
     return JsonResponse([], safe=False)
+

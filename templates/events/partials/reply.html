@@ -1,0 +1,16 @@
+{% comment %} {# templates/events/partials/reply.html #} {% endcomment %}
+<div class="reply-card mb-2 border-start border-primary ps-3" id="reply-{{ reply.id }}">
+    <div class="d-flex">
+        <div class="flex-shrink-0 me-2">
+            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
+                 style="width: 32px; height: 32px;">
+                {{ reply.user.user.username|first|upper }}
+            </div>
+        </div>
+        <div class="flex-grow-1">
+            <h6 class="mb-1">{{ reply.user.user.username }}</h6>
+            <small class="text-muted">{{ reply.created_at|timesince }} ago</small>
+            <p class="mb-0">{{ reply.content }}</p>
+        </div>
+    </div>
+</div>
