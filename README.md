@@ -78,6 +78,11 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 - [ ] **Marketplace** - Full Stack (Victor)
 - [✅] **Student Profiles** - Full Stack (Fidel)
 
+- ### Polls
+- [ ] **Polls Creation and Views** - Frontend (Debby)
+- [✅] **Polls Creation and Views** - Backend (Victor)
+
+
 ## 🚀 Development Setup
 
 1️⃣ *Clone & Enter Project*
