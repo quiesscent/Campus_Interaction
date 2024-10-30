@@ -107,6 +107,7 @@ def feed(request):
             "id": post.id,
             "content": post.content,
             "user": {"id": post.user.id, "username": post.user.username},
+            "is_owner": post.user == request.user,
             "created_at": post.created_at.isoformat(),
             "likes_count": post.likes_count,
             "comments_count": (
