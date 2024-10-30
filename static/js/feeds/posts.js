@@ -82,6 +82,7 @@ function renderPosts(posts) {
 
 // Create post element from template
 function createPostElement(post) {
+    console.log('Post owner status:', post.is_owner);
     const template = postTemplate.content.cloneNode(true);
     const postCard = template.querySelector('.post-card');
     postCard.dataset.postId = post.id;
@@ -146,9 +147,50 @@ function setupPostInteractions(postCard, post) {
     const likeBtn = postCard.querySelector('.post-like-btn');
     const commentBtn = postCard.querySelector('.post-comment-btn');
     const shareBtn = postCard.querySelector('.post-share-btn');
+    const ownerActions = postCard.querySelector('.post-owner-actions');
+    const nonOwnerActions = postCard.querySelector('.post-non-owner-actions');
     const deleteBtn = postCard.querySelector('.post-delete');
+    const reportBtn = postCard.querySelector('.post-report');
     const engagementBtns = postCard.querySelectorAll('.view-engagement');
-    
+    const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
+    const dropdownMenu = postCard.querySelector('.post-dropdown-menu');
+
+    // Show/hide owner/non-owner actions based on ownership
+    if (post.is_owner) {
+        ownerActions?.classList.remove('d-none');
+        nonOwnerActions?.classList.add('d-none');
+    } else {
+        ownerActions?.classList.add('d-none');
+        nonOwnerActions?.classList.remove('d-none');
+    }
+
+    // Delete button (only for owners)
+    if (deleteBtn && post.is_owner) {
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this post?')) {
+                try {
+                    await API.deletePost(post.id);
+                    postCard.remove();
+                    showNotification('Post deleted successfully', 'success');
+                } catch (error) {
+                    showNotification('Error deleting post', 'error');
+                }
+            }
+        });
+    }
+
+    // Report button (only for non-owners)
+    if (reportBtn && !post.is_owner) {
+        reportBtn.addEventListener('click', () => {
+            if (window.reportModal) {
+                window.reportModal.setupReport(post.id, 'post');
+                const reportModalElement = document.getElementById('reportModal');
+                const modal = new mdb.Modal(reportModalElement);
+                modal.show();
+            }
+        });
+    }
+
     // Like button
     likeBtn.addEventListener('click', async () => {
         try {
@@ -167,32 +209,13 @@ function setupPostInteractions(postCard, post) {
     
     // Comment button
     commentBtn.addEventListener('click', () => {
-        // This will be handled by comments.js
         window.dispatchEvent(new CustomEvent('openComments', { detail: post.id }));
     });
     
     // Share button
     shareBtn.addEventListener('click', () => {
-        // This will be handled by sharing.js
         window.dispatchEvent(new CustomEvent('sharePost', { detail: post }));
     });
-    
-    // Delete button (only shown to post owner)
-    if (post.is_owner) {
-        deleteBtn.addEventListener('click', async () => {
-            if (confirm('Are you sure you want to delete this post?')) {
-                try {
-                    await API.deletePost(post.id);
-                    postCard.remove();
-                    showNotification('Post deleted successfully', 'success');
-                } catch (error) {
-                    showNotification('Error deleting post', 'error');
-                }
-            }
-        });
-    } else {
-        deleteBtn.parentElement.remove();
-    }
     
     // Engagement buttons
     engagementBtns.forEach(btn => {
@@ -204,35 +227,21 @@ function setupPostInteractions(postCard, post) {
         });
     });
 
-    // // Dropdown menu
-    // const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
-    // const dropdownMenu = postCard.querySelector('.post-dropdown-menu');
+    // Dropdown menu
+    if (dropdownBtn && dropdownMenu) {
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+            dropdownBtn.setAttribute('aria-expanded', dropdownMenu.classList.contains('show'));
+        });
 
-    // if (dropdownBtn && dropdownMenu) {
-    //     new Popper.createPopper(dropdownBtn, dropdownMenu, {
-    //         placement: 'bottom-end',
-    //         modifiers: [
-    //             {
-    //                 name: 'offset',
-    //                 options: {
-    //                     offset: [0, 8],
-    //                 },
-    //             },
-    //         ],
-    //     });
-
-    //     dropdownBtn.addEventListener('click', () => {
-    //         dropdownMenu.classList.toggle('show');
-    //     });
-
-    //     document.addEventListener('click', (e) => {
-    //         if (!e.target.closest('.post-dropdown-btn') && !e.target.closest('.post-dropdown-menu')) {
-    //             dropdownMenu.classList.remove('show');
-    //         }
-    //     });
-    // }
-
-    
+        document.addEventListener('click', (e) => {
+            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+                dropdownBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 }
 
 // Helper functions
