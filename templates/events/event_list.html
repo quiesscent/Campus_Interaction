@@ -1,4 +1,4 @@
-{% extends 'events/base.html' %}
+{% extends 'base.html' %}
 {% block title %}All Events{% endblock %}
 {% block content %}
 <div class="container my-5" x-data="{ showFilters: false }">
@@ -17,7 +17,7 @@
     </button>
 
     <!-- Filters Section -->
-    <div x-show="showFilters" class="bg-light p-4 rounded shadow-sm">
+    <div x-show="showFilters" class="bg-light p-4 rounded shadow-sm mb-4">
         <form hx-get="{% url 'events:event_list' %}" hx-target="#events-container" class="row g-3">
             <div class="col-md-6">
                 <label for="university" class="form-label">University</label>
@@ -44,68 +44,96 @@
             </div>
         </form>
     </div>
-</div>
 
-<!-- Events Grid -->
-<div id="events-container" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% if events %}
-        {% for event in events %}
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <!-- Event Image -->
-                    {% if event.image %}
-                        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="card-img-top" style="height: 200px; object-fit: cover;">
-                    {% endif %}
-                    
-                    <!-- Event Details -->
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ event.title }}</h5>
-                        <p class="card-text">{{ event.description|truncatewords:20 }}</p>
-                        
-                        <!-- Display Content for Text-Based Events -->
-                        {% if event.event_type == 'text' %}
-                            <p class="card-text text-muted">{{ event.content|truncatewords:30 }}</p>
-                        {% endif %}
-                        
-                        <a href="{% url 'events:event_detail' event.id %}" class="mt-auto btn btn-link text-primary">View Details</a>
+    <!-- Events Feed -->
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div id="events-container">
+                {% if events %}
+                    {% for event in events %}
+                        <div class="card mb-4 shadow-sm">
+                            <!-- Event Header -->
+                            <div class="card-header bg-white border-bottom-0 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h4 class="mb-1">{{ event.title }}</h4>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-calendar-alt"></i> 
+                                            {{ event.start_date|date:"F d, Y" }}
+                                            {% if event.end_date %}
+                                                - {{ event.end_date|date:"F d, Y" }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Event Image -->
+                            {% if event.image %}
+                                <img src="{{ event.image.url }}" 
+                                     alt="{{ event.title }}" 
+                                     class="card-img-top" 
+                                     style="max-height: 400px; object-fit: cover;">
+                            {% endif %}
+                            
+                            <!-- Event Content -->
+                            <div class="card-body">
+                                <p class="card-text">{{ event.description }}</p>
+                                
+                                {% if event.event_type == 'text' %}
+                                    <div class="card-text text-muted mb-3">
+                                        {{ event.content|truncatewords:50 }}
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <a href="{% url 'events:event_detail' event.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-info-circle"></i> View Details
+                                    </a>
+                                    <div class="text-muted">
+                                        <i class="fas fa-map-marker-alt"></i> 
+                                        {{ event.location|default:"Location TBA" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>No events found.</p>
                     </div>
-                </div>
+                {% endif %}
             </div>
-        {% endfor %}
-    {% else %}
-        <div class="col-12 text-center text-muted">
-            <p>No events found.</p>
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if events.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ events.previous_page_number }}">
+                                <i class="fas fa-arrow-left"></i> Previous
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% for page_num in events.paginator.page_range %}
+                        <li class="page-item {% if events.number == page_num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ page_num }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    {% if events.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ events.next_page_number }}">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
-    {% endif %}
-</div>
-
-
-<!-- Pagination -->
-<div class="mt-4">
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            {% if events.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ events.previous_page_number }}">
-                        <i class="fas fa-arrow-left"></i> Previous
-                    </a>
-                </li>
-            {% endif %}
-            {% for page_num in events.paginator.page_range %}
-                <li class="page-item {% if events.number == page_num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ page_num }}">
-                        {{ page_num }}
-                    </a>
-                </li>
-            {% endfor %}
-            {% if events.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ events.next_page_number }}">
-                        Next <i class="fas fa-arrow-right"></i>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+    </div>
 </div>
 {% endblock %}

@@ -1,0 +1,609 @@
+{% extends 'base.html' %} {% block title %}Polls - All Polls{% endblock %}
+ {% block content %}
+
+<style>
+  .poll_navbar {
+    padding: 10px 20px;
+  }
+  .navbar-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  @import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+  .poll_navbar .logo {
+    font-size: 30px;
+    color: #333;
+    text-decoration: none;
+    font-family: "Roboto", sans-serif;
+    font-weight: 900;
+    font-style: normal;
+  }
+  
+
+  /* Button Styling */
+  .create-poll-btn {
+    background-color: blue; /* Green */
+    color: #fff;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .create-poll-btn:hover {
+    background-color: #4a56e2;
+    color: #fff;
+  }
+
+  .toggle-filters-btn {
+    background-color: #4a56e2; 
+    color: #fff;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .toggle-filters-btn:hover {
+    background-color: #1c216d;
+  }
+
+  /* Flex container for buttons */
+  .navbar-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .poll-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0;
+    margin-top: 10px;
+    margin: 20px 0;
+  }
+
+  /* Poll Item Card */
+  .poll-item {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .poll-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Invisible link to make the whole card clickable */
+  .poll-item a {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* Poll Title */
+  .poll-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #2c3e50;
+    text-decoration: none;
+    z-index: 2;
+    position: relative;
+  }
+  .poll-item:hover .poll-title {
+    color: #007bff; /* Color on hover */
+  }
+  .poll-title:hover {
+    color: #007bff;
+  }
+
+  /* Poll Description */
+  .poll-description {
+    font-size: 0.9rem;
+    color: #555;
+    z-index: 2;
+    position: relative;
+  }
+
+  /* Poll Type */
+  .poll-type {
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #888;
+    z-index: 2;
+    position: relative;
+  }
+
+  /* Poll Status */
+  .poll-status .active {
+    color: #28a745;
+    font-weight: bold;
+  }
+
+  .poll-status .expired {
+    color: #dc3545;
+    font-weight: bold;
+  }
+
+  /* No Polls Message */
+  .no-polls {
+    display: none; /* Initially hidden */
+    color: black;
+    text-align: center;
+    margin: 50px 0;
+    font-size: 24px;
+  }
+
+   .dashboard {
+    color: #555;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-transform: uppercase;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin-top: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .dashboard:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  .polls-container {
+    display: flex; /* Use flexbox for layout */
+    margin: 0 auto;
+    max-width: 1200px; /* Adjust max-width as needed */
+  }
+
+  .polls_items {
+    margin: 0;
+    flex: 3; /* Take 3 parts of the available space */
+    padding: 20px; /* Add some padding */
+  }
+
+  .poll-list {
+    list-style: none; /* Remove default list styles */
+    padding: 0; /* Remove default padding */
+    margin-top: 10px;
+  }
+
+  .poll-item {
+    margin-bottom: 15px; /* Space between poll items */
+    border: 1px solid #ccc; /* Add border for separation */
+    padding: 15px; /* Inner padding for poll items */
+  }
+
+  .poll-status span {
+    font-weight: bold;
+  }
+
+  .sidebar {
+    flex: 1;
+    margin-top: 24px;
+    padding: 20px; /* Padding around the sidebar */
+    background-color: #f9f9f9; /* Light background color for the sidebar */
+    border-left: 1px solid #ccc; /* Border to separate from polls */
+  }
+
+  .sidebar h3 {
+    margin-top: 0; /* Remove margin on top of the heading */
+  }
+  @media (max-width: 768px) {
+    .polls-container {
+      flex-direction: column;
+    }
+
+    .polls_items {
+      flex: none; /* Reset flex property */
+      margin-bottom: 20px; /* Space between polls and sidebar */
+    }
+
+    .sidebar {
+      border-left: none; /* Remove left border on small screens */
+      border-top: 1px solid #ccc; /* Add top border for separation */
+    }
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    padding: 10px 20px;
+  }
+
+  input[type="text"] {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-right: 10px;
+    width: 100%;
+    transition: border-color 0.3s;
+  }
+
+  input[type="text"]:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+
+  .search {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+.search:hover {
+    background-color: #0056b3;
+  }
+
+  #no-polls-message {
+    display: none; /* Initially hidden */
+    color: black;
+    text-align: center;
+    margin: 50px 0;
+    font-size: 24px;
+  }
+  .poll-type-buttons {
+    display: flex;
+    margin: 20px 0;
+    margin-bottom: 20px;
+  }
+  .poll-type-btn {
+    background-color: #f0f0f0;
+    border: none;
+    color: #000;
+    font-weight: 500;
+    border-radius: 50px;
+    padding: 10px 20px;
+    margin: 0 3px;
+    cursor: pointer;
+    font-family: "Roboto", sans-serif;
+    font-weight: 900;
+    font-style: normal;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  .poll-type-btn:hover {
+    background-color: #e0e0e0;
+  }
+  .poll-type-btn.active {
+    background-color: rgba(0, 123, 255, 0.9); /* Active button color */
+    color: white; /* Text color for the active button */
+  }
+  .poll-type-btn.selected {
+    background-color: #007bff; /* Selected button color */
+    color: white; /* Text color for selected button */
+  }
+  /* Container for Most Viewed Polls */
+  .popular-polls {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease;
+  }
+
+  /* Heading Style */
+  .popular-polls h4 {
+    text-align: center;
+    color: #2c3e50;
+    padding: 20px;
+    font-family: "Roboto", sans-serif;
+    font-size: 1.5rem;
+    border-bottom: 2px solid #007bff;
+    margin-bottom: 15px;
+  }
+
+  /* List Items Style */
+  .popular-polls li {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eaeaea;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  /* Last List Item without Bottom Border */
+  .popular-polls li:last-child {
+    border-bottom: none;
+  }
+
+  /* Link Style */
+  .popular-polls a {
+    color: #333;
+    text-decoration: none;
+    font-size: 1rem;
+    display: block;
+  }
+
+  /* Hover Effects */
+  .popular-polls a:hover {
+    color: #007bff;
+    transform: translateY(-2px);
+  }
+
+  .popular-polls li.no-polls {
+    text-align: center;
+    color: #dc3545;
+    font-weight: bold;
+    padding: 20px;
+    font-size: 1.2rem;
+  }
+  .banner-container img{
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+border: 1px solid #000;
+overflow: hidden;
+  }
+  .countdown {
+    font-size: 12px;           
+    font-weight: bold;         
+    color: #ff5722;            
+    padding: 10px 15px;         
+    display: inline-block;     
+}
+
+</style>
+
+<!-- Navigation Bar -->
+<nav class="poll_navbar">
+  <div class="navbar-buttons">
+    <a href="{% url 'polls:base_poll' %}" class="logo">All Polls</a>
+    <a href="{% url 'polls:add_polls' %}" class="create-poll-btn"
+      >+ Create New Poll</a
+    >
+  </div>
+  <a href="{% url 'polls:user_dashboard' %}" class="dashboard">Your Polls</a>
+</nav>
+
+<!-- Poll List -->
+<div class="polls-container">
+  <div class="polls_items">
+    <form method="GET" action="{% url 'polls:base_poll' %}" class="search-form">
+      <input
+        type="text"
+        id="search"
+        name="query"
+        placeholder="Search polls..."
+        aria-label="Search polls"
+        value="{{ query }}"
+        required
+        autocomplete="off"
+      />
+      <button type="submit" class="search">Search</button>
+    </form>
+
+    <!-- Display message when no polls are found after a search -->
+    {% if no_polls_message %}
+    <p
+      class="no-polls-message"
+      style="color: black; text-align: center; margin: 50px 0; font-size: 24px"
+    >
+      {{ no_polls_message }}
+    </p>
+    {% else %}
+    <div class="poll-type-buttons">
+      <button
+        class="poll-type-btn active"
+        data-type=""
+        onclick="filterPolls(this)"
+      >
+        All Types
+      </button>
+      <button
+        class="poll-type-btn"
+        data-type="question"
+        onclick="filterPolls(this)"
+      >
+        Question
+      </button>
+      <button
+        class="poll-type-btn"
+        data-type="opinion"
+        onclick="filterPolls(this)"
+      >
+        Opinion Poll
+      </button>
+    </div>
+    {% endif %}
+
+    <p
+      id="no-polls-message"
+      style="
+        display: none;
+        color: black;
+        text-align: center;
+        margin: 50px 0;
+        font-size: 24px;
+      "
+    >
+      No polls available in this category.
+    </p>
+    <!-- No polls message -->
+
+    <ul class="poll-list">
+      {% for poll in polls %}
+      <li class="poll-item" data-poll-type="{{ poll.poll_type }}">
+          {% if poll.is_active and not poll.is_expired %}
+              <a href="{% url 'polls:vote_poll' poll.id %}" aria-hidden="true"></a>
+          {% elif poll.is_public %}
+              <a href="{% url 'polls:poll_results' poll.id %}" aria-hidden="true"></a>
+          {% endif %}
+  
+          <div class="poll-content">
+              <div class="banner-container">
+                  {% if poll.banner_image %}
+                      <img src="{{ poll.banner_image.url }}" alt="{{ poll.title }} banner" class="banner-image">
+                  {% else %}
+                      {% if poll.poll_type == 'question' %}
+                          <img src="http://localhost:8000/media/default_poll_banner/questions.jpg" alt="Default Question Banner" class="banner-image">
+                      {% elif poll.poll_type == 'opinion' %}
+                          <img src="http://localhost:8000/media/default_poll_banner/opinions.jpg" alt="Default Opinion Banner" class="banner-image">
+                      {% else %}
+                          <img src="http://localhost:8000/media/default_poll_banner/question_image.jpeg" alt="Default General Banner" class="banner-image">
+                      {% endif %}
+                  {% endif %}
+              </div>
+              <h2 class="poll-title" style="margin-top: 4px;">{{ poll.title }}</h2>
+              {% if poll.description %}
+                  <p class="poll-description">Description - {{ poll.description|slice:":40" }}{% if poll.description|length > 40 %}...{% endif %}</p>
+              {% endif %}
+              <p class="poll-type">Type: {{ poll.get_poll_type_display }}</p>
+              <p class="poll-status">
+                  {% if poll.is_active and not poll.is_expired %}
+                      <span class="active">Active</span>
+                      {% if poll.expiration_time %}
+                          <span id="countdown-{{ poll.id }}" class="countdown"></span>
+                          <script>
+                              function startCountdown(pollId, expirationTime) {
+                                  const expirationDate = new Date(expirationTime).getTime();
+                                  const countdownElement = document.getElementById(`countdown-${pollId}`);
+  
+                                  const countdownInterval = setInterval(() => {
+                                      const now = new Date().getTime();
+                                      const distance = expirationDate - now;
+  
+                                      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                                      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                                      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  
+                                      countdownElement.innerHTML = `Expires in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+  
+                                      if (distance < 0) {
+                                          clearInterval(countdownInterval);
+                                          countdownElement.innerHTML = "Expired";
+                                          countdownElement.closest('.poll-item').querySelector('a').href = "{% url 'polls:poll_results' poll.id %}";
+                                      }
+                                  }, 1000);
+                              }
+  
+                              startCountdown({{ poll.id }}, "{{ poll.expiration_time|date:'Y-m-d H:i:s' }}");
+                          </script>
+                      {% endif %}
+                  {% else %}
+                      <span class="expired">Inactive</span>
+                  {% endif %}
+              </p>
+              <small> <i class="fa-regular fa-eye"></i>{{poll.view_count}}</small>
+          </div>
+      </li>
+      {% empty %}
+      <p class="no-polls">No polls available.</p>
+      {% endfor %}
+  </ul>
+  
+  </div>
+
+  <div class="sidebar">
+    <h4>Most Viewed Polls</h4>
+    <ul class="popular-polls">
+      {% if popular_polls %}
+        {% for poll in popular_polls %}
+          <li>
+            <a href="{% url 'polls:vote_poll' poll.id %}">
+              {{ poll.title }} ({{ poll.view_count }} views)
+            </a>
+          </li>
+        {% endfor %}
+      {% else %}
+        <li>No popular polls available.</li>
+      {% endif %}
+    </ul>
+    
+    <div style="margin-top: 7%">
+      <h3>About Polls</h3>
+      <p>
+        Welcome to a space where your voice shapes the conversation! Our
+        platform brings together a community passionate about sharing opinions
+        on everything from politics and technology to entertainment. Dive into
+        topics that matter, explore fresh perspectives, and cast your vote to
+        make an impact. Join us, engage with the community, and help spark
+        meaningful discussions that can shape the future!
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Navbar Toggle -->
+<script>
+  document
+    .getElementById("js-navbar-toggle")
+    .addEventListener("click", function () {
+      const menu = document.getElementById("js-menu");
+      menu.classList.toggle("show");
+    });
+</script>
+<script>
+  // JavaScript for filtering polls and managing active states
+  function filterPolls(selectedButton) {
+    const pollType = selectedButton.dataset.type;
+    const polls = document.querySelectorAll(".poll-item");
+
+    // Remove active class from all buttons
+    const buttons = document.querySelectorAll(".poll-type-btn");
+    buttons.forEach((button) => {
+      button.classList.remove("active");
+    });
+
+    // Add active class to the selected button
+    selectedButton.classList.add("active");
+
+    // Filtering logic based on the selected poll type
+    polls.forEach((poll) => {
+      const pollTypeValue = poll.dataset.pollType; // Assuming each poll has a data attribute for type
+      const matchesType = pollType ? pollTypeValue === pollType : true;
+
+      if (matchesType) {
+        poll.style.display = "block"; // Show poll item
+      } else {
+        poll.style.display = "none"; // Hide poll item
+      }
+    });
+
+    // Show or hide the no-polls message
+    const noPollsMessage = document.getElementById("no-polls-message");
+    const visiblePolls = Array.from(polls).some(
+      (poll) => poll.style.display === "block"
+    );
+
+    noPollsMessage.style.display = visiblePolls ? "none" : "block"; // Show message if no visible polls
+  }
+</script>
+
+{% endblock %}

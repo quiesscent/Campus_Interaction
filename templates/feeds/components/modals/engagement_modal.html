@@ -1,0 +1,40 @@
+<div class="modal fade" id="engagementModal" tabindex="-1" aria-labelledby="engagementModalLabel" aria-hidden="true"
+    data-mdb-backdrop="static">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content border-0">
+            <div class="modal-header">
+                <h5 class="modal-title" id="engagementModalLabel">Post Engagement</h5>
+                <button type="button" class="btn-close" data-mdb-modal-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="engagement-list">
+                    <!-- Loading State -->
+                    <div class="placeholder-glow engagement-loading">
+                        {% for i in '123'|make_list %}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="placeholder rounded-circle me-2" style="width: 40px; height: 40px;"></div>
+                            <div class="flex-grow-1">
+                                <div class="placeholder col-4 mb-1"></div>
+                                <div class="placeholder col-3"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Error State -->
+                    <div class="d-none text-center py-4 engagement-error">
+                        <i class="fas fa-exclamation-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                        <p class="text-muted mb-0">Unable to load engagement data</p>
+                        <button class="btn btn-link btn-sm reload-engagement">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+                <div class="text-center mt-3 load-more-engagement d-none">
+                    <button class="btn btn-light btn-sm shadow-2" data-mdb-ripple-init>
+                        Load More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

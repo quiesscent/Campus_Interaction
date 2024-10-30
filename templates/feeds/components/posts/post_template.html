@@ -1,0 +1,74 @@
+<template id="postTemplate">
+    <div class="card border-0 shadow-2 hover-shadow-3 mb-4 post-card" data-post-id="">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between mb-3">
+                <div class="d-flex align-items-center">
+                    <a href="#" class="user-profile-link me-3">
+                        <img src="" alt="" class="rounded-circle shadow-2 post-avatar" width="48" height="48"
+                            style="object-fit: cover;">
+                    </a>
+                    <div>
+                        <div class="d-flex align-items-center">
+                            <h6 class="fw-bold mb-0 post-username"></h6>
+                            <span class="badge bg-primary ms-2 user-course d-none"></span>
+                        </div>
+                        <small class="text-muted d-block post-date"></small>
+                        <small class="text-muted user-campus d-none"></small>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-link text-dark post-dropdown-btn" type="button">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu post-dropdown-menu shadow-3">
+                        <li class="post-owner-actions d-none">
+                            <button class="dropdown-item post-delete">
+                                <i class="fas fa-trash me-2 text-danger"></i>Delete Post
+                            </button>
+                        </li>
+                        <li class="post-non-owner-actions d-none">
+                            <button class="dropdown-item post-report">
+                                <i class="fas fa-flag me-2 text-warning"></i>Report Post
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="post-content mb-3"></div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-3">
+                    <button class="btn btn-link text-muted p-0 post-like-btn" data-mdb-ripple-init>
+                        <i class="far fa-heart me-1"></i>
+                        <span class="post-likes-count">0</span>
+                    </button>
+                    <button class="btn btn-link text-muted p-0 post-comment-btn" data-mdb-ripple-init>
+                        <i class="far fa-comment me-1"></i>
+                        <span class="post-comments-count">0</span>
+                    </button>
+                    <button class="btn btn-link text-muted p-0 post-share-btn" data-mdb-ripple-init>
+                        <i class="far fa-share-square me-1"></i>Share
+                    </button>
+                </div>
+                <small class="text-muted">
+                    <i class="far fa-eye me-1"></i>
+                    <span class="post-views-count">0</span> views
+                </small>
+            </div>
+
+            <div class="comments-section mt-3 border-top pt-3">
+                <!-- Comments container -->
+                <div class="comments-container"></div>
+                
+                <!-- Comment input -->
+                <div class="mt-3">
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control comment-input" placeholder="Write a comment...">
+                        <button class="btn btn-primary btn-sm px-3 add-comment-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
