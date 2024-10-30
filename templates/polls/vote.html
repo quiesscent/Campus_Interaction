@@ -364,15 +364,17 @@ label {
 
     <form method="post" id="vote-form" onsubmit="return validateForm();" data-poll-type="{% if poll.poll_type == 'question' %}question{% else %}opinion{% endif %}">
         <div class="banner-container">
+            {% load static %}
+
             {% if poll.banner_image %}
                 <img src="{{ poll.banner_image.url }}" alt="{{ poll.title }} banner" class="banner-image">
-            {% else %}                
+            {% else %}
                 {% if poll.poll_type == 'question' %}
-                    <img src="http://localhost:8000/media/default_poll_banner/questions.jpg" alt="Default Question Banner" class="banner-image">
+                    <img src="{% static 'images/default_poll_banner/questions.jpg' %}" alt="Default Question Banner" class="banner-image">
                 {% elif poll.poll_type == 'opinion' %}
-                    <img src="http://localhost:8000/media/default_poll_banner/opinions.jpg" alt="Default Opinion Banner" class="banner-image">
+                    <img src="{% static 'images/default_poll_banner/opinions.jpg' %}" alt="Default Opinion Banner" class="banner-image">
                 {% else %}
-                    <img src="http://localhost:8000/media/default_poll_banner/question_image.jpeg" alt="Default General Banner" class="banner-image">
+                    <img src="{% static 'images/default_poll_banner/question_image.jpeg' %}" alt="Default General Banner" class="banner-image">
                 {% endif %}
             {% endif %}
         </div>
