@@ -22,6 +22,17 @@
                         <i class="fas fa-heart"></i>
                         <span class="likes-count ms-1">{{ comment.likes.count }}</span>
                     </button>
+                    
+                    {% if request.user.profile == comment.user %}
+                    <button 
+                        onclick="deleteComment({{ comment.id }})" 
+                        class="btn btn-sm btn-outline-danger"
+                        data-comment-id="{{ comment.id }}"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
+                    
                     <button 
                         onclick="toggleReplyForm({{ comment.id }})" 
                         class="btn btn-sm btn-outline-primary reply-button"
@@ -57,29 +68,32 @@
                             Cancel
                         </button>
                         <button type="submit" class="btn btn-sm btn-primary">
-                            <i class="fas fa-paper-plane"></i> Post Reply
+                            <i class="fas fa-paper-plane" onclick="submitReply({{ comment.id }})"></i> Post Reply
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- Replies Section -->
-            {% if comment.replies.exists %}
-            <div class="replies-section mt-3">
-                <button 
-                    onclick="toggleReplies({{ comment.id }})" 
-                    class="btn btn-sm btn-link text-decoration-none ps-0"
-                >
-                    <i class="fas fa-chevron-down me-1"></i>
-                    Show {{ comment.replies.count }} repl{{ comment.replies.count|pluralize:"y,ies" }}
-                </button>
-                <div id="replies-{{ comment.id }}" class="replies-container mt-2 ms-4" style="display: none;">
-                    {% for reply in comment.replies.all %}
-                        {% include "events/partials/reply.html" with reply=reply %}
-                    {% endfor %}
-                </div>
+       <!-- Replies Section -->
+        {% if comment.replies.exists %}
+        <div class="replies-section mt-3">
+            <button 
+                onclick="toggleReplies({{ comment.id }})" 
+                class="btn btn-sm btn-link text-decoration-none ps-0"
+            >
+                <i class="fas fa-chevron-down me-1"></i>
+                Show {{ comment.replies.count }} repl{{ comment.replies.count|pluralize:"y,ies" }}
+            </button>
+            <div id="replies-{{ comment.id }}" class="replies-container mt-2 ms-4" style="display: none;">
+                {% for reply in comment.replies.all|dictsortreversed:"created_at" %}
+                    {% include "events/partials/reply.html" with reply=reply %}
+                {% endfor %}
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
+</div>
+
+ 
+ 
