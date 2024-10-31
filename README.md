@@ -122,7 +122,9 @@ pip install -r requirements.txt
 python manage.py makemigrations
 python manage.py makemigrations profiles
 python manage.py migrate
-mkdir static staticfiles
+mkdir static staticfiles media
+mkdir media/profile_pics
+cp static/images/default-avatar.png media/profile_pics/default.png
 ```
 
 4️⃣ *Start Server*
