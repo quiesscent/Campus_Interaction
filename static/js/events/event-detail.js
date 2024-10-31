@@ -73,6 +73,102 @@ async function handleFormSubmit(e) {
         resetSubmitButton(submitButton);
     }
 }
+// Updated comment handling functions
+async function handleSubmissionResponse(data, formData, form) {
+    if (data.status === 'success') {
+        form.reset();
+        const parentId = formData.get('parent_comment_id');
+        
+        if (parentId) {
+            handleReplySubmission(parentId, data.comment_html);
+            updateRepliesCount(parentId, 1);
+        } else {
+            handleMainCommentSubmission(data.comment_html);
+        }
+        
+        showNotification('Comment posted successfully!', 'success');
+    }
+}
+
+function handleReplySubmission(parentId, commentHtml) {
+    const repliesContainer = document.getElementById(`replies-${parentId}`);
+    const repliesSection = document.querySelector(`#comment-${parentId} .replies-section`);
+    
+    if (!repliesSection) {
+        // Create new replies section if it doesn't exist
+        const newRepliesSection = `
+            <div class="replies-section mt-3">
+                <button 
+                    onclick="toggleReplies(${parentId})" 
+                    class="btn btn-sm btn-link text-decoration-none ps-0"
+                >
+                    <i class="fas fa-chevron-down me-1"></i>
+                    Show 1 reply
+                </button>
+                <div id="replies-${parentId}" class="replies-container mt-2 ms-4" style="display: block;">
+                    ${commentHtml}
+                </div>
+            </div>
+        `;
+        document.querySelector(`#comment-${parentId} .flex-grow-1`).insertAdjacentHTML('beforeend', newRepliesSection);
+    } else {
+        if (!repliesContainer) {
+            // Create replies container if it doesn't exist
+            const container = document.createElement('div');
+            container.id = `replies-${parentId}`;
+            container.className = 'replies-container mt-2 ms-4';
+            repliesSection.appendChild(container);
+        }
+        repliesContainer.style.display = 'block';
+        repliesContainer.insertAdjacentHTML('afterbegin', commentHtml);
+    }
+    toggleReplyForm(parentId);
+}
+
+function updateRepliesCount(commentId, change) {
+    const toggleButton = document.querySelector(`#comment-${commentId} .replies-section button`);
+    if (toggleButton) {
+        const currentCount = parseInt(toggleButton.textContent.match(/\d+/)[0]) + change;
+        toggleButton.innerHTML = `
+            <i class="fas fa-chevron-down me-1"></i>
+            Show ${currentCount} repl${currentCount === 1 ? 'y' : 'ies'}
+        `;
+    }
+}
+
+// Add delete functionality
+async function deleteComment(commentId, isReply = false) {
+    if (!confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/events/comment/${commentId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to delete comment');
+
+        const elementId = isReply ? `reply-${commentId}` : `comment-${commentId}`;
+        const element = document.getElementById(elementId);
+        
+        if (element) {
+            if (isReply) {
+                // Update reply count
+                const parentId = element.closest('.replies-container').id.split('-')[1];
+                updateRepliesCount(parentId, -1);
+            }
+            element.remove();
+            showNotification('Comment deleted successfully', 'success');
+        }
+    } catch (error) {
+        showNotification('Error deleting comment', 'error');
+    }
+}
 
 async function submitFormData(form, formData, eventId) {
     const response = await fetch(form.action || `/events/${eventId}/comment/`, {
