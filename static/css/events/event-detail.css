@@ -54,3 +54,6 @@
 .comment-card {
     transition: all 0.3s ease-in-out;
 }
+.reply-form {
+    display: none;
+}
