@@ -508,7 +508,7 @@ font-size: 12px;
             </p>
             <p>
                 <a href="{% url 'polls:search_poll' poll.title %}?action=like" class="more-info-link">
-                    <i class="fas fa-thumbs-up"></i> Like ({{ poll.total_likes }})
+                    <i class="fas fa-thumbs-up"></i> Like ({{ poll.poll_likes.count }})
                 </a>
             </p>
             <p>

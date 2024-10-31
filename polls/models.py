@@ -94,7 +94,7 @@ class Comment(models.Model):
     )
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="poll_comments"
-    )  # Update here
+    )
     parent = models.ForeignKey(
         "self",
         related_name="subcomments",
@@ -108,7 +108,7 @@ class Comment(models.Model):
 
     def total_likes(self):
         """Returns the total number of likes for the comment or subcomment."""
-        return self.likes.count()
+        return self.comment_likes.count()  # Updated to use the correct related name
 
     def comment_count(self):
         """Returns the total number of comments for the poll."""
@@ -123,26 +123,21 @@ class Comment(models.Model):
 class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     poll = models.ForeignKey(
-        Poll, null=True, blank=True, related_name="likes", on_delete=models.CASCADE
+        Poll, null=True, blank=True, related_name="poll_likes", on_delete=models.CASCADE
     )
     comment = models.ForeignKey(
-        Comment, null=True, blank=True, related_name="likes", on_delete=models.CASCADE
+        Comment, null=True, blank=True, related_name="comment_likes", on_delete=models.CASCADE
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = (
-            "user",
-            "poll",
-            "comment",
-        )  # Ensures unique likes per user per poll/comment
+        unique_together = ("user", "poll", "comment")  # Ensures unique likes per user per poll/comment
 
     def __str__(self):
         if self.poll:
             return f"Like by {self.user.username} on poll {self.poll.title}"
         elif self.comment:
             return f"Like by {self.user.username} on comment {self.comment.id}"
-
 
 class Option(models.Model):
     poll = models.ForeignKey(Poll, related_name="options", on_delete=models.CASCADE)

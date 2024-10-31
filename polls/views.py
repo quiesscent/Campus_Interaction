@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
 import pytz
+import json  
 
 logger = logging.getLogger(__name__)
 from django.db.models import Q
@@ -380,43 +381,51 @@ def poll_results(request, poll_id):
 def add_comment(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
     if request.method == "POST":
-        comment_text = request.POST.get("comment")
+        # Extract comment text from the JSON request
+        data = json.loads(request.body)
+        comment_text = data.get("comment")
 
         # Set created_at to Nairobi time
         nairobi_tz = pytz.timezone("Africa/Nairobi")
-        created_at_nairobi = timezone.now().astimezone(
-            nairobi_tz
-        )  # Current time in Nairobi
+        created_at_nairobi = timezone.now().astimezone(nairobi_tz)
 
-        # Create the comment, you should not need to set created_at if it's auto_now_add
+        # Create the comment, setting created_at automatically with auto_now_add
         comment = Comment.objects.create(
             poll=poll,
             user=request.user,
             text=comment_text,
-            created_at=created_at_nairobi,  # This line can be removed if created_at is auto_now_add
+            created_at=created_at_nairobi,
         )
 
-        messages.success(request, "Your comment has been added.")
-        return redirect("polls:base_poll")
+        # Return a JSON response with the comment data
+        return JsonResponse({
+            "success": True,
+            "user": request.user.username,
+            "comment_text": comment.text,
+        })
+
+    return JsonResponse({"success": False, "error": "Invalid request"})
 
 
 @login_required
 def like_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        comment = get_object_or_404(Comment, id=comment_id)
+        user = request.user
+        existing_like = Like.objects.filter(user=user, comment=comment).first()
+        
+        if existing_like:
+            existing_like.delete()
+            liked = False
+        else:
+            Like.objects.create(user=user, comment=comment)
+            liked = True
 
-    # Check if the user has already liked this comment
-    existing_like = Like.objects.filter(user=request.user, comment=comment).first()
+        total_likes = comment.comment_likes.count()
+        
+        return JsonResponse({"success": True, "total_likes": total_likes, "liked": liked})
 
-    if existing_like:
-        # User has already liked the comment, handle accordingly (e.g., remove like)
-        existing_like.delete()
-        messages.success(request, "You unliked the comment.")
-    else:
-        # User has not liked the comment yet, create a new like
-        Like.objects.create(user=request.user, comment=comment)
-        messages.success(request, "You liked the comment.")
-
-    return redirect("polls:base_poll")  # Adjust as necessary
+    return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
 
 
 @login_required
@@ -424,7 +433,7 @@ def like_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
 
     # Check if the user has already liked the poll
-    existing_like = Like.objects.filter(user=request.user, poll=poll).first()
+    existing_like = Like.objects.filter(user=request.user, poll=poll, comment=None).first()
 
     if not existing_like:
         # Create a new like
@@ -433,7 +442,8 @@ def like_poll(request, poll_id):
     else:
         existing_like.delete()
         liked = False
-    total_likes = poll.like_set.count()
+
+    total_likes = poll.poll_likes.count()  # Use the updated related name here
 
     # Return a JSON response
     return JsonResponse({"success": True, "liked": liked, "total_likes": total_likes})
