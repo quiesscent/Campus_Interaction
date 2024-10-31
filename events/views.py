@@ -15,18 +15,24 @@ from profiles.models import Profile
 from .models import Event, EventRegistration, Comment, EventReaction
 from .forms import EventForm, CommentForm, EventRegistrationForm
 import json
+from django.core.paginator import EmptyPage, InvalidPage
 from django.template.loader import render_to_string
+from django.db.models import Count
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# events/views.py
 
 @login_required
 def event_list(request):
     status_filter = request.GET.get('status')
     campus_filter = request.GET.get('campus')
-    
+
+    # Fetch all events and related data
     events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
-    
+
+    # Apply status filter if present
     if status_filter:
         now = timezone.now()
         if status_filter == 'upcoming':
@@ -35,24 +41,34 @@ def event_list(request):
             events = events.filter(start_date__lte=now, end_date__gte=now)
         elif status_filter == 'completed':
             events = events.filter(end_date__lt=now)
-    
+
+    # Apply campus filter if present
     if campus_filter:
-        events = events.filter(campus__campus=campus_filter)
-    
-    # Get unique campus values from Profile model
+        events = events.filter(campus=campus_filter)
+
+    # Get unique campuses for the filter form
     campuses = Profile.objects.values_list('campus', flat=True).distinct()
-    
-    paginator = Paginator(events, 12)
+
+    # Pagination setup
+    paginator = Paginator(events, 12)  # Show 12 events per page
     page = request.GET.get('page')
     events = paginator.get_page(page)
-    
+
+    # Add comments count for each event
     for event in events:
         event.comments_count = event.comments.count()
-    
-    return render(request, 'events/event_list.html', {
+
+    context = {
         'events': events,
         'campuses': campuses,
-    })
+    }
+
+    # If it's an HTMX request, return only the events partial
+    if request.headers.get('HX-Request'):
+        return render(request, 'events/partials/event_list_content.html', context)
+    
+    # Otherwise return the full template
+    return render(request, 'events/event_list.html', context)
 
 @login_required
 def event_detail(request, event_id):
@@ -109,23 +125,6 @@ def create_event(request):
 
     return render(request, 'events/create_event.html', {'form': form})
 
-@login_required
-def load_more_comments(request, event_id):
-    event = get_object_or_404(Event, id=event_id)
-    page = request.GET.get('page', 1)
-    comments = Comment.objects.filter(event=event).order_by('-created_at')
-    paginator = Paginator(comments, 5)  # Display 5 comments per page
-
-    if int(page) > paginator.num_pages:
-        return JsonResponse({'comments_html': ''})  # No more pages
-    
-    comments_page = paginator.get_page(page)
-    comments_html = render(request, 'events/partials/comments_pagination.html', {
-        'comments': comments_page,
-    }).content.decode('utf-8')
-
-
-# views.py
 
 @login_required
 @require_POST
