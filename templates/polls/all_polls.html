@@ -857,7 +857,6 @@ function toggleComments(pollId) {
     currentCommentCount = 0;
   }
 }
-
 function loadMoreComments(pollId) {
   const url = `{% url 'polls:load_comments' 0 %}`.replace("0", pollId);
 
@@ -869,6 +868,16 @@ function loadMoreComments(pollId) {
     .then((data) => {
       const commentsList = document.getElementById(`comments-${pollId}`);
 
+      // If no comments are loaded, display a message
+      if (data.comments.length === 0 && currentCommentCount === 0) {
+        commentsList.innerHTML = `<p style="text-align: center; font-style: italic; color: gray;">
+                                    No comments available, be the first one!
+                                  </p>`;
+        document.getElementById(`load-more-${pollId}`).style.display = "none";
+        return;
+      }
+
+      // Clear comments only on first load
       if (currentCommentCount === 0) {
         commentsList.innerHTML = "";
       }
@@ -913,6 +922,8 @@ function loadMoreComments(pollId) {
     })
     .catch((error) => console.error("Error loading comments:", error));
 }
+
+
 
 function getCsrfToken() {
   const csrfTokenElement = document.querySelector("[name=csrfmiddlewaretoken]");
