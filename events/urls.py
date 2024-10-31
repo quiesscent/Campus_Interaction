@@ -30,4 +30,6 @@ urlpatterns = [
     path('university/autocomplete/', views.campus_autocomplete, name='university_autocomplete'),
     path('select2/', include('django_select2.urls')),
     path('<int:event_id>/comments/', views.load_more_comments, name='load_more_comments'),
+    # urls.py
+    path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
 ]
