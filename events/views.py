@@ -17,17 +17,22 @@ from .forms import EventForm, CommentForm, EventRegistrationForm
 import json
 from django.core.paginator import EmptyPage, InvalidPage
 from django.template.loader import render_to_string
+from django.db.models import Count
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# events/views.py
 
 @login_required
 def event_list(request):
     status_filter = request.GET.get('status')
     campus_filter = request.GET.get('campus')
-    
+
+    # Fetch all events and related data
     events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
-    
+
+    # Apply status filter if present
     if status_filter:
         now = timezone.now()
         if status_filter == 'upcoming':
@@ -36,24 +41,34 @@ def event_list(request):
             events = events.filter(start_date__lte=now, end_date__gte=now)
         elif status_filter == 'completed':
             events = events.filter(end_date__lt=now)
-    
+
+    # Apply campus filter if present
     if campus_filter:
-        events = events.filter(campus__campus=campus_filter)
-    
-    # Get unique campus values from Profile model
+        events = events.filter(campus=campus_filter)
+
+    # Get unique campuses for the filter form
     campuses = Profile.objects.values_list('campus', flat=True).distinct()
-    
-    paginator = Paginator(events, 12)
+
+    # Pagination setup
+    paginator = Paginator(events, 12)  # Show 12 events per page
     page = request.GET.get('page')
     events = paginator.get_page(page)
-    
+
+    # Add comments count for each event
     for event in events:
         event.comments_count = event.comments.count()
-    
-    return render(request, 'events/event_list.html', {
+
+    context = {
         'events': events,
         'campuses': campuses,
-    })
+    }
+
+    # If it's an HTMX request, return only the events partial
+    if request.headers.get('HX-Request'):
+        return render(request, 'events/partials/event_list_content.html', context)
+    
+    # Otherwise return the full template
+    return render(request, 'events/event_list.html', context)
 
 @login_required
 def event_detail(request, event_id):
