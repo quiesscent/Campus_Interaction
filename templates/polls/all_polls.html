@@ -745,21 +745,23 @@
             <small>
               <i class="fa-regular fa-eye"></i> {{poll.view_count}}</small
             >
-            <small
-              class="like-toggle"
-              data-poll-id="{{ poll.id }}"
-              style="cursor: pointer"
-            >
-              <i
-                class="fa-regular fa-heart {% if poll.id in liked_polls_set %} liked {% else %} unliked {% endif %}"
-                style="color: {% if poll.id in liked_polls_set %} red {% else %} black {% endif %};"
-              ></i>
-              <span class="like-count">{{ poll.total_likes }}</span>
-            </small>
+                    <small
+          class="like-toggle"
+          data-poll-id="{{ poll.id }}"
+          style="cursor: pointer"
+        >
+          <i
+            class="fa-regular fa-heart {% if poll.id in liked_polls_set %} liked {% else %} unliked {% endif %}"
+            style="color: {% if poll.id in liked_polls_set %} red {% else %} black {% endif %};"
+          ></i>
+          <span class="like-count">{{ poll.poll_likes.count }}</span> <!-- Updated line -->
+        </small>
 
-            <small onclick="toggleComments('{{ poll.id }}')">
-              <i class="fa-regular fa-comment"></i> {{ poll.comment_count }}</small
-            >
+
+        <small onclick="toggleComments('{{ poll.id }}')" id="comment-container-{{ poll.id }}">
+          <i class="fa-regular fa-comment"></i> <span id="comment-count-{{ poll.id }}">{{ poll.comment_count }}</span>
+        </small>
+        
           </div>
           <div
             class="comments-section"
@@ -780,19 +782,20 @@
             </button>
             <!-- Main Comment Form -->
             <form
-              method="post"
-              action="{% url 'polls:add_comment' poll.id %}"
-              class="main-comment-form"
-            >
-              {% csrf_token %}
-              <textarea
-                name="comment"
-                class="comment-input"
-                placeholder="Add a comment..."
-                required
-              ></textarea>
-              <button type="submit" class="comment-button">Add Comment</button>
-            </form>
+                method="post"
+                action="{% url 'polls:add_comment' poll.id %}"
+                class="main-comment-form"
+                data-poll-id="{{ poll.id }}" 
+              >
+                {% csrf_token %}
+                <textarea
+                  name="comment"
+                  class="comment-input"
+                  placeholder="Add a comment..."
+                  required
+                ></textarea>
+                <button type="submit" class="comment-button">Add Comment</button>
+              </form>
           </div>
         </div>
       </li>
@@ -829,7 +832,186 @@
     </div>
   </div>
 </div>
+<!-- Load Comments and Add comments -->
+<script>
+  let currentCommentCount = 0;
+const commentsToLoad = 5;
+let currentlyOpenPollId = null;
 
+function toggleComments(pollId) {
+  const commentsSection = document.getElementById(`comments-section-${pollId}`);
+  if (currentlyOpenPollId !== null && currentlyOpenPollId !== pollId) {
+    const currentlyOpenSection = document.getElementById(`comments-section-${currentlyOpenPollId}`);
+    currentlyOpenSection.style.display = "none";
+    currentCommentCount = 0;
+  }
+
+  if (commentsSection.style.display === "none" || commentsSection.style.display === "") {
+    commentsSection.style.display = "block";
+    currentlyOpenPollId = pollId;
+    currentCommentCount = 0;
+    loadMoreComments(pollId);
+  } else {
+    commentsSection.style.display = "none";
+    currentlyOpenPollId = null;
+    currentCommentCount = 0;
+  }
+}
+
+function loadMoreComments(pollId) {
+  const url = `{% url 'polls:load_comments' 0 %}`.replace("0", pollId);
+
+  fetch(`${url}?offset=${currentCommentCount}&limit=${commentsToLoad}`)
+    .then((response) => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    })
+    .then((data) => {
+      const commentsList = document.getElementById(`comments-${pollId}`);
+
+      if (currentCommentCount === 0) {
+        commentsList.innerHTML = "";
+      }
+
+      data.comments.forEach((comment) => {
+        const commentDiv = document.createElement("div");
+        commentDiv.classList.add("comment");
+
+        const createdAt = new Date(comment.created_at);
+        createdAt.setHours(createdAt.getHours() + 3);
+
+        const formattedDate = `${createdAt.getHours().toString().padStart(2, "0")}:${createdAt.getMinutes().toString().padStart(2, "0")} ${createdAt.getDate().toString().padStart(2, "0")}/${(createdAt.getMonth() + 1).toString().padStart(2, "0")}/${createdAt.getFullYear()}`;
+
+        const likeForm = `
+          <form method="post" class="like-form" data-comment-id="${comment.id}">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
+            <button type="button" class="like-button" style="color: ${comment.liked ? "red" : "black"};" onclick="handleLikeClick(${comment.id}, this)">
+              <i class="fas fa-thumbs-up" style="color: ${comment.liked ? "red" : "black"};"></i>
+            </button>
+            <span class="likes-count">${comment.total_likes}</span>
+          </form>
+        `;
+
+        commentDiv.innerHTML = `
+          <p class="comment-user">${comment.user.username}:</p>
+          <p class="comment-text">${comment.text}</p>
+          <small class="comment-date" style="margin-right: 5px;">${formattedDate}</small>
+          ${likeForm}
+        `;
+        commentsList.appendChild(commentDiv);
+      });
+
+      currentCommentCount += data.comments.length;
+
+      // Show or hide the "Load more" button based on availability of more comments
+      const loadMoreButton = document.getElementById(`load-more-${pollId}`);
+      if (data.comments.length < commentsToLoad) {
+        loadMoreButton.style.display = "none";
+      } else {
+        loadMoreButton.style.display = "block";
+      }
+    })
+    .catch((error) => console.error("Error loading comments:", error));
+}
+
+function getCsrfToken() {
+  const csrfTokenElement = document.querySelector("[name=csrfmiddlewaretoken]");
+  return csrfTokenElement ? csrfTokenElement.value : null;
+}
+
+function handleLikeClick(commentId, likeButton) {
+  const url = `/polls/comment/${commentId}/like/`;
+  const csrfToken = getCsrfToken();
+  const likesCountSpan = likeButton.nextElementSibling;
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+      "X-Requested-With": "XMLHttpRequest",
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.error(`Error: ${response.status} - ${response.statusText}`);
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.success) {
+        likesCountSpan.textContent = data.total_likes;
+        likeButton.style.color = data.liked ? "red" : "black";
+        const icon = likeButton.querySelector("i");
+        if (icon) {
+          icon.style.color = data.liked ? "red" : "black";
+        }
+      } else {
+        console.error("Failed to like comment:", data);
+      }
+    })
+    .catch((error) => console.error("Error:", error));
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const commentForm = document.querySelector(".main-comment-form");
+
+  commentForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const pollId = commentForm.getAttribute("data-poll-id");
+    const url = `{% url 'polls:add_comment' 0 %}`.replace("0", pollId);
+    const commentInput = this.querySelector(".comment-input");
+    const commentText = commentInput.value;
+    const csrfToken = getCsrfToken();
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify({ comment: commentText }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          commentInput.value = "";
+          currentCommentCount = 0;
+          loadMoreComments(pollId);
+
+          const commentCountElement = document.getElementById(`comment-count-${pollId}`);
+          const currentCount = parseInt(commentCountElement.textContent.trim(), 10);
+          commentCountElement.textContent = currentCount + 1;
+
+          // Ensure "Load more" button is visible after adding a comment
+          const loadMoreButton = document.getElementById(`load-more-${pollId}`);
+          if (loadMoreButton) {
+            loadMoreButton.style.display = "block";
+          }
+        } else {
+          console.error("Failed to add comment:", data);
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+  });
+});
+
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape" && currentlyOpenPollId !== null) {
+    const commentsSection = document.getElementById(`comments-section-${currentlyOpenPollId}`);
+    commentsSection.style.display = "none";
+    currentlyOpenPollId = null;
+    currentCommentCount = 0;
+  }
+});
+
+  </script>
+  
 <!-- JavaScript for Navbar Toggle -->
 <script>
   document
@@ -839,6 +1021,7 @@
       menu.classList.toggle("show");
     });
 </script>
+
 <script>
   // JavaScript for filtering polls and managing active states
   function filterPolls(selectedButton) {
@@ -876,190 +1059,78 @@
   }
 </script>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const likeToggles = document.querySelectorAll(".like-toggle");
+ document.addEventListener("DOMContentLoaded", function () {
+  const likeToggles = document.querySelectorAll(".like-toggle");
 
-    likeToggles.forEach((likeToggle) => {
-      likeToggle.addEventListener("click", function () {
-        const pollId = this.dataset.pollId;
-        toggleLike(pollId, this); // Pass the clicked element to access children later
-      });
+  likeToggles.forEach((likeToggle) => {
+    likeToggle.addEventListener("click", function () {
+      const pollId = this.dataset.pollId;
+      toggleLike(pollId, this); // Pass the clicked element to access children later
     });
   });
+});
+function toggleLike(pollId, likeElement) {
+  const icon = likeElement.querySelector(".fa-heart");
+  const likeCountElement = likeElement.querySelector(".like-count");
 
-  function toggleLike(pollId, likeElement) {
-    const icon = likeElement.querySelector(".fa-heart");
-    const likeCountElement = likeElement.querySelector(".like-count");
-
-    if (!icon) {
-      console.error(`Icon not found for pollId: ${pollId}`);
-      return;
-    }
-
-    // Check the current liked state
-    const currentlyLiked = icon.style.color === "red";
-    icon.style.color = currentlyLiked ? "black" : "red"; // Toggle icon color
-
-    const url = `{% url 'polls:like_poll' 0 %}`.replace("0", pollId); // Generate the URL
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken"), // Get the CSRF token
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Network response was not ok");
-        return response.json();
-      })
-      .then((data) => {
-        if (data.success) {
-          likeCountElement.textContent = data.total_likes; // Update like count
-        } else {
-          console.error("Failed to toggle like:", data);
-          icon.style.color = currentlyLiked ? "red" : "black"; // Revert color on failure
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        icon.style.color = currentlyLiked ? "red" : "black"; // Revert color on error
-      });
+  if (!icon || !likeCountElement) {
+    console.error(`Icon or like count element not found for pollId: ${pollId}`);
+    return;
   }
 
-  // CSRF token helper function
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === name + "=") {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
+  // Check the current liked state
+  const currentlyLiked = icon.style.color === "red";
+  
+  // Optimistically update UI
+  icon.style.color = currentlyLiked ? "black" : "red";
+  likeCountElement.textContent = parseInt(likeCountElement.textContent) + (currentlyLiked ? -1 : 1);
+
+  const url = `{% url 'polls:like_poll' 0 %}`.replace("0", pollId);
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    })
+    .then((data) => {
+      if (!data.success) {
+        // If the server responds with an error, revert the UI changes
+        console.error("Failed to toggle like:", data);
+        icon.style.color = currentlyLiked ? "red" : "black";
+        likeCountElement.textContent = parseInt(likeCountElement.textContent) + (currentlyLiked ? 1 : -1);
+      } else {
+        // Ensure UI matches server response (e.g., in case other users like/unlike in between)
+        likeCountElement.textContent = data.total_likes;
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      // Revert UI changes on error
+      icon.style.color = currentlyLiked ? "red" : "black";
+      likeCountElement.textContent = parseInt(likeCountElement.textContent) + (currentlyLiked ? 1 : -1);
+    });
+}
+
+// CSRF token helper function
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
       }
     }
-    return cookieValue;
   }
-</script>
-<script>
-  let currentCommentCount = 0;
-  const commentsToLoad = 5;
-  let currentlyOpenPollId = null;
+  return cookieValue;
+}
 
-  function toggleComments(pollId) {
-    const commentsSection = document.getElementById(
-      `comments-section-${pollId}`
-    );
-
-    if (currentlyOpenPollId !== null && currentlyOpenPollId !== pollId) {
-      const currentlyOpenSection = document.getElementById(
-        `comments-section-${currentlyOpenPollId}`
-      );
-      currentlyOpenSection.style.display = "none";
-      currentCommentCount = 0;
-    }
-
-    if (
-      commentsSection.style.display === "none" ||
-      commentsSection.style.display === ""
-    ) {
-      commentsSection.style.display = "block";
-      loadMoreComments(pollId);
-      currentlyOpenPollId = pollId;
-    } else {
-      commentsSection.style.display = "none";
-      currentlyOpenPollId = null;
-      currentCommentCount = 0;
-    }
-  }
-
-  function loadMoreComments(pollId) {
-    const url = `{% url 'polls:load_comments' 0 %}`.replace("0", pollId);
-
-    fetch(`${url}?offset=${currentCommentCount}&limit=${commentsToLoad}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        const commentsList = document.getElementById(`comments-${pollId}`);
-
-        if (currentCommentCount === 0) {
-          commentsList.innerHTML = "";
-        }
-
-        data.comments.forEach((comment) => {
-          const commentDiv = document.createElement("div");
-          commentDiv.classList.add("comment");
-
-          const createdAt = new Date(comment.created_at);
-          createdAt.setHours(createdAt.getHours() + 3);
-
-          const formattedDate = `${createdAt
-            .getHours()
-            .toString()
-            .padStart(2, "0")}:${createdAt
-            .getMinutes()
-            .toString()
-            .padStart(2, "0")} ${createdAt
-            .getDate()
-            .toString()
-            .padStart(2, "0")}/${(createdAt.getMonth() + 1)
-            .toString()
-            .padStart(2, "0")}/${createdAt.getFullYear()}`;
-
-          const likeForm = `
-            <form method="post" action="/polls/comment/${
-              comment.id
-            }/like/" class="like-form">
-              <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
-              <button type="submit" class="like-button" style="color: ${
-                comment.liked ? "red" : "black"
-              };">
-                <i class="fas fa-thumbs-up" style="color: ${
-                  comment.liked ? "red" : "black"
-                };"></i>
-              </button>
-            </form>
-          `;
-
-          commentDiv.innerHTML = `
-            <p class="comment-user">${comment.user.username}:</p>
-            <p class="comment-text">${comment.text}</p>
-            <small class="comment-date" style="margin-right: 5px;">${formattedDate}</small>
-            <small class="comment-likes"><i class="fas fa-thumbs-up" style="color: ${
-              comment.liked ? "red" : "black"
-            };"></i> ${comment.total_likes}</small>
-            ${likeForm}
-          `;
-          commentsList.appendChild(commentDiv);
-        });
-
-        currentCommentCount += data.comments.length;
-
-        if (data.comments.length < commentsToLoad) {
-          document.getElementById(`load-more-${pollId}`).style.display = "none";
-        }
-      })
-      .catch((error) => console.error("Error loading comments:", error));
-  }
-
-  function getCsrfToken() {
-    return document.querySelector("[name=csrfmiddlewaretoken]").value;
-  }
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && currentlyOpenPollId !== null) {
-      const commentsSection = document.getElementById(
-        `comments-section-${currentlyOpenPollId}`
-      );
-      commentsSection.style.display = "none";
-      currentlyOpenPollId = null;
-      currentCommentCount = 0;
-    }
-  });
 </script>
 {% endblock %}
