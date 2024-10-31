@@ -439,10 +439,32 @@
         .form-control-file{
           display: none !important;
         }
+    @media (max-width: 768px) {
+    .polls-container {
+      flex-direction: column;
+    }
+
+    .polls_items {
+      flex: none; /* Reset flex property */
+      margin-bottom: 20px; /* Space between polls and sidebar */
+    }
+
+    .sidebar {
+      border-left: none; /* Remove left border on small screens */
+      border-top: 1px solid #ccc; /* Add top border for separation */
+    }
+    .poll_navbar .logo{
+      font-size: 23px;
+    }
+    .create-poll-btn{
+      font-size: 12px;
+    }
+  }
 </style>
 <nav class="poll_navbar">
   <div class="navbar-buttons">
-    <a href="{% url 'polls:edit_poll' poll.id %}" class="logo">Edit Poll ({{poll.title}})</a>
+    <a href="{% url 'polls:edit_poll' poll.id %}" class="logo">Edit - {{ poll.title|slice:":7" }}{% if poll.title|length > 7 %}...{% endif %}
+    </a>
     <a href="{% url 'polls:add_polls' %}" class="create-poll-btn"
       >+ Create New Poll</a
     >
