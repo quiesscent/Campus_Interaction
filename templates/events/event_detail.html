@@ -65,10 +65,11 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h3 class="card-title h4 mb-0">Comments</h3>
-                            <button class="btn btn-link" onclick="toggleComments()" aria-expanded="false">
-                                <i class="fas fa-comments"></i> Toggle Comments
-                            </button>
-                        </div>
+                                <!-- Show/Hide Comments Button -->
+                                    <button id="toggleCommentsBtn" class="btn btn-link" onclick="toggleComments()">
+                                        Show Comments
+                                    </button>
+                            </div>
 
                         <!-- Comment Form -->
                         <form method="POST" action="{% url 'events:add_comment' event.id %}" class="mb-4" id="commentForm">
