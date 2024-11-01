@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block title %}Polls - Create Poll{% endblock %} 
 {% block content %}
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
 <style>
 
 .poll_navbar {
@@ -415,11 +415,11 @@ background-color: #eaf0f7;
 font-size: 40px;
 color: #007bff;
 }
-header {
+/* header {
 font-size: 18px;
 font-weight: bold;
 color: #555;
-}
+} */
 span {
 color: #888;
 }
@@ -1311,7 +1311,7 @@ document.addEventListener("DOMContentLoaded", function () {
           errorMessage.style.animation = 'slideIn 0.5s forwards';
           setTimeout(() => {
               dismissErrorMessage(); 
-          }, 6000); 
+          }, 3000); 
       }
   });
   </script>
