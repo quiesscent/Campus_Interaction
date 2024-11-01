@@ -129,6 +129,7 @@ def create_event(request):
 @login_required
 @require_POST
 @require_http_methods(["POST"])
+
 def add_comment(request, event_id):
     """Add a new comment or reply to an event."""
     try:
@@ -145,7 +146,7 @@ def add_comment(request, event_id):
             # Create comment instance but don't save yet
             comment = form.save(commit=False)
             comment.event = event
-            comment.user = request.user.profile  # Assuming you have a profile relation
+            comment.user = request.user.profile
             
             # Handle parent comment for replies
             parent_id = request.POST.get('parent_comment_id')
@@ -154,24 +155,22 @@ def add_comment(request, event_id):
                     parent_comment = Comment.objects.get(id=parent_id)
                     comment.parent = parent_comment
                 except Comment.DoesNotExist:
-                    if is_ajax:
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': 'Parent comment not found'
-                        }, status=400)
-                    else:
-                        messages.error(request, 'Parent comment not found')
-                        return redirect('events:event_detail', event_id=event_id)
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Parent comment not found'
+                    }, status=400)
             
             # Save the comment
             comment.save()
             
             if is_ajax:
-                # Render the comment HTML
-                comment_html = render_to_string('events/partials/comment.html', {
-                    'comment': comment,
-                    'event': event
-                }, request=request)
+                # For replies, use reply.html template
+                template_name = 'events/partials/reply.html' if parent_id else 'events/partials/comment.html'
+                comment_html = render_to_string(template_name, {
+                    'reply' if parent_id else 'comment': comment,
+                    'event': event,
+                    'request': request
+                })
                 
                 return JsonResponse({
                     'status': 'success',
@@ -193,16 +192,14 @@ def add_comment(request, event_id):
                 return redirect('events:event_detail', event_id=event_id)
                 
     except Exception as e:
-        print(f"Error in add_comment: {str(e)}")  # Add logging for debugging
         if is_ajax:
             return JsonResponse({
                 'status': 'error',
-                'message': 'An error occurred while processing your request'
+                'message': str(e)
             }, status=500)
         else:
             messages.error(request, 'An error occurred while processing your request')
             return redirect('events:event_detail', event_id=event_id)
-
 @login_required
 @require_http_methods(["DELETE"])
 def delete_comment(request, comment_id):
