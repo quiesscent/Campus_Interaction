@@ -449,9 +449,10 @@ a {
                 </li>
                  <!--=============== EVENTS ===============-->
                  <li>
-                    {% url 'events:event_list' as events_url %}
-                    <a href="{{ events_url }}" class="nav__link {% if request.path == events_url %}active{% endif %}">Events</a>
+                  {% url 'events:event_list' as events_url %}
+                  <a href="{{ events_url }}" class="nav__link {% if 'events' in request.resolver_match.namespace %}active{% endif %}">Events</a>
                 </li>
+                
                  <!--=============== FORUM ===============-->
                  <li><a  href="#" class="nav__link">Forums</a></li>
 
@@ -490,10 +491,11 @@ a {
                     
                   <!--=============== MARKETPLACE ===============-->
 
-                 <li>
-                  {% url 'marketplace:item_list' as item_list_url %}
-                  <a href="{{ item_list_url }}" class="nav__link {% if request.path == item_list_url %}active{% endif %}">Marketplace</a>
-                </li>
+                  <li>
+                    {% url 'marketplace:item_list' as item_list_url %}
+                    <a href="{{ item_list_url }}" class="nav__link {% if request.path|slice:":8" == item_list_url|slice:":8" %}active{% endif %}">Marketplace</a>
+                  </li>
+                  
                   <!--=============== MESSAGE ===============-->
 
                  <li><a href="#" class="nav__link">Messages</a></li>
