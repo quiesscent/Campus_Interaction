@@ -1,9 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from notifications.bulk import notify_all_users
 from .models import Poll, Option, Vote, Comment, Like
-
 from .forms import PollForm, OptionFormSet, EditPollForm
 from django.db.models import Q
 from datetime import timedelta
@@ -107,28 +105,29 @@ def add_polls(request):
         option_formset = OptionFormSet(request.POST, request.FILES)
         error_message = None
 
+        # Check if the formsets are valid
         if poll_form.is_valid() and option_formset.is_valid():
-            poll = poll_form.save(commit=False)
+            poll = poll_form.save(commit=False)  # Create poll instance but don't save yet
 
-            if request.user.is_authenticated:
-                poll.creator = request.user
-
-            poll.save()  
-            if "banner_image" in request.FILES:
-                poll.banner_image = request.FILES["banner_image"]
-                poll.save()
-            poll.generate_unique_link()
-            poll.generate_qr_code()
-            poll.save()
-            # notify all users thew is a new poll
-            notify_all_users("New Poll")
-
-            # Check if the poll type is a question and no correct answer is provided
+            # Check if the poll type is a question and if there are correct answers
             if poll.poll_type == 'question':
                 correct_answers = any(option_form.cleaned_data.get("is_correct") for option_form in option_formset)
+                
                 if not correct_answers:
                     error_message = "A question must have at least one correct answer."
                 else:
+                    # If there are correct answers, proceed to save the poll
+                    if request.user.is_authenticated:
+                        poll.creator = request.user
+
+                    poll.save()  # Save the poll after validation
+                    if "banner_image" in request.FILES:
+                        poll.banner_image = request.FILES["banner_image"]
+                        poll.save()
+                    poll.generate_unique_link()
+                    poll.generate_qr_code()
+                    poll.save()
+
                     for option_form in option_formset:
                         if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                             option = option_form.save(commit=False)
@@ -136,9 +135,21 @@ def add_polls(request):
                             if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
                                 option.option_image = option_form.cleaned_data["option_image"]
                             option.save()
-                    return redirect("polls:vote_poll", poll_id=poll.id)
 
+                    return redirect("polls:vote_poll", poll_id=poll.id)
             else:
+                # For non-question polls, save without checking for correct answers
+                if request.user.is_authenticated:
+                    poll.creator = request.user
+
+                poll.save()  # Save the poll
+                if "banner_image" in request.FILES:
+                    poll.banner_image = request.FILES["banner_image"]
+                    poll.save()
+                poll.generate_unique_link()
+                poll.generate_qr_code()
+                poll.save()
+
                 for option_form in option_formset:
                     if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                         option = option_form.save(commit=False)
@@ -146,6 +157,7 @@ def add_polls(request):
                         if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
                             option.option_image = option_form.cleaned_data["option_image"]
                         option.save()
+
                 return redirect("polls:vote_poll", poll_id=poll.id)
 
         else:
@@ -181,19 +193,10 @@ def add_polls(request):
         },
     )
 
-
 @login_required
 def user_dashboard(request):
-    polls = Poll.objects.filter(creator=request.user).order_by('-created_at')
-
-    # Create a list of polls with their active status
-    polls_with_status = [(poll, poll.is_active) for poll in polls]  # No parentheses needed
-
-    return render(request, "polls/user_dashboard.html", {
-        'polls_with_status': polls_with_status,
-    })
-
     polls = Poll.objects.filter(creator=request.user).order_by("-created_at")
+
     # Create a list of polls with their active status
     polls_with_status = [
         (poll, poll.is_active) for poll in polls
@@ -280,23 +283,6 @@ def vote_poll(request, poll_id):
     user_vote = Vote.objects.filter(poll=poll, user=request.user).first()
     has_reached_vote_limit = False
 
-    # Check if the user has already voted
-    if request.user.is_authenticated:
-        user_vote = Vote.objects.filter(poll=poll, user=request.user).first()
-        if user_vote and not user_vote.can_vote_again():
-            has_reached_vote_limit = True  # User cannot cancel/vote anymore
-
-    if request.method == 'POST':
-        # Cancel vote logic
-        if 'cancel_vote' in request.POST and user_vote and user_vote.can_vote_again():
-            print(f"Current attempts before increment: {user_vote.attempts}")
-            user_vote.attempts += 1
-            print(f"Current attempts after increment: {user_vote.attempts}")
-
-            user_vote.save()  # Save the updated attempts count
-            print("Deleting user vote...")
-            user_vote.delete()  # Delete the user's vote after incrementing attempts
-            return redirect('polls:vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
     if user_vote and not user_vote.can_vote_again():
         has_reached_vote_limit = True
 
@@ -382,11 +368,7 @@ def search_poll(request, title):
 def poll_results(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
     options = Option.objects.filter(poll=poll)
-
-    # Calculate total votes for the poll
-    total_votes = poll.total_votes()  # Assuming this method exists in the Poll model
-
-    # Collect results to send to the template
+    total_votes = poll.total_votes()
     results = []
     for option in options:
         # Check if this option is the correct answer
@@ -394,11 +376,6 @@ def poll_results(request, poll_id):
             option.is_correct
         )  # Assuming Option model has an `is_correct` field
         votes = option.votes.count()  # Count of votes for this option
-
-
-        # Get scored users only if the poll is public
-        scored_users = option.votes.values_list('user__username', flat=True) if poll.is_public else []
-
 
         scored_users = (
             option.votes.values_list("user__username", flat=True)
@@ -423,6 +400,7 @@ def poll_results(request, poll_id):
         "qr_code_url": poll.qr_code.url if poll.qr_code else None,
         "poll_link": poll.link,
     }
+
     return render(request, "polls/poll_results.html", context)
 
 

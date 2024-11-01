@@ -547,7 +547,61 @@ font-size: 12px;
             {% if option.option_image %}
                 <img src="{{ option.option_image.url }}" alt="Option Image" class="option-img">
             {% endif %}
-            
+<style>
+    .polls-options {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* Checked state styling */
+.polls-options:checked {
+    background-color: #007bff;
+    border-color: #0056b3;
+}
+
+.polls-options:checked::before {
+    content: "";
+    display: block;
+    width: 12px;
+    height: 12px;
+    margin: 4px;
+    background-color: white;
+    border-radius: 2px;
+}
+
+/* Hover state styling */
+.polls-options:hover {
+    border-color: #0056b3;
+}
+
+/* Focus state styling */
+.polls-options:focus {
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+}
+
+/* Disabled state styling */
+.polls-options:disabled {
+    border-color: #cccccc;
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+.polls-options:disabled:checked {
+    background-color: #cccccc;
+    border-color: #aaaaaa;
+}
+
+.polls-options:disabled:checked::before {
+    background-color: #ffffff;
+}
+
+</style>
             <input 
                 type="{% if poll.multi_option %}checkbox{% else %}radio{% endif %}" 
                 name="option{% if poll.multi_option %}[]{% endif %}" 
