@@ -105,26 +105,29 @@ def add_polls(request):
         option_formset = OptionFormSet(request.POST, request.FILES)
         error_message = None
 
+        # Check if the formsets are valid
         if poll_form.is_valid() and option_formset.is_valid():
-            poll = poll_form.save(commit=False)
+            poll = poll_form.save(commit=False)  # Create poll instance but don't save yet
 
-            if request.user.is_authenticated:
-                poll.creator = request.user
-
-            poll.save()  
-            if "banner_image" in request.FILES:
-                poll.banner_image = request.FILES["banner_image"]
-                poll.save()
-            poll.generate_unique_link()
-            poll.generate_qr_code()
-            poll.save()
-
-            # Check if the poll type is a question and no correct answer is provided
+            # Check if the poll type is a question and if there are correct answers
             if poll.poll_type == 'question':
                 correct_answers = any(option_form.cleaned_data.get("is_correct") for option_form in option_formset)
+                
                 if not correct_answers:
                     error_message = "A question must have at least one correct answer."
                 else:
+                    # If there are correct answers, proceed to save the poll
+                    if request.user.is_authenticated:
+                        poll.creator = request.user
+
+                    poll.save()  # Save the poll after validation
+                    if "banner_image" in request.FILES:
+                        poll.banner_image = request.FILES["banner_image"]
+                        poll.save()
+                    poll.generate_unique_link()
+                    poll.generate_qr_code()
+                    poll.save()
+
                     for option_form in option_formset:
                         if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                             option = option_form.save(commit=False)
@@ -132,9 +135,21 @@ def add_polls(request):
                             if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
                                 option.option_image = option_form.cleaned_data["option_image"]
                             option.save()
-                    return redirect("polls:vote_poll", poll_id=poll.id)
 
+                    return redirect("polls:vote_poll", poll_id=poll.id)
             else:
+                # For non-question polls, save without checking for correct answers
+                if request.user.is_authenticated:
+                    poll.creator = request.user
+
+                poll.save()  # Save the poll
+                if "banner_image" in request.FILES:
+                    poll.banner_image = request.FILES["banner_image"]
+                    poll.save()
+                poll.generate_unique_link()
+                poll.generate_qr_code()
+                poll.save()
+
                 for option_form in option_formset:
                     if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                         option = option_form.save(commit=False)
@@ -142,6 +157,7 @@ def add_polls(request):
                         if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
                             option.option_image = option_form.cleaned_data["option_image"]
                         option.save()
+
                 return redirect("polls:vote_poll", poll_id=poll.id)
 
         else:
@@ -176,7 +192,6 @@ def add_polls(request):
             "error_message": error_message,
         },
     )
-
 
 @login_required
 def user_dashboard(request):
