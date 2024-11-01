@@ -1,4 +1,4 @@
-from .notification import NotificationManager
+from .views import NotificationManager
 
 def unread_notifications_count(request):
     if request.user.is_authenticated:

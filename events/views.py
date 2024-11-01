@@ -59,7 +59,7 @@ def event_list(request):
     for event in events:
         event.comments_count = event.comments.count()
 
-    return render(request, 'events/event_list.html', {
+    return render(request, 'events/event_list.html')
 
     # Apply campus filter if present
     if campus_filter:
