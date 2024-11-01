@@ -17,7 +17,7 @@ urlpatterns = [
     path('polls/', include('polls.urls')),
     path('maps/', include('maps.urls')),
     path('', include('feeds.urls')),
-] 
+]
 
 
 if not settings.DEBUG:

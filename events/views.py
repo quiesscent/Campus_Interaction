@@ -1,5 +1,5 @@
 import logging
-
+from notifications.bulk import notify_all_users
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.core.paginator import Paginator
@@ -29,10 +29,14 @@ def event_list(request):
     status_filter = request.GET.get('status')
     campus_filter = request.GET.get('campus')
 
+    events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
+
+
     # Fetch all events and related data
     events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
 
     # Apply status filter if present
+
     if status_filter:
         now = timezone.now()
         if status_filter == 'upcoming':
@@ -41,6 +45,21 @@ def event_list(request):
             events = events.filter(start_date__lte=now, end_date__gte=now)
         elif status_filter == 'completed':
             events = events.filter(end_date__lt=now)
+            
+    if campus_filter:
+        events = events.filter(campus__campus=campus_filter)
+
+    # Get unique campus values from Profile model
+    campuses = Profile.objects.values_list('campus', flat=True).distinct()
+
+    paginator = Paginator(events, 12)
+    page = request.GET.get('page')
+    events = paginator.get_page(page)
+
+    for event in events:
+        event.comments_count = event.comments.count()
+
+    return render(request, 'events/event_list.html', {
 
     # Apply campus filter if present
     if campus_filter:
@@ -113,6 +132,9 @@ def create_event(request):
                 event.organizer = user_profile
                 event.campus = user_profile.campus
                 event.save()
+                isPublic = form.cleaned_data['is_public']
+                if isPublic == True:
+                    notify_all_users("New Event") # notify all users for upcoming event if made public
                 messages.success(request, "Event created successfully!")
                 return redirect('events:event_list')
             except Exception as e:
@@ -124,8 +146,23 @@ def create_event(request):
         form = EventForm()
 
     return render(request, 'events/create_event.html', {'form': form})
+@login_required
+def load_more_comments(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    page = request.GET.get('page', 1)
+    comments = Comment.objects.filter(event=event).order_by('-created_at')
+    paginator = Paginator(comments, 5)  # Display 5 comments per page
+
+    if int(page) > paginator.num_pages:
+        return JsonResponse({'comments_html': ''})  # No more pages
+
+    comments_page = paginator.get_page(page)
+    comments_html = render(request, 'events/partials/comments_pagination.html', {
+        'comments': comments_page,
+    }).content.decode('utf-8')
 
 
+# views.py
 @login_required
 @require_POST
 @require_http_methods(["POST"])
@@ -134,19 +171,19 @@ def add_comment(request, event_id):
     try:
         # Get the event
         event = get_object_or_404(Event, id=event_id)
-        
+
         # Create a form instance with the POST data
         form = CommentForm(request.POST)
-        
+
         # Check if it's an AJAX request
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        
+
         if form.is_valid():
             # Create comment instance but don't save yet
             comment = form.save(commit=False)
             comment.event = event
             comment.user = request.user.profile  # Assuming you have a profile relation
-            
+
             # Handle parent comment for replies
             parent_id = request.POST.get('parent_comment_id')
             if parent_id:
@@ -162,17 +199,17 @@ def add_comment(request, event_id):
                     else:
                         messages.error(request, 'Parent comment not found')
                         return redirect('events:event_detail', event_id=event_id)
-            
+
             # Save the comment
             comment.save()
-            
+
             if is_ajax:
                 # Render the comment HTML
                 comment_html = render_to_string('events/partials/comment.html', {
                     'comment': comment,
                     'event': event
                 }, request=request)
-                
+
                 return JsonResponse({
                     'status': 'success',
                     'comment_html': comment_html,
@@ -191,7 +228,7 @@ def add_comment(request, event_id):
             else:
                 messages.error(request, 'Please correct the errors below.')
                 return redirect('events:event_detail', event_id=event_id)
-                
+
     except Exception as e:
         print(f"Error in add_comment: {str(e)}")  # Add logging for debugging
         if is_ajax:
@@ -265,14 +302,14 @@ def load_more_comments(request, event_id):
 def toggle_comment_like(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     user_profile = request.user.profile
-    
+
     if user_profile in comment.likes.all():  # Check if user already liked the comment
         comment.likes.remove(user_profile)
         liked = False
     else:
         comment.likes.add(user_profile)
         liked = True
-    
+
     return JsonResponse({
         'status': 'success',
         'liked': liked,
@@ -341,7 +378,7 @@ def toggle_reaction(request, event_id):
 def campus_autocomplete(request):
     if 'term' in request.GET:
         query = request.GET.get('term')
-        
+
         # Query for campus using Profile model
         campuses = Profile.objects.filter(
             Q(campus__icontains=query)
@@ -352,4 +389,3 @@ def campus_autocomplete(request):
         return JsonResponse(results, safe=False)
 
     return JsonResponse([], safe=False)
-

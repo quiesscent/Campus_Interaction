@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from notifications.bulk import notify_all_users
 from .models import Poll, Option, Vote, Comment, Like
+
 from .forms import PollForm, OptionFormSet, EditPollForm
 from django.db.models import Q
 from datetime import timedelta
@@ -118,6 +120,8 @@ def add_polls(request):
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
+            # notify all users thew is a new poll
+            notify_all_users("New Poll")
 
             # Check if the poll type is a question and no correct answer is provided
             if poll.poll_type == 'question':
@@ -180,8 +184,16 @@ def add_polls(request):
 
 @login_required
 def user_dashboard(request):
-    polls = Poll.objects.filter(creator=request.user).order_by("-created_at")
+    polls = Poll.objects.filter(creator=request.user).order_by('-created_at')
 
+    # Create a list of polls with their active status
+    polls_with_status = [(poll, poll.is_active) for poll in polls]  # No parentheses needed
+
+    return render(request, "polls/user_dashboard.html", {
+        'polls_with_status': polls_with_status,
+    })
+
+    polls = Poll.objects.filter(creator=request.user).order_by("-created_at")
     # Create a list of polls with their active status
     polls_with_status = [
         (poll, poll.is_active) for poll in polls
@@ -268,6 +280,23 @@ def vote_poll(request, poll_id):
     user_vote = Vote.objects.filter(poll=poll, user=request.user).first()
     has_reached_vote_limit = False
 
+    # Check if the user has already voted
+    if request.user.is_authenticated:
+        user_vote = Vote.objects.filter(poll=poll, user=request.user).first()
+        if user_vote and not user_vote.can_vote_again():
+            has_reached_vote_limit = True  # User cannot cancel/vote anymore
+
+    if request.method == 'POST':
+        # Cancel vote logic
+        if 'cancel_vote' in request.POST and user_vote and user_vote.can_vote_again():
+            print(f"Current attempts before increment: {user_vote.attempts}")
+            user_vote.attempts += 1
+            print(f"Current attempts after increment: {user_vote.attempts}")
+
+            user_vote.save()  # Save the updated attempts count
+            print("Deleting user vote...")
+            user_vote.delete()  # Delete the user's vote after incrementing attempts
+            return redirect('polls:vote_poll', poll_id=poll.id)  # Refresh page after canceling vote
     if user_vote and not user_vote.can_vote_again():
         has_reached_vote_limit = True
 
@@ -353,7 +382,11 @@ def search_poll(request, title):
 def poll_results(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
     options = Option.objects.filter(poll=poll)
-    total_votes = poll.total_votes()
+
+    # Calculate total votes for the poll
+    total_votes = poll.total_votes()  # Assuming this method exists in the Poll model
+
+    # Collect results to send to the template
     results = []
     for option in options:
         # Check if this option is the correct answer
@@ -361,6 +394,11 @@ def poll_results(request, poll_id):
             option.is_correct
         )  # Assuming Option model has an `is_correct` field
         votes = option.votes.count()  # Count of votes for this option
+
+
+        # Get scored users only if the poll is public
+        scored_users = option.votes.values_list('user__username', flat=True) if poll.is_public else []
+
 
         scored_users = (
             option.votes.values_list("user__username", flat=True)
@@ -385,7 +423,6 @@ def poll_results(request, poll_id):
         "qr_code_url": poll.qr_code.url if poll.qr_code else None,
         "poll_link": poll.link,
     }
-
     return render(request, "polls/poll_results.html", context)
 
 
