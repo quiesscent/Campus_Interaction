@@ -35,7 +35,6 @@ def base_poll(request):
         polls = polls.filter(poll_type=poll_type)
 
     current_time = timezone.now()
-    print(f"Current time: {current_time}")
 
     popular_polls = (
         Poll.objects.filter(view_count__gt=10)
@@ -104,6 +103,7 @@ def add_polls(request):
     if request.method == "POST":
         poll_form = PollForm(request.POST, request.FILES)
         option_formset = OptionFormSet(request.POST, request.FILES)
+        error_message = None
 
         if poll_form.is_valid() and option_formset.is_valid():
             poll = poll_form.save(commit=False)
@@ -111,42 +111,56 @@ def add_polls(request):
             if request.user.is_authenticated:
                 poll.creator = request.user
 
-            poll.save()  # Save the poll instance
-
-            # Save the banner image if it exists
+            poll.save()  
             if "banner_image" in request.FILES:
                 poll.banner_image = request.FILES["banner_image"]
                 poll.save()
-
-            # Generate unique link and QR code
             poll.generate_unique_link()
             poll.generate_qr_code()
             poll.save()
 
-            # Saving options from the formset
-            for option_form in option_formset:
-                if option_form.cleaned_data.get(
-                    "option_text"
-                ) or option_form.cleaned_data.get("option_image"):
-                    option = option_form.save(commit=False)
-                    option.poll = poll
-                    if (
-                        "option_image" in option_form.cleaned_data
-                        and option_form.cleaned_data["option_image"]
-                    ):
-                        option.option_image = option_form.cleaned_data["option_image"]
-                    option.save()
+            # Check if the poll type is a question and no correct answer is provided
+            if poll.poll_type == 'question':
+                correct_answers = any(option_form.cleaned_data.get("is_correct") for option_form in option_formset)
+                if not correct_answers:
+                    error_message = "A question must have at least one correct answer."
+                else:
+                    for option_form in option_formset:
+                        if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
+                            option = option_form.save(commit=False)
+                            option.poll = poll
+                            if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
+                                option.option_image = option_form.cleaned_data["option_image"]
+                            option.save()
+                    return redirect("polls:vote_poll", poll_id=poll.id)
 
-            return redirect("polls:vote_poll", poll_id=poll.id)
+            else:
+                for option_form in option_formset:
+                    if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
+                        option = option_form.save(commit=False)
+                        option.poll = poll
+                        if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
+                            option.option_image = option_form.cleaned_data["option_image"]
+                        option.save()
+                return redirect("polls:vote_poll", poll_id=poll.id)
+
         else:
             logger.error("Poll Form Errors: %s", poll_form.errors)
             logger.error("Option Formset Errors: %s", option_formset.errors)
 
-            # Check for specific formset errors and set a message
             if option_formset.non_form_errors():
                 error_message = "At least two options are required."
             else:
-                error_message = None
+                error_message = []
+                for i, form in enumerate(option_formset.forms):
+                    if not form.is_valid():
+                        form_errors = form.errors.as_data()
+                        for field, field_errors in form_errors.items():
+                            for error in field_errors:
+                                error_message.append(f"Option {i + 1}: {error.message}")
+
+                if not error_message:
+                    error_message = "Please correct the errors below."
 
     else:
         poll_form = PollForm()
@@ -159,7 +173,7 @@ def add_polls(request):
         {
             "poll_form": poll_form,
             "option_formset": option_formset,
-            "error_message": error_message,  # Pass the error message to the template
+            "error_message": error_message,
         },
     )
 
@@ -180,8 +194,6 @@ def user_dashboard(request):
             "polls_with_status": polls_with_status,
         },
     )
-
-
 @login_required
 def delete_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
