@@ -7,6 +7,5 @@ def get_notification_types():
         ("follow", "New  Follow"),
         ("forum", "New Forum"),
         ("Event", "New Event"),
-        ("forum", "New Forum"),
         ("poll", "New Poll"),
     ]
