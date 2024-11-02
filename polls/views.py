@@ -10,73 +10,85 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
 import pytz
-import json  
+import json
 
 logger = logging.getLogger(__name__)
 from django.db.models import Q
 
 
+# All_polls.html views
 def base_poll(request):
     query = request.GET.get("query", "")
     poll_type = request.GET.get("poll_type", "")
 
+    current_time = timezone.now()
     polls = Poll.objects.prefetch_related("options").order_by("-created_at")
-    no_polls_message = None
 
+    # Filter based on the query
     if query:
         polls = polls.filter(
             Q(title__icontains=query) | Q(description__icontains=query)
         )
-
-        if not polls.exists():
-            no_polls_message = f"No polls found using the keyword: '{query}'"
-
+    # Filter based on poll type
     if poll_type:
         polls = polls.filter(poll_type=poll_type)
-
-    current_time = timezone.now()
-
+    # Filter active polls (those that are not expired and allow expiration)
+    active_polls = polls.filter(
+        Q(expiration_time__gt=current_time) | Q(allow_expiration=False)
+    ).distinct()
+    # Get popular polls
     popular_polls = (
         Poll.objects.filter(view_count__gt=10)
         .exclude(expiration_time__lt=current_time)
+        .filter(Q(expiration_time__lt=current_time) & Q(allow_expiration=True))
+        .distinct()
         .order_by("-view_count")
     )
-
-    liked_polls = Like.objects.filter(user=request.user, poll__in=polls).values_list(
-        "poll_id", flat=True
-    )
-    liked_comments = Like.objects.filter(user=request.user, poll__in=polls).values_list(
-        "comment_id", flat=True
-    )
-
+    # Get liked polls
+    liked_polls = Like.objects.filter(
+        user=request.user, poll__in=active_polls
+    ).values_list("poll_id", flat=True)
+    liked_comments = Like.objects.filter(
+        user=request.user, poll__in=active_polls
+    ).values_list("comment_id", flat=True)
     liked_comments_set = set(liked_comments)
     liked_polls_set = set(liked_polls)
-
+    archived_polls = Poll.objects.filter(
+        Q(expiration_time__lt=current_time) & Q(allow_expiration=True)
+    ).distinct()
     return render(
         request,
         "polls/all_polls.html",
         {
-            "polls": polls,
+            "polls": active_polls,
             "query": query,
             "poll_type": poll_type,
-            "no_polls_message": no_polls_message,
             "popular_polls": popular_polls,
             "liked_polls_set": liked_polls_set,
             "liked_comments_set": liked_comments_set,
+            "archived_polls": archived_polls,
         },
     )
 
 
+# Searching Polls
+def search_poll(request, title):
+    polls = Poll.objects.filter(title__iexact=title)
+    if not polls.exists():
+        # Handle case where no poll matches the title
+        return render(
+            request, "all_polls.html", {"message": "No polls found with that title."}
+        )
+    return render(request, "polls/all_polls.html", {"polls": polls})
+
+
+# Load Comments 5 per every load
 def load_comments(request, poll_id):
     offset = int(request.GET.get("offset", 0))
-    limit = int(request.GET.get("limit", 5))  # Load 5 comments at a time
-
-    # Fetch comments for the given poll, ordered by creation time
+    limit = int(request.GET.get("limit", 5))
     comments = Comment.objects.filter(poll_id=poll_id).order_by("-created_at")[
         offset : offset + limit
     ]
-
-    # Create a set of liked comment IDs for the current user
     liked_comments = Like.objects.filter(user=request.user).values_list(
         "comment_id", flat=True
     )
@@ -107,12 +119,17 @@ def add_polls(request):
 
         # Check if the formsets are valid
         if poll_form.is_valid() and option_formset.is_valid():
-            poll = poll_form.save(commit=False)  # Create poll instance but don't save yet
+            poll = poll_form.save(
+                commit=False
+            )  # Create poll instance but don't save yet
 
             # Check if the poll type is a question and if there are correct answers
-            if poll.poll_type == 'question':
-                correct_answers = any(option_form.cleaned_data.get("is_correct") for option_form in option_formset)
-                
+            if poll.poll_type == "question":
+                correct_answers = any(
+                    option_form.cleaned_data.get("is_correct")
+                    for option_form in option_formset
+                )
+
                 if not correct_answers:
                     error_message = "A question must have at least one correct answer."
                 else:
@@ -129,11 +146,18 @@ def add_polls(request):
                     poll.save()
 
                     for option_form in option_formset:
-                        if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
+                        if option_form.cleaned_data.get(
+                            "option_text"
+                        ) or option_form.cleaned_data.get("option_image"):
                             option = option_form.save(commit=False)
                             option.poll = poll
-                            if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
-                                option.option_image = option_form.cleaned_data["option_image"]
+                            if (
+                                "option_image" in option_form.cleaned_data
+                                and option_form.cleaned_data["option_image"]
+                            ):
+                                option.option_image = option_form.cleaned_data[
+                                    "option_image"
+                                ]
                             option.save()
 
                     return redirect("polls:vote_poll", poll_id=poll.id)
@@ -151,11 +175,18 @@ def add_polls(request):
                 poll.save()
 
                 for option_form in option_formset:
-                    if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
+                    if option_form.cleaned_data.get(
+                        "option_text"
+                    ) or option_form.cleaned_data.get("option_image"):
                         option = option_form.save(commit=False)
                         option.poll = poll
-                        if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
-                            option.option_image = option_form.cleaned_data["option_image"]
+                        if (
+                            "option_image" in option_form.cleaned_data
+                            and option_form.cleaned_data["option_image"]
+                        ):
+                            option.option_image = option_form.cleaned_data[
+                                "option_image"
+                            ]
                         option.save()
 
                 return redirect("polls:vote_poll", poll_id=poll.id)
@@ -193,6 +224,7 @@ def add_polls(request):
         },
     )
 
+
 @login_required
 def user_dashboard(request):
     polls = Poll.objects.filter(creator=request.user).order_by("-created_at")
@@ -209,6 +241,8 @@ def user_dashboard(request):
             "polls_with_status": polls_with_status,
         },
     )
+
+
 @login_required
 def delete_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
@@ -352,19 +386,6 @@ def vote_poll(request, poll_id):
     )
 
 
-def search_poll(request, title):
-    # Use icontains to allow for case-insensitive matching
-    polls = Poll.objects.filter(title__iexact=title)
-    if not polls.exists():
-        # Handle case where no poll matches the title
-        return render(
-            request, "all_polls.html", {"message": "No polls found with that title."}
-        )
-
-    # Assuming you want to render the list of matching polls
-    return render(request, "polls/all_polls.html", {"polls": polls})
-
-
 def poll_results(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
     options = Option.objects.filter(poll=poll)
@@ -425,22 +446,27 @@ def add_comment(request, poll_id):
         )
 
         # Return a JSON response with the comment data
-        return JsonResponse({
-            "success": True,
-            "user": request.user.username,
-            "comment_text": comment.text,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "user": request.user.username,
+                "comment_text": comment.text,
+            }
+        )
 
     return JsonResponse({"success": False, "error": "Invalid request"})
 
 
 @login_required
 def like_comment(request, comment_id):
-    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+    if (
+        request.method == "POST"
+        and request.headers.get("x-requested-with") == "XMLHttpRequest"
+    ):
         comment = get_object_or_404(Comment, id=comment_id)
         user = request.user
         existing_like = Like.objects.filter(user=user, comment=comment).first()
-        
+
         if existing_like:
             existing_like.delete()
             liked = False
@@ -449,8 +475,10 @@ def like_comment(request, comment_id):
             liked = True
 
         total_likes = comment.comment_likes.count()
-        
-        return JsonResponse({"success": True, "total_likes": total_likes, "liked": liked})
+
+        return JsonResponse(
+            {"success": True, "total_likes": total_likes, "liked": liked}
+        )
 
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
 
@@ -460,7 +488,9 @@ def like_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
 
     # Check if the user has already liked the poll
-    existing_like = Like.objects.filter(user=request.user, poll=poll, comment=None).first()
+    existing_like = Like.objects.filter(
+        user=request.user, poll=poll, comment=None
+    ).first()
 
     if not existing_like:
         # Create a new like
@@ -472,5 +502,38 @@ def like_poll(request, poll_id):
 
     total_likes = poll.poll_likes.count()  # Use the updated related name here
 
-    # Return a JSON response
     return JsonResponse({"success": True, "liked": liked, "total_likes": total_likes})
+
+def archived_polls_view(request):
+    query = request.GET.get("query", "")
+    archived_polls = Poll.objects.filter(
+        allow_expiration=True,
+        expiration_time__lt=timezone.now()
+    ).order_by('-expiration_time') 
+    if query:
+        archived_polls = archived_polls.filter(
+            Q(title__icontains=query) | Q(description__icontains=query)
+        )
+    
+    liked_polls_set = set()
+    if request.user.is_authenticated:
+        liked_polls_set = set(
+            Like.objects.filter(user=request.user, poll__in=archived_polls).values_list("poll_id", flat=True)
+        )
+
+    return render(request, 'polls/archived_polls.html', {
+        'archived_polls': archived_polls,
+        'liked_polls_set': liked_polls_set,
+        'query': query
+    })
+
+
+# Searching Archived Polls
+def search_archived_polls(request, title):
+    polls = Poll.objects.filter(title__iexact=title)
+    if not polls.exists():
+        # Handle case where no poll matches the title
+        return render(
+            request, "all_polls.html", {"message": "No polls found with that title."}
+        )
+    return render(request, "polls/archived_polls.html", {"polls": polls})
