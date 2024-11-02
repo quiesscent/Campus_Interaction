@@ -10,13 +10,18 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
 import pytz
+from django.http import HttpResponse
 import json
+from django.urls import reverse
+from io import BytesIO
+import qrcode
+import base64
 
 logger = logging.getLogger(__name__)
 from django.db.models import Q
 
 
-# All_polls.html views
+
 def base_poll(request):
     query = request.GET.get("query", "")
     poll_type = request.GET.get("poll_type", "")
@@ -29,13 +34,20 @@ def base_poll(request):
         polls = polls.filter(
             Q(title__icontains=query) | Q(description__icontains=query)
         )
+
     # Filter based on poll type
     if poll_type:
         polls = polls.filter(poll_type=poll_type)
+
     # Filter active polls (those that are not expired and allow expiration)
     active_polls = polls.filter(
         Q(expiration_time__gt=current_time) | Q(allow_expiration=False)
     ).distinct()
+
+    no_polls_message = None
+    if not active_polls.exists():
+        no_polls_message = "No polls found matching your search criteria."
+
     # Get popular polls
     popular_polls = (
         Poll.objects.filter(view_count__gt=10)
@@ -44,6 +56,7 @@ def base_poll(request):
         .distinct()
         .order_by("-view_count")
     )
+
     # Get liked polls
     liked_polls = Like.objects.filter(
         user=request.user, poll__in=active_polls
@@ -53,9 +66,11 @@ def base_poll(request):
     ).values_list("comment_id", flat=True)
     liked_comments_set = set(liked_comments)
     liked_polls_set = set(liked_polls)
+
     archived_polls = Poll.objects.filter(
         Q(expiration_time__lt=current_time) & Q(allow_expiration=True)
     ).distinct()
+
     return render(
         request,
         "polls/all_polls.html",
@@ -67,19 +82,29 @@ def base_poll(request):
             "liked_polls_set": liked_polls_set,
             "liked_comments_set": liked_comments_set,
             "archived_polls": archived_polls,
+            "no_polls_message": no_polls_message, 
         },
     )
-
-
 # Searching Polls
 def search_poll(request, title):
     polls = Poll.objects.filter(title__iexact=title)
+    current_time = timezone.now()
+    popular_polls = (
+        Poll.objects.filter(view_count__gt=10)
+        .exclude(expiration_time__lt=current_time)
+        .filter(Q(expiration_time__lt=current_time) & Q(allow_expiration=True))
+        .distinct()
+        .order_by("-view_count")
+    )
+    archived_polls = Poll.objects.filter(
+        Q(expiration_time__lt=current_time) & Q(allow_expiration=True)
+    ).distinct()
     if not polls.exists():
         # Handle case where no poll matches the title
         return render(
             request, "all_polls.html", {"message": "No polls found with that title."}
         )
-    return render(request, "polls/all_polls.html", {"polls": polls})
+    return render(request, "polls/all_polls.html", {"polls": polls, 'popular_polls': popular_polls, 'archived_polls': archived_polls,})
 
 
 # Load Comments 5 per every load
@@ -309,6 +334,15 @@ def edit_poll(request, poll_id):
 def vote_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id)
 
+    # Check if the poll is expired
+    expiration_status = poll.check_expiration()
+    if expiration_status['expired']:
+        if expiration_status['redirect']:
+            return redirect('polls:poll_results', poll_id=poll.id)
+        else:
+            return HttpResponse("This poll has expired and is not public. You cannot vote on this poll.")
+
+    # Increment view count if not viewed before
     if not request.session.get(f"viewed_poll_{poll.id}", False):
         poll.increment_view_count()
         request.session[f"viewed_poll_{poll.id}"] = True
@@ -386,23 +420,34 @@ def vote_poll(request, poll_id):
     )
 
 
+
 def poll_results(request, poll_id):
+    # Fetch the poll and options
     poll = get_object_or_404(Poll, id=poll_id)
     options = Option.objects.filter(poll=poll)
-    total_votes = poll.total_votes()
+    total_votes = poll.total_votes()  # Total votes across all options
     results = []
-    for option in options:
-        # Check if this option is the correct answer
-        is_correct = (
-            option.is_correct
-        )  # Assuming Option model has an `is_correct` field
-        votes = option.votes.count()  # Count of votes for this option
 
+    top_voted_option = None
+    max_votes = 0
+
+    # Populate results and find the top-voted option
+    for option in options:
+        is_correct = option.is_correct
+        votes = option.votes.count()
+
+        # Get scored users if the poll is public
         scored_users = (
             option.votes.values_list("user__username", flat=True)
             if poll.is_public
             else []
         )
+
+        # Get failed users if the option is incorrect
+        failed_users = []
+        if not is_correct:
+            failed_users = option.votes.values_list("user__username", flat=True)
+
         percentage = (votes / total_votes * 100) if total_votes > 0 else 0
         results.append(
             {
@@ -410,20 +455,35 @@ def poll_results(request, poll_id):
                 "is_correct": is_correct,
                 "votes": votes,
                 "scored_users": scored_users,
+                "failed_users": failed_users,
                 "percentage": percentage,
                 "option_image": option.option_image if option.option_image else None,
             }
         )
 
+        # Determine the top-voted option
+        if votes > max_votes:
+            max_votes = votes
+            top_voted_option = option.option_text
+
+    # Generate the QR code
+    result_link = f"http://127.0.0.1:8000{reverse('polls:poll_results', args=[poll.id])}"
+    qr_code = qrcode.make(result_link)
+    buffer = BytesIO()
+    qr_code.save(buffer, format="PNG")
+    result_qr_code_url = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    # Add data to context
     context = {
         "poll": poll,
         "results": results,
-        "qr_code_url": poll.qr_code.url if poll.qr_code else None,
-        "poll_link": poll.link,
+        "total_votes": total_votes,
+        "top_voted_option": top_voted_option,
+        "qr_code_url": result_qr_code_url,
+        "poll_link": result_link,
     }
 
     return render(request, "polls/poll_results.html", context)
-
 
 @login_required
 def add_comment(request, poll_id):
@@ -500,40 +560,49 @@ def like_poll(request, poll_id):
         existing_like.delete()
         liked = False
 
-    total_likes = poll.poll_likes.count()  # Use the updated related name here
+    total_likes = poll.poll_likes.count()  
 
     return JsonResponse({"success": True, "liked": liked, "total_likes": total_likes})
 
 def archived_polls_view(request):
     query = request.GET.get("query", "")
+    current_time = timezone.now()
+
+    # Retrieve all archived polls
     archived_polls = Poll.objects.filter(
         allow_expiration=True,
-        expiration_time__lt=timezone.now()
+        expiration_time__lt=current_time
     ).order_by('-expiration_time') 
+
     if query:
         archived_polls = archived_polls.filter(
             Q(title__icontains=query) | Q(description__icontains=query)
         )
-    
+
     liked_polls_set = set()
+    
+    # Get popular polls
+    popular_polls = (
+        Poll.objects.filter(view_count__gt=10)
+        .exclude(expiration_time__lt=current_time)
+        .filter(Q(expiration_time__lt=current_time) & Q(allow_expiration=True))
+        .distinct()
+        .order_by("-view_count")
+    )
+
+    # Check if the user is authenticated and get liked polls
     if request.user.is_authenticated:
         liked_polls_set = set(
             Like.objects.filter(user=request.user, poll__in=archived_polls).values_list("poll_id", flat=True)
         )
+    no_polls_message = None
+    if not archived_polls.exists():
+        no_polls_message = "No archived polls found matching your search criteria."
 
     return render(request, 'polls/archived_polls.html', {
         'archived_polls': archived_polls,
         'liked_polls_set': liked_polls_set,
-        'query': query
+        'query': query,
+        'popular_polls': popular_polls,
+        'no_polls_message': no_polls_message,  # Include the message in the context
     })
-
-
-# Searching Archived Polls
-def search_archived_polls(request, title):
-    polls = Poll.objects.filter(title__iexact=title)
-    if not polls.exists():
-        # Handle case where no poll matches the title
-        return render(
-            request, "all_polls.html", {"message": "No polls found with that title."}
-        )
-    return render(request, "polls/archived_polls.html", {"polls": polls})
