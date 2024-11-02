@@ -463,7 +463,12 @@ font-size: 12px;
   <div class="poll-container">
 
     <div class="text-section">
-        <h1>{{ poll.poll_type }} Poll</h1>
+        <h1>{% if poll.is_public %}
+            Public
+            {% else %}
+            Private
+            {% endif %}
+            {{ poll.poll_type }} Poll</h1>
         <hr />
         <div class="title_description">
             <h3>Title: {{ poll.title }}</h3>
@@ -624,21 +629,22 @@ font-size: 12px;
             {% if not user_vote %}
                 <button type="submit" {% if not poll.is_active %}disabled{% endif %}>Submit</button>
             {% else %}
-            {% if poll.poll_type == 'opinion' and user_vote.created_at >= time_limit and poll.is_active and poll.attempts < 2 %}
-                <button type="button" id="cancel-vote-button" onclick="cancelVote();">Cancel Vote</button>
+                {% if poll.poll_type == 'opinion' and user_vote.created_at >= time_limit and poll.is_active and poll.attempts < 2 %}
+                    <button type="button" id="cancel-vote-button" onclick="cancelVote();">Cancel Vote</button>
+                {% endif %}
             {% endif %}
-            {% endif %}
-            {% if poll.is_public and user_vote %}
+        
+            {# Show "View Results" button only if attempts >= 2 and poll is public #}
+            {% if poll.is_public and user_vote and poll.attempts >= 2 %}
                 <a href="{% url 'polls:poll_results' poll.id %}" class="view_result">View Results</a>
             {% endif %}
             
-            {% if poll.show_share_button %}
+            {# Show "Share" button only if poll is public and show_share_button is true #}
+            {% if poll.is_public and poll.show_share_button %}
                 <button id="share-button" type="button">Share</button>
             {% endif %}
         </div>
-          
     </form>
-    
 {% if poll_link %}
 <!-- Modal Structure -->
 <div id="embedPopupOverlay" class="embed-popup-overlay" onclick="closeEmbedPopup(event)">
