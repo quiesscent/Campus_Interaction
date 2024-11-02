@@ -314,10 +314,7 @@ class CommentsManager {
 
 }
 
-// Initialize comments manager when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.commentsManager = new CommentsManager();
 });
 
-// // Export for use in other modules
-// window.commentsManager = commentsManager;
