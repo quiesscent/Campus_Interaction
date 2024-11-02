@@ -238,13 +238,35 @@ function createPostElement(post) {
     postCard.querySelector('.post-comments-count').textContent = post.comments_count;
     postCard.querySelector('.post-views-count').textContent = post.views_count;
     
-    // Add event listeners
+    // Initialize dropdown
+    const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
+    if (dropdownBtn) {
+        // Add data attributes required by MDB
+        dropdownBtn.setAttribute('data-mdb-toggle', 'dropdown');
+        dropdownBtn.setAttribute('aria-expanded', 'false');
+        
+        // Initialize MDB dropdown
+        new mdb.Dropdown(dropdownBtn);
+    }
+    
+    // Set visibility of action buttons based on ownership
+    const ownerActions = postCard.querySelector('.post-owner-actions');
+    const nonOwnerActions = postCard.querySelector('.post-non-owner-actions');
+    
+    if (post.is_owner) {
+        ownerActions?.classList.remove('d-none');
+        nonOwnerActions?.classList.add('d-none');
+    } else {
+        ownerActions?.classList.add('d-none');
+        nonOwnerActions?.classList.remove('d-none');
+    }
+    
+    // Set up all post interactions
     setupPostInteractions(postCard, post);
     
     return postCard;
 }
 
-// In posts.js, update the setupPostInteractions function:
 
 function setupPostInteractions(postCard, post) {
     const likeBtn = postCard.querySelector('.post-like-btn');
