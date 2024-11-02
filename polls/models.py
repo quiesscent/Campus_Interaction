@@ -46,6 +46,14 @@ class Poll(models.Model):
         if self.allow_expiration and self.expiration_time:
             return now < self.expiration_time
         return True  
+    def check_expiration(self):
+        """Check if the poll is expired and handle the redirect logic."""
+        if not self.is_active:
+            if self.is_public:
+                return {"expired": True, "redirect": True}
+            else:
+                return {"expired": True, "redirect": False}
+        return {"expired": False}
 
     def increment_view_count(self):
         """Increments the view count each time the poll is viewed."""
