@@ -83,7 +83,7 @@
 
     <!-- No polls message -->
     <ul class="poll-list">
-      {% if polls %} {% for poll in polls %} {% if poll.is_public and poll.is_active %}
+      {% if polls %} {% for poll in polls %} {% if poll.is_public and poll.is_active and not poll.is_archived %}
       <!-- Check if the poll is public and active -->
       <li class="poll-item" data-poll-type="{{ poll.poll_type }}">
         <div class="poll-content">
@@ -354,11 +354,7 @@
           {% for poll in archived_polls %}
           <li>
             <a href="{% url 'polls:archived_polls' %}#poll-{{ poll.id }}" onclick="scrollToPoll('{{ poll.id }}');">
-              <i
-                class="fas fa-archive"
-                aria-hidden="true"
-                style="color: #6c757d"
-              ></i>
+              <i class="fas fa-hourglass-end" style="color: #d9534f;"></i>
               {{ poll.title|truncatechars:10 }}
               <span style="color: red; margin-left: 3px">(Expired)</span>
             </a>
@@ -380,21 +376,26 @@
           {% endfor %}
       </ul>      
       </div>
-      {% endif %} {% if other_archived_polls %}
+      {% endif %} {% if optional_polls_archived %}
       <div class="archived-section">
-        <h5>Other Archived Polls</h5>
-        <ul class="other-archived-polls popular-polls">
-          {% for poll in other_archived_polls %}
-          <li>
-            <a href="{% url 'polls:poll_results' poll.id %}">
-              {{ poll.title|truncatechars:10 }}
-              <span style="color: #6c757d">(Archived)</span>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
+          <h5>Other Archived Polls</h5>
+          <ul class="other-archived-polls popular-polls">
+              {% for poll in optional_polls_archived %}
+                  <li>
+                      <a href="{% url 'polls:archived_polls' %}#poll-{{ poll.id }}">
+                        <i
+                        class="fas fa-archive"
+                        aria-hidden="true"
+                        style="color: #4e9e4a"
+                      ></i>{{ poll.title|truncatechars:10 }}
+                          <span style="color: #4e9e4a">(Archived)</span>
+                      </a>
+                  </li>
+              {% endfor %}
+          </ul>
       </div>
-      {% endif %}
+  {% endif %}
+  
     </div>
 
     <div style="margin-top: 13%">
