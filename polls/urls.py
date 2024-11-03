@@ -16,4 +16,5 @@ urlpatterns = [
     path("comment/<int:comment_id>/like/", views.like_comment, name="like_comment"),
     path("polls/<int:poll_id>/comments/", views.load_comments, name="load_comments"),
     path('archived-polls/', views.archived_polls_view, name='archived_polls'),
+    path('polls/archive/<int:poll_id>/', views.archive_poll, name='archive_poll'),
 ]

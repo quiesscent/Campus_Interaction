@@ -14,6 +14,19 @@ class Poll(models.Model):
     POLL_TYPE_CHOICES = (
         ("question", "Question"),
         ("opinion", "Opinion Poll"),
+        ("feedback", "Feedback Poll"),
+    )
+
+    SUB_TYPE_CHOICES = (
+        ("education", "Education"),
+        ("sports", "Sports"),
+        ("politics", "Politics"),
+        ("entertainment", "Entertainment"),
+        ("health", "Health"),
+        ("technology", "Technology"),
+        ("environment", "Environment"),
+        ("business", "Business"),
+        ("other", "Other"),
     )
 
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -22,9 +35,10 @@ class Poll(models.Model):
     poll_type = models.CharField(
         max_length=10, choices=POLL_TYPE_CHOICES, default="opinion"
     )
-    background_color = models.CharField(
-        max_length=7, default="#ffffff"
-    )  # HEX color format
+    sub_type = models.CharField(
+        max_length=15, choices=SUB_TYPE_CHOICES, default="other"
+    )  # New field for sub-type choices
+    background_color = models.CharField(max_length=7, default="#ffffff")  # HEX color format
     show_share_button = models.BooleanField(default=True)
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
     qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
@@ -35,10 +49,13 @@ class Poll(models.Model):
     banner_image = models.ImageField(upload_to="poll_banners/", blank=True, null=True)
     multi_option = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
+    is_archived = models.BooleanField(default=False)
 
-    # New field to store the number of attempts
-    attempts = models.PositiveIntegerField(default=0)  # Track vote attempts
-
+    def archive(self):
+        """Toggle the archived state of the poll."""
+        self.is_archived = not self.is_archived
+        self.save()
+        
     @property
     def is_active(self):
         """Checks if the poll is still active based on expiration time and allow_expiration in Kenyan timezone."""
@@ -116,7 +133,7 @@ class Comment(models.Model):
 
     def total_likes(self):
         """Returns the total number of likes for the comment or subcomment."""
-        return self.comment_likes.count()  # Updated to use the correct related name
+        return self.comment_likes.count() 
 
     def comment_count(self):
         """Returns the total number of comments for the poll."""
