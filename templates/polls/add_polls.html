@@ -436,6 +436,14 @@
         .fade-out {
             opacity: 0;
         }
+        @media (max-width: 768px) {
+    .poll_navbar .logo{
+      font-size: 23px;
+    }
+    .create-poll-btn{
+      font-size: 12px;
+    }
+  }
 </style>
 <nav class="poll_navbar">
   <div class="navbar-buttons">
@@ -446,12 +454,10 @@
   </div>
   <a href="{% url 'polls:user_dashboard' %}" class="dashboard">Your Polls</a>
 </nav>
-
-<!-- <h1 class="poll-title">Your Polls</h1> -->
 {% if error_message %}
 <div id="error-message" class="alert alert-danger" role="alert">
     {{ error_message }}
-    <i class='bx bx-x' onclick="dismissErrorMessage()"></i> <!-- Dismiss button -->
+    <i class='bx bx-x' onclick="dismissErrorMessage()"></i>
 </div>
 {% endif %}
 
@@ -536,6 +542,8 @@
     <button type="submit">Save<i class="bx bx-save"></i></button>
   </div>
 
+
+  
   <div class="options" style="display: none">
     <!-- Background Color Selection -->
     <div>
