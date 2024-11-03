@@ -6,40 +6,64 @@ let csrfToken;
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
-    csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    initializeEventHandlers();
-}
-
-function initializeEventHandlers() {
-    // Initialize forms
-    initializeForms();
+    // Get CSRF token
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    csrfToken = csrfTokenMeta ? csrfTokenMeta.content : 
+                document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     
-    // Initialize delete button
-    initializeDeleteButton();
-    
-    // Initialize reply forms
-    document.addEventListener('click', handleReplyButtonClick);
-    
-    // Initialize all comment forms
-    document.querySelectorAll('.comment-form').forEach(form => {
-        form.addEventListener('submit', handleFormSubmit);
-    });
-}
-
-function initializeForms() {
-    const mainCommentForm = document.querySelector('form[action*="add_comment"]');
-    if (mainCommentForm) {
-        mainCommentForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleFormSubmit(e);
-        });
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
     }
 
-    document.querySelectorAll('.reply-form form').forEach(form => {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleFormSubmit(e);
-        });
+    initializeEventHandlers();
+}
+function initializeEventHandlers() {
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', (e) => {
+        // Handle reply buttons
+        if (e.target.closest('.reply-button')) {
+            const commentId = e.target.closest('.reply-button').dataset.commentId;
+            toggleReplyForm(commentId);
+        }
+        
+        // Handle like buttons
+        if (e.target.closest('.like-button')) {
+            const button = e.target.closest('.like-button');
+            const commentId = button.dataset.commentId;
+            debouncedToggleLike(commentId);
+        }
+        
+        // Handle delete buttons
+        if (e.target.closest('.delete-comment-btn')) {
+            const button = e.target.closest('.delete-comment-btn');
+            const commentId = button.dataset.commentId;
+            deleteComment(commentId);
+        }
+    });
+
+    // Initialize all comment forms
+    initializeForms();
+}
+// function initializeForms() {
+//     const mainCommentForm = document.querySelector('form[action*="add_comment"]');
+//     if (mainCommentForm) {
+//         mainCommentForm.addEventListener('submit', (e) => {
+//             e.preventDefault();
+//             handleFormSubmit(e);
+//         });
+//     }
+
+//     document.querySelectorAll('.reply-form form').forEach(form => {
+//         form.addEventListener('submit', (e) => {
+//             e.preventDefault();
+//             handleFormSubmit(e);
+//         });
+//     });
+// }
+function initializeForms() {
+    document.querySelectorAll('.comment-form').forEach(form => {
+        form.addEventListener('submit', handleFormSubmit);
     });
 }
 
@@ -58,21 +82,54 @@ function initializeDeleteButton() {
 // Form handling functions
 async function handleFormSubmit(e) {
     e.preventDefault();
+    
     const form = e.target;
+    if (form.submitting) return;
+    
     const submitButton = form.querySelector('button[type="submit"]');
     const formData = new FormData(form);
     const eventId = window.location.pathname.split('/')[2];
 
     try {
-        await showLoadingState(submitButton);
-        const response = await submitFormData(form, formData, eventId);
-        await handleSubmissionResponse(response, formData, form);
+        form.submitting = true;
+        showLoadingState(submitButton);
+
+        const response = await fetch(form.action || `/events/${eventId}/comment/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Error posting comment');
+        }
+
+        if (data.status === 'success') {
+            form.reset();
+            const parentId = formData.get('parent_comment_id');
+
+            if (parentId) {
+                handleReplySubmission(parentId, data.comment_html);
+                updateRepliesCount(parentId, 1);
+            } else {
+                handleMainCommentSubmission(data.comment_html);
+            }
+
+            showNotification('Comment posted successfully!', 'success');
+        }
     } catch (error) {
         showNotification(error.message, 'error');
     } finally {
         resetSubmitButton(submitButton);
+        form.submitting = false;
     }
 }
+
 // Updated comment handling functions
 async function handleSubmissionResponse(data, formData, form) {
     if (data.status === 'success') {
@@ -215,18 +272,74 @@ async function handleSubmissionResponse(data, formData, form) {
 }
 
 function handleReplySubmission(parentId, commentHtml) {
-    const repliesContainer = document.getElementById(`replies-${parentId}`);
-    if (repliesContainer) {
-        repliesContainer.style.display = 'block';
-        repliesContainer.insertAdjacentHTML('afterbegin', commentHtml);
-        toggleReplyForm(parentId);
+    const parentComment = document.getElementById(`comment-${parentId}`);
+    if (!parentComment) return;
+
+    let repliesContainer = document.getElementById(`replies-${parentId}`);
+    let repliesSection = parentComment.querySelector('.replies-section');
+
+    if (!repliesSection) {
+        // Create new replies section
+        repliesSection = document.createElement('div');
+        repliesSection.className = 'replies-section mt-3';
+        repliesSection.innerHTML = `
+            <button onclick="toggleReplies(${parentId})" class="btn btn-sm btn-link text-decoration-none ps-0">
+                <i class="fas fa-chevron-down me-1"></i> Show 1 reply
+            </button>
+            <div id="replies-${parentId}" class="replies-container mt-2 ms-4"></div>
+        `;
+        parentComment.querySelector('.flex-grow-1').appendChild(repliesSection);
+        repliesContainer = repliesSection.querySelector('.replies-container');
     }
+
+    // Add new reply with animation
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = commentHtml.trim();
+    const newReply = tempDiv.firstElementChild;
+
+    newReply.style.opacity = '0';
+    newReply.style.transform = 'translateY(-20px)';
+    repliesContainer.insertAdjacentElement('afterbegin', newReply);
+
+    requestAnimationFrame(() => {
+        newReply.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        newReply.style.opacity = '1';
+        newReply.style.transform = 'translateY(0)';
+    });
+
+    // Update reply count and hide form
+    updateRepliesCount(parentId, 1);
+    toggleReplyForm(parentId);
 }
 
 function handleMainCommentSubmission(commentHtml) {
     const commentsContainer = document.getElementById('main-comments');
-    commentsContainer.insertAdjacentHTML('afterbegin', commentHtml);
+    const noCommentsMessage = document.querySelector('.no-comments-message');
+
+    if (noCommentsMessage) {
+        noCommentsMessage.remove();
+    }
+
+    // Parse and animate new comment
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = commentHtml.trim();
+    const newComment = tempDiv.firstElementChild;
+
+    // Initialize new comment's forms and buttons
+    initializeForms();
+
+    // Animate insertion
+    newComment.style.opacity = '0';
+    newComment.style.transform = 'translateY(-20px)';
+    commentsContainer.insertAdjacentElement('afterbegin', newComment);
+
+    requestAnimationFrame(() => {
+        newComment.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        newComment.style.opacity = '1';
+        newComment.style.transform = 'translateY(0)';
+    });
 }
+
 
 // Toggle Functions
 function toggleElement(elementId) {
@@ -343,7 +456,20 @@ function handleReplyButtonClick(e) {
     }
 }
 
-function showNotification(message, type) {
+// UI Helper Functions
+function showLoadingState(button) {
+    if (!button) return;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Posting...';
+}
+
+function resetSubmitButton(button) {
+    if (!button) return;
+    button.disabled = false;
+    button.innerHTML = '<i class="fas fa-paper-plane"></i> Post';
+}
+
+function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
     notification.style.zIndex = '1050';
@@ -352,11 +478,21 @@ function showNotification(message, type) {
     document.body.appendChild(notification);
     
     setTimeout(() => {
-        notification.classList.add('fade-out');
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
 
+// Usage example:
+const debouncedToggleLike = debounce(toggleLike, 300);
 // Make functions available globally
 window.toggleReplyForm = toggleReplyForm;
 window.toggleReplies = toggleReplies;
