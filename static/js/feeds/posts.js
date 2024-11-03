@@ -1,12 +1,11 @@
-// State management
 const PostsState = {
     currentPage: 1,
     currentFilter: 'all',
     loading: false,
     hasMore: true,
     searchQuery: '',
-    posts: new Map(), // Track loaded posts
-    
+    posts: new Map(),
+
     reset() {
         this.currentPage = 1;
         this.hasMore = true;
@@ -14,7 +13,6 @@ const PostsState = {
     }
 };
 
-// DOM Elements
 const postTemplate = document.getElementById('postTemplate');
 const postsContainer = document.getElementById('postsContainer');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
@@ -22,27 +20,21 @@ const loadingSpinner = document.getElementById('loadingSpinner');
 const postsError = document.getElementById('postsError');
 
 
-// Initialize filter handling
 function initFilterHandlers() {
     const filterButtons = document.querySelectorAll('[data-filter]');
-    
+
     filterButtons.forEach(button => {
         button.addEventListener('click', (e) => {
-            // Prevent default button behavior
             e.preventDefault();
-            
-            // Remove active class from all buttons
+
             filterButtons.forEach(btn => btn.classList.remove('active'));
-            
-            // Add active class to clicked button
+
             button.classList.add('active');
-            
+
             const filter = button.dataset.filter;
-            
-            // Only trigger if it's a new filter
+
             if (filter !== PostsState.currentFilter) {
                 PostsState.currentFilter = filter;
-                // Clear existing posts and load new ones
                 postsContainer.innerHTML = '';
                 PostsState.reset();
                 loadPosts(filter, true);
@@ -52,13 +44,11 @@ function initFilterHandlers() {
 }
 
 
-// Initialize infinite scroll with proper cleanup
 function initInfiniteScroll() {
-    // Remove any existing observer
     if (window.postsObserver) {
         window.postsObserver.disconnect();
     }
-    
+
     const options = {
         root: null,
         rootMargin: '100px',
@@ -78,10 +68,9 @@ function initInfiniteScroll() {
     }
 }
 
-// Load posts with proper state management
 async function loadPosts(filter = 'all', reset = false) {
     if (PostsState.loading) return;
-    
+
     if (reset) {
         PostsState.reset();
         postsContainer.innerHTML = '';
@@ -98,14 +87,14 @@ async function loadPosts(filter = 'all', reset = false) {
             : `${API_ENDPOINTS.FEED_LIST}?page=${PostsState.currentPage}&filter=${filter}`;
 
         const data = await apiCall(endpoint);
-        
+
         if (!data.posts || data.posts.length === 0) {
             PostsState.hasMore = false;
             if (PostsState.posts.size === 0) {
                 const emptyMessage = PostsState.searchQuery
                     ? `No posts found for "${PostsState.searchQuery}"`
                     : 'No posts to show';
-                    
+
                 postsContainer.innerHTML = `
                     <div class="text-center py-5">
                         <i class="fas fa-${PostsState.searchQuery ? 'search' : 'inbox'} text-muted mb-3" style="font-size: 3rem;"></i>
@@ -116,13 +105,11 @@ async function loadPosts(filter = 'all', reset = false) {
             return;
         }
 
-        // Process new posts
         const newPosts = data.posts.filter(post => !PostsState.posts.has(post.id));
         newPosts.forEach(post => PostsState.posts.set(post.id, post));
-        
-        // Only render new posts
+
         renderPosts(newPosts);
-        
+
         PostsState.currentPage = data.current_page + 1;
         PostsState.hasMore = data.has_next;
         hideError();
@@ -136,7 +123,6 @@ async function loadPosts(filter = 'all', reset = false) {
     }
 }
 
-// Show empty state
 function showEmptyState() {
     const emptyState = document.createElement('div');
     emptyState.className = 'text-center py-5';
@@ -150,75 +136,65 @@ function showEmptyState() {
 
 function handleLoadError(error) {
     console.error('Load error:', error);
-    
-    const errorMessage = error.status === 429 
+
+    const errorMessage = error.status === 429
         ? 'Too many requests. Please wait a moment.'
         : 'Error loading posts. Please try again.';
-    
+
     showError(errorMessage);
-    
+
     if (error.status === 401) {
-        // Handle unauthorized access
         window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
     }
 }
 
-// Render posts with duplicate prevention
 function renderPosts(posts) {
     const fragment = document.createDocumentFragment();
-    
+
     posts.forEach(post => {
-        // Check if post already exists in DOM
         if (!document.querySelector(`[data-post-id="${post.id}"]`)) {
             const postElement = createPostElement(post);
             fragment.appendChild(postElement);
         }
     });
-    
+
     postsContainer.appendChild(fragment);
 }
 
-// Create post element from template
 function createPostElement(post) {
     const element = postTemplate.content.cloneNode(true);
     const postCard = element.querySelector('.post-card');
-    
-    // Clean up any existing event listeners
+
     const oldPost = document.querySelector(`[data-post-id="${post.id}"]`);
     if (oldPost) {
         oldPost.remove();
     }
 
-    // Set post ID immediately
     postCard.dataset.postId = post.id;
 
-    // Set user info
     const avatar = postCard.querySelector('.post-avatar');
     avatar.src = post.user.avatar_url || '/static/images/default-avatar.png';
     avatar.alt = `${post.user.username}'s avatar`;
-    
+
     postCard.querySelector('.post-username').textContent = post.user.username;
     postCard.querySelector('.post-date').textContent = formatDate(post.created_at);
-    
-    // Set course and campus if available
+
     const courseElement = postCard.querySelector('.user-course');
     const campusElement = postCard.querySelector('.user-campus');
-    
+
     if (post.user.course) {
         courseElement.textContent = post.user.course;
         courseElement.classList.remove('d-none');
     }
-    
+
     if (post.user.campus) {
         campusElement.textContent = post.user.campus;
         campusElement.classList.remove('d-none');
     }
-    
-    // Set post content
+
     const contentElement = postCard.querySelector('.post-content');
     contentElement.innerHTML = formatContent(post.content);
-    
-    // Add media if present
+
     if (post.image_url) {
         const img = document.createElement('img');
         img.src = post.image_url;
@@ -232,19 +208,35 @@ function createPostElement(post) {
         video.controls = true;
         contentElement.appendChild(video);
     }
-    
-    // Set counts
+
     postCard.querySelector('.post-likes-count').textContent = post.likes_count;
     postCard.querySelector('.post-comments-count').textContent = post.comments_count;
     postCard.querySelector('.post-views-count').textContent = post.views_count;
-    
-    // Add event listeners
+
+    const dropdownBtn = postCard.querySelector('.post-dropdown-btn');
+    if (dropdownBtn) {
+        dropdownBtn.setAttribute('data-mdb-toggle', 'dropdown');
+        dropdownBtn.setAttribute('aria-expanded', 'false');
+
+        new mdb.Dropdown(dropdownBtn);
+    }
+
+    const ownerActions = postCard.querySelector('.post-owner-actions');
+    const nonOwnerActions = postCard.querySelector('.post-non-owner-actions');
+
+    if (post.is_owner) {
+        ownerActions?.classList.remove('d-none');
+        nonOwnerActions?.classList.add('d-none');
+    } else {
+        ownerActions?.classList.add('d-none');
+        nonOwnerActions?.classList.remove('d-none');
+    }
+
     setupPostInteractions(postCard, post);
-    
+
     return postCard;
 }
 
-// In posts.js, update the setupPostInteractions function:
 
 function setupPostInteractions(postCard, post) {
     const likeBtn = postCard.querySelector('.post-like-btn');
@@ -255,8 +247,7 @@ function setupPostInteractions(postCard, post) {
     const deleteBtn = postCard.querySelector('.post-delete');
     const reportBtn = postCard.querySelector('.post-report');
     const engagementBtns = postCard.querySelectorAll('.view-engagement');
-    
-    // Set up visibility based on ownership
+
     if (post.is_owner) {
         ownerActions?.classList.remove('d-none');
         nonOwnerActions?.classList.add('d-none');
@@ -265,12 +256,11 @@ function setupPostInteractions(postCard, post) {
         nonOwnerActions?.classList.remove('d-none');
     }
 
-    // Like button handler using handlePostInteraction
     if (likeBtn) {
         likeBtn.addEventListener('click', async () => {
             const likesCount = postCard.querySelector('.post-likes-count');
             const icon = likeBtn.querySelector('i');
-            
+
             await handlePostInteraction(
                 post.id,
                 () => API.likePost(post.id),
@@ -284,7 +274,6 @@ function setupPostInteractions(postCard, post) {
         });
     }
 
-    // Delete button handler using handlePostInteraction
     if (deleteBtn && post.is_owner) {
         deleteBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to delete this post?')) {
@@ -300,7 +289,6 @@ function setupPostInteractions(postCard, post) {
         });
     }
 
-    // Report button handler using handlePostInteraction
     if (reportBtn && !post.is_owner) {
         reportBtn.addEventListener('click', async () => {
             if (window.reportModal) {
@@ -312,36 +300,32 @@ function setupPostInteractions(postCard, post) {
         });
     }
 
-    // Comment button (opens modal/section)
     if (commentBtn) {
         commentBtn.addEventListener('click', () => {
-            window.dispatchEvent(new CustomEvent('openComments', { 
-                detail: post.id 
+            window.dispatchEvent(new CustomEvent('openComments', {
+                detail: post.id
             }));
         });
     }
-    
-    // Share button (opens modal)
+
     if (shareBtn) {
         shareBtn.addEventListener('click', () => {
-            window.dispatchEvent(new CustomEvent('sharePost', { 
-                detail: post 
+            window.dispatchEvent(new CustomEvent('sharePost', {
+                detail: post
             }));
         });
     }
-    
-    // Engagement buttons
+
     engagementBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.dataset.type;
-            window.dispatchEvent(new CustomEvent('viewEngagement', { 
+            window.dispatchEvent(new CustomEvent('viewEngagement', {
                 detail: { postId: post.id, type }
             }));
         });
     });
 }
 
-// Add this helper function to handle post interactions
 async function handlePostInteraction(postId, action, updateUI) {
     try {
         const response = await action();
@@ -353,7 +337,6 @@ async function handlePostInteraction(postId, action, updateUI) {
             showNotification('You do not have permission to perform this action', 'error');
         } else if (error.status === 404) {
             showNotification('This post is no longer available', 'error');
-            // Optionally remove the post from view
             const postElement = document.querySelector(`[data-post-id="${postId}"]`);
             postElement?.remove();
         } else {
@@ -363,10 +346,9 @@ async function handlePostInteraction(postId, action, updateUI) {
     }
 }
 
-// Helper functions
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -376,24 +358,21 @@ function formatDate(dateString) {
 }
 
 function formatContent(content) {
-    // Convert URLs to links
     content = content.replace(
         /(https?:\/\/[^\s]+)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
     );
-    
-    // Convert hashtags to links
+
     content = content.replace(
         /#(\w+)/g,
         '<a href="/search?q=%23$1">#$1</a>'
     );
-    
-    // Convert mentions to links
+
     content = content.replace(
         /@(\w+)/g,
         '<a href="/profile/$1">@$1</a>'
     );
-    
+
     return content;
 }
 
@@ -423,17 +402,13 @@ function updateLoadMoreButton() {
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial load
     loadPosts();
     initInfiniteScroll();
     initFilterHandlers();
-    
-    // Clean up old event listeners
+
     window.removeEventListener('changeFilter', null);
-    
-    // Add new filter change listener
+
     window.addEventListener('changeFilter', (event) => {
         const newFilter = event.detail;
         if (newFilter !== PostsState.currentFilter) {
