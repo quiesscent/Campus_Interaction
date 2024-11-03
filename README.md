@@ -77,10 +77,9 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 
 - [✅] **Feeds & Trending** - Backend (Fidel)
 
-- [ ] **Polls** - Frontend (Debby)
-- [ ] **Polls** - Backend (Victor)
-
-- [✅] **Polls** - Backend (Victor)
+- ### Polls
+- [✅] **Polls Creation and Views** - Frontend (Debby)
+- [✅] **Polls Creation and Views** - Backend (Victor)
 
 - [ ] **Event Calendar** - Frontend (Saints)
 - [ ] **Event Calendar** - Backend (Incognito)
@@ -97,9 +96,7 @@ Use this list to track progress. Mark tasks as completed by adding a ✅ at the 
 - [ ] **Marketplace** - Full Stack (Victor)
 
 - [✅] **Student Profiles** - Full Stack (Fidel)
-- ### Polls
-- [✅] **Polls Creation and Views** - Frontend (Debby)
-- [✅] **Polls Creation and Views** - Backend (Victor)
+
 
 ## 🚀 Development Setup
 
