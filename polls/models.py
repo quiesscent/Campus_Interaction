@@ -13,20 +13,7 @@ import pytz
 class Poll(models.Model):
     POLL_TYPE_CHOICES = (
         ("question", "Question"),
-        ("opinion", "Opinion Poll"),
-        ("feedback", "Feedback Poll"),
-    )
-
-    SUB_TYPE_CHOICES = (
-        ("education", "Education"),
-        ("sports", "Sports"),
-        ("politics", "Politics"),
-        ("entertainment", "Entertainment"),
-        ("health", "Health"),
-        ("technology", "Technology"),
-        ("environment", "Environment"),
-        ("business", "Business"),
-        ("other", "Other"),
+        ("opinion", "Opinion"),
     )
 
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -35,9 +22,6 @@ class Poll(models.Model):
     poll_type = models.CharField(
         max_length=10, choices=POLL_TYPE_CHOICES, default="opinion"
     )
-    sub_type = models.CharField(
-        max_length=15, choices=SUB_TYPE_CHOICES, default="other"
-    )  # New field for sub-type choices
     background_color = models.CharField(max_length=7, default="#ffffff")  # HEX color format
     show_share_button = models.BooleanField(default=True)
     link = models.URLField(max_length=200, blank=True)  # Auto-generated unique link
@@ -50,10 +34,17 @@ class Poll(models.Model):
     multi_option = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
     is_archived = models.BooleanField(default=False)
+    is_archived_results = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)  # Track vote attempts
 
     def archive(self):
         """Toggle the archived state of the poll."""
         self.is_archived = not self.is_archived
+        self.save()
+    
+    def archived_results(self):
+        """Toggle the archived state of the poll."""
+        self.is_archived_results = not self.is_archived_results
         self.save()
         
     @property
@@ -191,4 +182,3 @@ class Vote(models.Model):
     def can_vote_again(self):
         """Determine if the user can vote again based on the poll's attempts."""
         return self.poll.attempts < 2  
-

@@ -366,7 +366,7 @@
       <div class="archived-section">
         <h5>Archived Results</h5>
         <ul class="archived-results popular-polls">
-          {% for result in archived_results %}
+          {% for poll in archived_results %}
           <li>
               <a href="{% url 'polls:archived_polls' %}?query={{ result.poll.title }}" onclick="scrollToPoll({{ result.poll.id }}); return false;">
                   {{ result.poll.title|truncatechars:10 }} -
