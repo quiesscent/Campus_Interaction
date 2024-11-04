@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "feeds",
     "forums",
     "rest_framework",
+    "resources",
     'django_filters',
 ]
 

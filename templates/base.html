@@ -442,7 +442,11 @@ a {
            <div class="nav__menu" id="nav-menu">
             {% if user.is_authenticated %}
               <ul class="nav__list">
-                 <!--=============== FEEDS ===============-->
+                 <!--=============== resources  ===============-->
+                 <li>
+                    <a href="{% url 'resources' %}" class="nav__link {% if request.path == resources_url %}active{% endif %}">Resources</a>
+                </li>
+                <!--=============== FEEDS ===============-->
                  <li>
                     {% url 'feeds:home_feed' as feeds_url %}
                     <a href="{{ feeds_url }}" class="nav__link {% if request.path == feeds_url %}active{% endif %}">Feeds</a>
