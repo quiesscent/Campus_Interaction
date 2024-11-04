@@ -86,7 +86,7 @@ def base_poll(request):
     # User choosen to archived poll
     optional_polls_archived = polls.filter(Q(is_archived=True))
     archived_results = polls.filter(Q(is_archived_results=True))
-    print(archived_results)
+
 
 
     return render(
@@ -121,6 +121,7 @@ def search_poll(request, title):
     archived_polls = Poll.objects.filter(
         Q(expiration_time__lt=current_time) & Q(allow_expiration=True)
     ).distinct()
+    archived_results = polls.filter(Q(is_archived_results=True))
     if not polls.exists():
         # Handle case where no poll matches the title
         return render(
@@ -131,6 +132,7 @@ def search_poll(request, title):
         "polls/all_polls.html",
         {
             "polls": polls,
+            "archived_results": archived_results,
             "popular_polls": popular_polls,
             "archived_polls": archived_polls,
         },
@@ -643,6 +645,8 @@ def archived_polls_view(request):
 
     # Retrieve user archived polls
     optional_polls_archived = Poll.objects.filter(is_archived=True)
+    archived_results = Poll.objects.filter(Q(is_archived_results=True))
+
 
     if query:
         archived_polls = archived_polls.filter(
@@ -686,6 +690,7 @@ def archived_polls_view(request):
             "liked_polls_set": liked_polls_set,
             "query": query,
             "archived_polls": archived_polls,
+            "archived_results" : archived_results,
             "optional_polls_archived": optional_polls_archived,
             "popular_polls": popular_polls,
             "no_polls_message": no_polls_message,  # Include the message in the context

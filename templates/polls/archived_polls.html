@@ -62,13 +62,6 @@
       >
         User Archived
       </button>
-      <button
-        class="poll-type-btn"
-        data-type="popular"
-        onclick="filterPolls(this)"
-      >
-        Result
-      </button>
     </div>    
 
     {% endif %}
@@ -409,18 +402,18 @@
       <div class="archived-section">
         <h5>Archived Results</h5>
         <ul class="archived-results popular-polls">
-          {% for result in archived_results %}
+          {% for poll in archived_results %}
           <li>
-            <a href="{% url 'polls:poll_results' result.poll.id %}">
-              {{ result.poll.title|truncatechars:10 }} -
-              <span>{{ result.vote_count }} votes</span>
-            </a>
+              <a href="{% url 'polls:poll_results' poll.id %}">
+                <i class="fas fa-check-circle" style="color: blue;"></i>
+                  {{ poll.title|truncatechars:10 }} 
+                  <span style="color: blue; margin-left: 3px">({{ poll.total_votes }}) votes</span>
+              </a>
           </li>
           {% endfor %}
-        </ul>
+      </ul>      
       </div>
-    
-      {% endif %}  {% if optional_polls_archived %}
+      {% endif %} {% if optional_polls_archived %}
       <div class="archived-section">
           <h5>Other Archived Polls</h5>
           <ul class="other-archived-polls popular-polls">
