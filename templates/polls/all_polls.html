@@ -368,9 +368,10 @@
         <ul class="archived-results popular-polls">
           {% for poll in archived_results %}
           <li>
-              <a href="{% url 'polls:archived_polls' %}?query={{ result.poll.title }}" onclick="scrollToPoll({{ result.poll.id }}); return false;">
-                  {{ result.poll.title|truncatechars:10 }} -
-                  <span>{{ result.vote_count }} votes</span>
+              <a href="{% url 'polls:poll_results' poll.id %}">
+                <i class="fas fa-check-circle" style="color: blue;"></i>
+                  {{ poll.title|truncatechars:10 }} 
+                  <span style="color: blue; margin-left: 3px">({{ poll.total_votes }}) votes</span>
               </a>
           </li>
           {% endfor %}

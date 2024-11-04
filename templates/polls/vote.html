@@ -514,7 +514,8 @@ font-size: 12px;
         <div class="title_description">
             <h3>Title: {{ poll.title }}</h3>
             {% if poll.description %}
-                <p>Description: {{ poll.description }}</p>
+            <p style="white-space: pre-line;">Description: {{ poll.description }}</p>
+
             {% endif %}
         </div>
         <hr />

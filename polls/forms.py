@@ -34,7 +34,7 @@ class PollForm(forms.ModelForm):
             'is_public', 'banner_image', 'multi_option'
         ]
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-title', 'placeholder': 'Enter poll title'}),
+            'title': forms.TextInput(attrs={'class': 'form-title', 'placeholder': 'Enter poll title', 'maxlength':"30"}),
             'description': forms.Textarea(attrs={
                 'class': 'form-description',
                 'id': 'id_description',
