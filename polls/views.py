@@ -85,6 +85,9 @@ def base_poll(request):
     ).distinct()
     # User choosen to archived poll
     optional_polls_archived = polls.filter(Q(is_archived=True))
+    archived_results = polls.filter(Q(is_archived_results=True))
+
+
 
     return render(
         request,
@@ -99,6 +102,7 @@ def base_poll(request):
             "archived_polls": archived_polls,
             "no_polls_message": no_polls_message,
             "optional_polls_archived": optional_polls_archived,
+            "archived_results": archived_results,
         },
     )
 
@@ -117,6 +121,7 @@ def search_poll(request, title):
     archived_polls = Poll.objects.filter(
         Q(expiration_time__lt=current_time) & Q(allow_expiration=True)
     ).distinct()
+    archived_results = polls.filter(Q(is_archived_results=True))
     if not polls.exists():
         # Handle case where no poll matches the title
         return render(
@@ -127,6 +132,7 @@ def search_poll(request, title):
         "polls/all_polls.html",
         {
             "polls": polls,
+            "archived_results": archived_results,
             "popular_polls": popular_polls,
             "archived_polls": archived_polls,
         },
@@ -168,27 +174,20 @@ def add_polls(request):
         option_formset = OptionFormSet(request.POST, request.FILES)
         error_message = None
 
-        # Check if the formsets are valid
         if poll_form.is_valid() and option_formset.is_valid():
-            poll = poll_form.save(
-                commit=False
-            )  # Create poll instance but don't save yet
+            poll = poll_form.save(commit=False)  # Create poll instance but don't save yet
 
-            # Check if the poll type is a question and if there are correct answers
             if poll.poll_type == "question":
                 correct_answers = any(
                     option_form.cleaned_data.get("is_correct")
                     for option_form in option_formset
                 )
-
                 if not correct_answers:
                     error_message = "A question must have at least one correct answer."
                 else:
-                    # If there are correct answers, proceed to save the poll
                     if request.user.is_authenticated:
                         poll.creator = request.user
-
-                    poll.save()  # Save the poll after validation
+                    poll.save()
                     if "banner_image" in request.FILES:
                         poll.banner_image = request.FILES["banner_image"]
                         poll.save()
@@ -197,27 +196,16 @@ def add_polls(request):
                     poll.save()
 
                     for option_form in option_formset:
-                        if option_form.cleaned_data.get(
-                            "option_text"
-                        ) or option_form.cleaned_data.get("option_image"):
+                        if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                             option = option_form.save(commit=False)
                             option.poll = poll
-                            if (
-                                "option_image" in option_form.cleaned_data
-                                and option_form.cleaned_data["option_image"]
-                            ):
-                                option.option_image = option_form.cleaned_data[
-                                    "option_image"
-                                ]
                             option.save()
 
                     return redirect("polls:vote_poll", poll_id=poll.id)
             else:
-                # For non-question polls, save without checking for correct answers
                 if request.user.is_authenticated:
                     poll.creator = request.user
-
-                poll.save()  # Save the poll
+                poll.save()
                 if "banner_image" in request.FILES:
                     poll.banner_image = request.FILES["banner_image"]
                     poll.save()
@@ -226,36 +214,27 @@ def add_polls(request):
                 poll.save()
 
                 for option_form in option_formset:
-                    if option_form.cleaned_data.get(
-                        "option_text"
-                    ) or option_form.cleaned_data.get("option_image"):
+                    if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                         option = option_form.save(commit=False)
                         option.poll = poll
-                        if (
-                            "option_image" in option_form.cleaned_data
-                            and option_form.cleaned_data["option_image"]
-                        ):
-                            option.option_image = option_form.cleaned_data[
-                                "option_image"
-                            ]
                         option.save()
 
                 return redirect("polls:vote_poll", poll_id=poll.id)
-
         else:
             logger.error("Poll Form Errors: %s", poll_form.errors)
             logger.error("Option Formset Errors: %s", option_formset.errors)
 
-            if option_formset.non_form_errors():
+            # Handle banner image error separately
+            if 'banner_image' in poll_form.errors:
+                error_message = poll_form.errors['banner_image'][0]
+            elif option_formset.non_form_errors():
                 error_message = "At least two options are required."
             else:
                 error_message = []
                 for i, form in enumerate(option_formset.forms):
                     if not form.is_valid():
-                        form_errors = form.errors.as_data()
-                        for field, field_errors in form_errors.items():
-                            for error in field_errors:
-                                error_message.append(f"Option {i + 1}: {error.message}")
+                        for error in form.errors.as_data().values():
+                            error_message.append(f"Option {i + 1}: {error[0].message}")
 
                 if not error_message:
                     error_message = "Please correct the errors below."
@@ -274,7 +253,6 @@ def add_polls(request):
             "error_message": error_message,
         },
     )
-
 @login_required
 def user_dashboard(request):
     query = request.GET.get("query", "")
@@ -360,13 +338,22 @@ def edit_poll(request, poll_id):
     poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
     existing_options = poll.options.all()
 
+    error_message = None
+
     if request.method == "POST":
         poll_form = EditPollForm(request.POST, request.FILES, instance=poll)
-        option_formset = OptionFormSet(
-            request.POST, request.FILES, queryset=existing_options
-        )
+        option_formset = OptionFormSet(request.POST, request.FILES, queryset=existing_options)
 
-        if poll_form.is_valid() and option_formset.is_valid():
+        # Check if the poll type is "question" and if there are any correct answers
+        if poll.poll_type == "question":
+            correct_answers = any(
+                option_form.cleaned_data.get("is_correct") for option_form in option_formset if option_form.is_valid()
+            )
+            if not correct_answers:
+                error_message = "A question must have at least one correct answer."
+
+        # Check if both forms are valid and handle saving
+        if poll_form.is_valid() and option_formset.is_valid() and not error_message:
             poll = poll_form.save()
 
             # Save the banner image if it exists
@@ -376,22 +363,19 @@ def edit_poll(request, poll_id):
 
             # Save options from the formset
             for option_form in option_formset:
-                if option_form.cleaned_data.get(
-                    "option_text"
-                ) or option_form.cleaned_data.get("option_image"):
+                if option_form.cleaned_data.get("option_text") or option_form.cleaned_data.get("option_image"):
                     option = option_form.save(commit=False)
                     option.poll = poll
-                    if (
-                        "option_image" in option_form.cleaned_data
-                        and option_form.cleaned_data["option_image"]
-                    ):
+                    if "option_image" in option_form.cleaned_data and option_form.cleaned_data["option_image"]:
                         option.option_image = option_form.cleaned_data["option_image"]
                     option.save()
+                    
 
             return redirect("polls:user_dashboard")
         else:
             logger.error("Poll Form Errors: %s", poll_form.errors)
             logger.error("Option Formset Errors: %s", option_formset.errors)
+            error_message = error_message or "There were errors in the form. Please check the fields."
 
     else:
         # Initialize the forms with the existing poll and options data
@@ -405,6 +389,7 @@ def edit_poll(request, poll_id):
             "poll_form": poll_form,
             "option_formset": option_formset,
             "poll": poll,
+            "error_message": error_message,  # Pass error_message to the template
         },
     )
 
@@ -660,6 +645,8 @@ def archived_polls_view(request):
 
     # Retrieve user archived polls
     optional_polls_archived = Poll.objects.filter(is_archived=True)
+    archived_results = Poll.objects.filter(Q(is_archived_results=True))
+
 
     if query:
         archived_polls = archived_polls.filter(
@@ -703,6 +690,7 @@ def archived_polls_view(request):
             "liked_polls_set": liked_polls_set,
             "query": query,
             "archived_polls": archived_polls,
+            "archived_results" : archived_results,
             "optional_polls_archived": optional_polls_archived,
             "popular_polls": popular_polls,
             "no_polls_message": no_polls_message,  # Include the message in the context
@@ -723,3 +711,16 @@ def archive_poll(request, poll_id):
             "message": "Poll archived successfully.",
         }
     )
+
+@login_required
+def archive_poll_results(request, poll_id):
+    poll = get_object_or_404(Poll, id=poll_id, creator=request.user)
+    poll.archived_results()  # Toggle the archived state
+    return JsonResponse(
+        {
+            "success": True,
+            "is_archived_results": poll.is_archived_results,
+            "message": "Poll archived successfully.",
+        }
+    )
+
