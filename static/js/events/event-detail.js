@@ -45,22 +45,7 @@ function initializeEventHandlers() {
     // Initialize all comment forms
     initializeForms();
 }
-// function initializeForms() {
-//     const mainCommentForm = document.querySelector('form[action*="add_comment"]');
-//     if (mainCommentForm) {
-//         mainCommentForm.addEventListener('submit', (e) => {
-//             e.preventDefault();
-//             handleFormSubmit(e);
-//         });
-//     }
 
-//     document.querySelectorAll('.reply-form form').forEach(form => {
-//         form.addEventListener('submit', (e) => {
-//             e.preventDefault();
-//             handleFormSubmit(e);
-//         });
-//     });
-// }
 function initializeForms() {
     document.querySelectorAll('.comment-form').forEach(form => {
         form.addEventListener('submit', handleFormSubmit);
