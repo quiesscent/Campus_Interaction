@@ -366,25 +366,6 @@ function toggleReplyForm(commentId) {
     }
 }
 
-// API Functions
-async function toggleLike(commentId) {
-    try {
-        const response = await fetch(`/events/comment/${commentId}/like/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to toggle like');
-        
-        const data = await response.json();
-        updateLikeButton(commentId, data.likes_count);
-    } catch (error) {
-        showNotification('Error updating like', 'error');
-    }
-}
 
 async function deleteEvent(eventId) {
     try {
@@ -424,15 +405,6 @@ async function loadMoreComments(eventId) {
     }
 }
 
-// Helper Functions
-function updateLikeButton(commentId, likesCount) {
-    const likeButton = document.querySelector(`button[data-comment-id="${commentId}"], button[data-reply-id="${commentId}"]`);
-    const likesCountElement = likeButton.querySelector('.likes-count');
-    
-    likeButton.classList.toggle('btn-danger');
-    likeButton.classList.toggle('btn-outline-danger');
-    likesCountElement.textContent = likesCount;
-}
 
 function handleReplyButtonClick(e) {
     if (e.target.matches('.reply-button')) {
@@ -475,6 +447,78 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
+// Like System
+const LikeSystem = {
+    init() {
+        // Use event delegation for all like buttons
+        document.addEventListener('click', (e) => {
+            const likeButton = e.target.closest('.like-button');
+            if (likeButton) {
+                e.preventDefault();
+                this.handleLikeClick(likeButton);
+            }
+        });
+    },
+
+    async handleLikeClick(button) {
+        const commentId = button.dataset.commentId;
+        
+        try {
+            // Disable button temporarily to prevent double-clicks
+            button.disabled = true;
+            
+            const response = await fetch(`/events/comment/${commentId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': this.getCSRFToken(),
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to toggle like');
+            
+            const data = await response.json();
+            
+            // Update button state
+            this.updateLikeButton(button, data.likes_count, data.is_liked);
+            
+        } catch (error) {
+            console.error('Like error:', error);
+            this.showError('Error updating like');
+        } finally {
+            button.disabled = false;
+        }
+    },
+
+    updateLikeButton(button, likesCount, isLiked) {
+        // Update like count
+        const likesCountElement = button.querySelector('.likes-count');
+        likesCountElement.textContent = likesCount;
+
+        // Update button appearance
+        if (isLiked) {
+            button.classList.remove('btn-outline-danger');
+            button.classList.add('btn-danger');
+            button.dataset.liked = 'true';
+        } else {
+            button.classList.remove('btn-danger');
+            button.classList.add('btn-outline-danger');
+            button.dataset.liked = 'false';
+        }
+    },
+
+    getCSRFToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.content || 
+               document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    },
+
+    showError(message) {
+        // Your existing notification code
+    }
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => LikeSystem.init());
 
 // Usage example:
 const debouncedToggleLike = debounce(toggleLike, 300);
