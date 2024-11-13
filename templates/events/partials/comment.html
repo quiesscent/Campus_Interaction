@@ -15,13 +15,13 @@
                 </div>
                 <div class="d-flex gap-2">
                     <button 
-                        onclick="toggleLike({{ comment.id }})" 
-                        class="btn btn-sm {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %} like-button"
-                        data-comment-id="{{ comment.id }}"
-                    >
-                        <i class="fas fa-heart"></i>
-                        <span class="likes-count ms-1">{{ comment.likes.count }}</span>
-                    </button>
+                    class="btn btn-sm like-button {% if request.user.profile in comment.likes.all %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                    data-comment-id="{{ comment.id }}"
+                    data-liked="{% if request.user.profile in comment.likes.all %}true{% else %}false{% endif %}"
+                >
+                    <i class="fas fa-heart"></i>
+                    <span class="likes-count ms-1">{{ comment.likes.count }}</span>
+                </button>
                     
                     {% if request.user.profile == comment.user %}
                     <button 
