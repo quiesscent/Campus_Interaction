@@ -12,8 +12,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from profiles.models import Profile
-from .models import Event, EventRegistration, Comment, EventReaction
-from .forms import EventForm, CommentForm, EventRegistrationForm
+from .models import Event, EventRegistration, Comment, ReplyLike, Reply
+from .forms import EventForm, CommentForm, EventRegistrationForm, ReplyForm
+from .serializers import ReplySerializer, CommentSerializer
 import json
 from django.core.paginator import EmptyPage, InvalidPage
 from django.template.loader import render_to_string
@@ -91,6 +92,52 @@ def event_detail(request, event_id):
             else:
                 messages.error(request, "Invalid registration details. Please try again.")
 
+    campuses = Profile.objects.values_list('campus', flat=True).distinct()
+     
+    # Pagination setup
+    paginator = Paginator(events, 12)  # Show 12 events per page
+    page = request.GET.get('page')
+    events = paginator.get_page(page)
+
+    # Add comments count for each event
+    for event in events:
+        event.comments_count = event.comments.count()
+
+    context = {
+        'event': event,
+        'user_registered': user_registered,
+        'comment_form': comment_form,
+        'campuses': campuses,
+    }
+
+    # If it's an HTMX request, return only the events partial
+    if request.headers.get('HX-Request'):
+        return render(request, 'events/partials/event_list_content.html', context)
+    
+    # Otherwise return the full template
+    return render(request, 'events/event_list.html', context)
+
+@login_required
+def event_detail(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    user_profile, created = Profile.objects.get_or_create(user=request.user)
+    user_registered = EventRegistration.objects.filter(event=event, participant=user_profile).exists()
+
+    # Fetch top-level comments only and prefetch related replies and likes
+    comments = event.comments.filter(parent=None).prefetch_related('replies', 'likes')
+    comment_form = CommentForm()
+
+    if request.method == 'POST':
+        # Handle registration
+        if 'register' in request.POST:
+            registration_form = EventRegistrationForm(data=request.POST, event=event)
+            if registration_form.is_valid():
+                EventRegistration.objects.create(event=event, participant=user_profile)
+                messages.success(request, "Successfully registered for the event!")
+                return redirect('event_detail', event_id=event_id)
+            else:
+                messages.error(request, "Invalid registration details. Please try again.")
+
     context = {
         'event': event,
         'user_registered': user_registered,
@@ -127,6 +174,8 @@ def create_event(request):
         form = EventForm()
 
     return render(request, 'events/create_event.html', {'form': form})
+
+
 @login_required
 def load_more_comments(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -134,13 +183,45 @@ def load_more_comments(request, event_id):
     comments = Comment.objects.filter(event=event).order_by('-created_at')
     paginator = Paginator(comments, 5)  # Display 5 comments per page
 
+    # If the page requested exceeds available pages, return empty HTML
     if int(page) > paginator.num_pages:
-        return JsonResponse({'comments_html': ''})  # No more pages
+        return JsonResponse({'comments_html': ''})
 
     comments_page = paginator.get_page(page)
     comments_html = render(request, 'events/partials/comments_pagination.html', {
         'comments': comments_page,
     }).content.decode('utf-8')
+
+    return JsonResponse({'comments_html': comments_html})
+
+@login_required
+@transaction.atomic
+def create_event(request):
+    user_profile = get_object_or_404(Profile, user=request.user)
+    if request.method == 'POST':
+        form = EventForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            try:
+                event = form.save(commit=False)
+                event.organizer = user_profile
+                event.campus = user_profile.campus
+                event.save()
+                isPublic = form.cleaned_data['is_public']
+                if isPublic == True:
+                    notify_all_users("New Event") # notify all users for upcoming event if made public
+                messages.success(request, "Event created successfully!")
+                return redirect('events:event_list')
+            except Exception as e:
+                messages.error(request, f"An error occurred while saving the event: {e}")
+        else:
+            messages.error(request, "Invalid form submission.")
+            print(form.errors)  # Print form errors to console for debugging
+    else:
+        form = EventForm()
+
+    return render(request, 'events/create_event.html', {'form': form})
+
 
 
 # views.py
@@ -220,6 +301,63 @@ def add_comment(request, event_id):
         else:
             messages.error(request, 'An error occurred while processing your request')
             return redirect('events:event_detail', event_id=event_id)
+
+
+
+@login_required
+@require_POST
+@require_http_methods(["POST"])
+def add_reply(request, comment_id):
+    """Add a new reply to a comment."""
+    try:
+        # Get the comment
+        comment = get_object_or_404(Comment, id=comment_id)
+        
+        # Create a form instance with the POST data
+        form = ReplyForm(request.POST)
+        
+        # Check if it's an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        if form.is_valid():
+            # Create reply instance but don't save yet
+            reply = form.save(commit=False)
+            reply.comment = comment
+            reply.user = request.user.profile
+            
+            # Save the reply
+            reply.save()
+            
+            if is_ajax:
+                # Serialize the reply
+                serializer = ReplySerializer(reply, context={'request': request})
+                return JsonResponse({
+                    'status': 'success',
+                    'reply': serializer.data
+                })
+            else:
+                messages.success(request, 'Reply added successfully!')
+                return redirect('events:event_detail', event_id=comment.event.id)
+        else:
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid form data',
+                    'errors': form.errors
+                }, status=400)
+            else:
+                messages.error(request, 'Please correct the errors below.')
+                return redirect('events:event_detail', event_id=comment.event.id)
+                
+    except Exception as e:
+        if is_ajax:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+        else:
+            messages.error(request, 'An error occurred while processing your request')
+            return redirect('events:event_detail', event_id=comment.event.id)
 @login_required
 @require_http_methods(["DELETE"])
 def delete_comment(request, comment_id):
@@ -292,7 +430,32 @@ def toggle_comment_like(request, comment_id):
         'status': 'success',
         'likes_count': comment.likes.count(),
         'is_liked': is_liked
+        
+    
     })
+# Update your view to use the new model
+@login_required
+@require_POST
+def toggle_reply_like(request, reply_id):
+    reply = get_object_or_404(Reply, id=reply_id)
+    like, created = ReplyLike.objects.get_or_create(
+        user=request.user.profile,
+        reply=reply,
+        defaults={} if created else None
+    )
+    
+    if not created:
+        like.delete()
+        is_liked = False
+    else:
+        is_liked = True
+    
+    return JsonResponse({
+        'status': 'success',
+        'likes_count': reply.likes_count,
+        'is_liked': is_liked
+    })
+
 
 @login_required
 @require_http_methods(["POST", "DELETE"])
@@ -324,33 +487,6 @@ def delete_event(request, event_id):
     messages.success(request, "Event deleted successfully.")
     return JsonResponse({"status": "success", "message": "Event deleted successfully."})
 
-@login_required
-@require_POST
-def toggle_reaction(request, event_id):
-    if request.method == 'POST':
-        event = get_object_or_404(Event, id=event_id)
-        reaction_type = request.POST.get('reaction_type')
-
-        if reaction_type not in dict(EventReaction.REACTION_CHOICES):
-            return JsonResponse({'status': 'error', 'message': 'Invalid reaction type'}, status=400)
-
-        reaction, created = EventReaction.objects.get_or_create(
-            event=event,
-            user=request.user.profile,
-            defaults={'reaction_type': reaction_type}
-        )
-
-        if not created:
-            if reaction.reaction_type == reaction_type:
-                reaction.delete()
-                return JsonResponse({'status': 'removed', 'reaction_type': reaction_type})
-            else:
-                reaction.reaction_type = reaction_type
-                reaction.save()
-
-        return JsonResponse({'status': 'success', 'reaction_type': reaction_type})
-
-    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def campus_autocomplete(request):
