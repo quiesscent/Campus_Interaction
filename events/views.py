@@ -222,13 +222,9 @@ def create_event(request):
 
     return render(request, 'events/create_event.html', {'form': form})
 
-
-
-# views.py
 @login_required
 @require_POST
 @require_http_methods(["POST"])
-
 def add_comment(request, event_id):
     """Add a new comment or reply to an event."""
     try:
@@ -246,7 +242,7 @@ def add_comment(request, event_id):
             comment = form.save(commit=False)
             comment.event = event
             comment.user = request.user.profile  # Assuming you have a profile relation
-            
+
             # Handle parent comment for replies
             parent_id = request.POST.get('parent_comment_id')
             if parent_id:
@@ -262,7 +258,7 @@ def add_comment(request, event_id):
                     else:
                         messages.error(request, 'Parent comment not found')
                         return redirect('events:event_detail', event_id=event_id)
-            
+
             # Save the comment
             comment.save()
 
@@ -272,7 +268,7 @@ def add_comment(request, event_id):
                     'comment': comment,
                     'event': event
                 }, request=request)
-                
+
                 return JsonResponse({
                     'status': 'success',
                     'comment_html': comment_html,
@@ -293,15 +289,19 @@ def add_comment(request, event_id):
                 return redirect('events:event_detail', event_id=event_id)
 
     except Exception as e:
+        # Log the exception for debugging purposes
+        logger.error("Error in add_comment view: %s", e, exc_info=True)
+        
+        # Return a generic error message to the user
+        generic_error_message = 'An unexpected error occurred. Please try again later.'
         if is_ajax:
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
+                'message': generic_error_message
             }, status=500)
         else:
-            messages.error(request, 'An error occurred while processing your request')
+            messages.error(request, generic_error_message)
             return redirect('events:event_detail', event_id=event_id)
-
 
 
 @login_required
