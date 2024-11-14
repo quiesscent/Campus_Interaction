@@ -26,10 +26,10 @@ urlpatterns = [
     path('<int:event_id>/comment/', views.add_comment, name='add_comment'),
     path('comment/<int:comment_id>/like/', views.toggle_comment_like, name='toggle_comment_like'),
     path('<int:event_id>/delete/', views.delete_event, name='delete_event'),
-    path('<int:event_id>/react/', views.toggle_reaction, name='toggle_reaction'),
     path('university/autocomplete/', views.campus_autocomplete, name='university_autocomplete'),
     path('select2/', include('django_select2.urls')),
     path('<int:event_id>/comments/', views.load_more_comments, name='load_more_comments'),
     # urls.py
     path('comment/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
+    path('events/reply/<int:reply_id>/like/', views.toggle_reply_like, name='toggle_reply_like'),
 ]
