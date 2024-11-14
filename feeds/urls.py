@@ -259,4 +259,6 @@ urlpatterns = [
     #     "total_pages": int
     # }
     # """
+    
+    
 ]
