@@ -358,11 +358,13 @@ def add_reply(request, comment_id):
         else:
             messages.error(request, 'An error occurred while processing your request')
             return redirect('events:event_detail', event_id=comment.event.id)
+        
 @login_required
 @require_http_methods(["DELETE"])
 def delete_comment(request, comment_id):
     """Delete a comment or reply."""
     try:
+        # Attempt to fetch the comment
         comment = get_object_or_404(Comment, id=comment_id)
         
         # Check if the user is the owner of the comment
@@ -372,18 +374,27 @@ def delete_comment(request, comment_id):
                 'message': 'You do not have permission to delete this comment'
             }, status=403)
         
+        # Delete the comment
         comment.delete()
         
         return JsonResponse({
             'status': 'success',
             'message': 'Comment deleted successfully'
-        })
+        }, status=200)
+        
+    except Comment.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Comment does not exist'
+        }, status=404)
         
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'message': 'An error occurred while deleting the comment'
-        }, status=500)@login_required
+        }, status=500)
+
+@login_required
 def load_more_comments(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     page = int(request.GET.get('page', 1))
