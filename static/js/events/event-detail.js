@@ -18,53 +18,84 @@ function initializeApp() {
 
     initializeEventHandlers();
 }
+
 function initializeEventHandlers() {
-    // Use event delegation for dynamic elements
-    document.addEventListener('click', (e) => {
+    // Use event delegation for all button clicks
+    document.addEventListener('click', async (e) => {
         // Handle reply buttons
         if (e.target.closest('.reply-button')) {
-            const commentId = e.target.closest('.reply-button').dataset.commentId;
+            const replyButton = e.target.closest('.reply-button');
+            const commentId = replyButton.dataset.commentId;
             toggleReplyForm(commentId);
         }
         
-        // Handle like buttons
-        if (e.target.closest('.like-button')) {
-            const button = e.target.closest('.like-button');
-            const commentId = button.dataset.commentId;
-            debouncedToggleLike(commentId);
+        // Handle delete buttons
+        if (e.target.closest('.delete-comment, .delete-reply')) {
+            const deleteButton = e.target.closest('.delete-comment, .delete-reply');
+            const commentId = deleteButton.dataset.commentId || deleteButton.dataset.replyId;
+            const url = deleteButton.dataset.url;
+            if (url && commentId) {
+                await deleteComment(commentId, url);
+            }
         }
         
-        // Handle delete buttons
-        if (e.target.closest('.delete-comment-btn')) {
-            const button = e.target.closest('.delete-comment-btn');
-            const commentId = button.dataset.commentId;
-            deleteComment(commentId);
+        // Handle toggle replies buttons
+        if (e.target.closest('.toggle-replies')) {
+            const toggleButton = e.target.closest('.toggle-replies');
+            const commentId = toggleButton.dataset.commentId;
+            toggleReplies(commentId);
         }
     });
 
-    // Initialize all comment forms
-    initializeForms();
-}
-
-function initializeForms() {
-    document.querySelectorAll('.comment-form').forEach(form => {
+    // Initialize all reply forms with submit handler
+    document.querySelectorAll('.reply-form').forEach(form => {
         form.addEventListener('submit', handleFormSubmit);
     });
 }
 
-function initializeDeleteButton() {
-    const deleteButton = document.querySelector('.delete-event-btn');
-    if (deleteButton) {
-        deleteButton.addEventListener('click', async () => {
-            const eventId = deleteButton.dataset.eventId;
-            if (confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
-                await deleteEvent(eventId);
-            }
-        });
+
+// Updated toggle replies function
+function toggleReplies(commentId) {
+    const repliesContainer = document.getElementById(`replies-${commentId}`);
+    const toggleButton = document.querySelector(`[data-comment-id="${commentId}"].toggle-replies`);
+    
+    if (!repliesContainer || !toggleButton) return;
+    
+    const isHidden = repliesContainer.style.display === 'none';
+    
+    // Add slide animation
+    repliesContainer.style.transition = 'max-height 0.3s ease';
+    repliesContainer.style.overflow = 'hidden';
+    
+    if (isHidden) {
+        repliesContainer.style.display = 'block';
+        const height = repliesContainer.scrollHeight;
+        repliesContainer.style.maxHeight = '0px';
+        setTimeout(() => {
+            repliesContainer.style.maxHeight = height + 'px';
+        }, 0);
+    } else {
+        repliesContainer.style.maxHeight = '0px';
+        setTimeout(() => {
+            repliesContainer.style.display = 'none';
+        }, 300);
     }
+    
+    // Update button text and icon
+    const replyCount = repliesContainer.children.length;
+    toggleButton.innerHTML = `
+        <i class="fas fa-chevron-${isHidden ? 'up' : 'down'} me-1"></i>
+        ${isHidden ? 'Hide' : 'Show'} ${replyCount} repl${replyCount === 1 ? 'y' : 'ies'}
+    `;
 }
 
+// Call initialization on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeEventHandlers();
+});
 // Form handling functions
+
+// Updated form submit handler
 async function handleFormSubmit(e) {
     e.preventDefault();
     
@@ -73,13 +104,12 @@ async function handleFormSubmit(e) {
     
     const submitButton = form.querySelector('button[type="submit"]');
     const formData = new FormData(form);
-    const eventId = window.location.pathname.split('/')[2];
-
+    
     try {
         form.submitting = true;
         showLoadingState(submitButton);
 
-        const response = await fetch(form.action || `/events/${eventId}/comment/`, {
+        const response = await fetch(form.action, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -178,40 +208,6 @@ function updateRepliesCount(commentId, change) {
     }
 }
 
-// Add delete functionality
-async function deleteComment(commentId, isReply = false) {
-    if (!confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/events/comment/${commentId}/delete/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to delete comment');
-
-        const elementId = isReply ? `reply-${commentId}` : `comment-${commentId}`;
-        const element = document.getElementById(elementId);
-        
-        if (element) {
-            if (isReply) {
-                // Update reply count
-                const parentId = element.closest('.replies-container').id.split('-')[1];
-                updateRepliesCount(parentId, -1);
-            }
-            element.remove();
-            showNotification('Comment deleted successfully', 'success');
-        }
-    } catch (error) {
-        showNotification('Error deleting comment', 'error');
-    }
-}
-
 async function submitFormData(form, formData, eventId) {
     const response = await fetch(form.action || `/events/${eventId}/comment/`, {
         method: 'POST',
@@ -256,6 +252,7 @@ async function handleSubmissionResponse(data, formData, form) {
     }
 }
 
+// Updated reply form handling
 function handleReplySubmission(parentId, commentHtml) {
     const parentComment = document.getElementById(`comment-${parentId}`);
     if (!parentComment) return;
@@ -264,36 +261,34 @@ function handleReplySubmission(parentId, commentHtml) {
     let repliesSection = parentComment.querySelector('.replies-section');
 
     if (!repliesSection) {
-        // Create new replies section
+        // Create new replies section if it doesn't exist
         repliesSection = document.createElement('div');
         repliesSection.className = 'replies-section mt-3';
         repliesSection.innerHTML = `
-            <button onclick="toggleReplies(${parentId})" class="btn btn-sm btn-link text-decoration-none ps-0">
-                <i class="fas fa-chevron-down me-1"></i> Show 1 reply
+            <button 
+                class="btn btn-sm btn-link text-decoration-none ps-0 toggle-replies"
+                data-comment-id="${parentId}"
+            >
+                <i class="fas fa-chevron-down me-1"></i>
+                Show 1 reply
             </button>
-            <div id="replies-${parentId}" class="replies-container mt-2 ms-4"></div>
+            <div id="replies-${parentId}" class="replies-container mt-2 ms-4" style="display: block;">
+                ${commentHtml}
+            </div>
         `;
         parentComment.querySelector('.flex-grow-1').appendChild(repliesSection);
-        repliesContainer = repliesSection.querySelector('.replies-container');
+    } else {
+        if (!repliesContainer) {
+            repliesContainer = document.createElement('div');
+            repliesContainer.id = `replies-${parentId}`;
+            repliesContainer.className = 'replies-container mt-2 ms-4';
+            repliesSection.appendChild(repliesContainer);
+        }
+        repliesContainer.style.display = 'block';
+        repliesContainer.insertAdjacentHTML('afterbegin', commentHtml);
     }
 
-    // Add new reply with animation
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = commentHtml.trim();
-    const newReply = tempDiv.firstElementChild;
-
-    newReply.style.opacity = '0';
-    newReply.style.transform = 'translateY(-20px)';
-    repliesContainer.insertAdjacentElement('afterbegin', newReply);
-
-    requestAnimationFrame(() => {
-        newReply.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        newReply.style.opacity = '1';
-        newReply.style.transform = 'translateY(0)';
-    });
-
-    // Update reply count and hide form
-    updateRepliesCount(parentId, 1);
+    // Hide reply form after submission
     toggleReplyForm(parentId);
 }
 
@@ -343,51 +338,38 @@ function toggleComments() {
     toggleButton.textContent = isHidden ? 'Hide Comments' : 'Show Comments';
 }
 
-function toggleReplies(commentId) {
-    const repliesContainer = document.getElementById(`replies-${commentId}`);
-    const toggleButton = repliesContainer.previousElementSibling;
-    const isHidden = repliesContainer.style.display === 'none';
-    
-    repliesContainer.style.display = isHidden ? 'block' : 'none';
-    toggleButton.innerHTML = `
-        <i class="fas fa-chevron-${isHidden ? 'up' : 'down'} me-1"></i>
-        ${isHidden ? 'Hide' : 'Show'} replies
-    `;
-}
 
+
+// Toggle reply form function
 function toggleReplyForm(commentId) {
     const replyForm = document.getElementById(`reply-form-${commentId}`);
-    if (replyForm) {
-        const isHidden = replyForm.style.display === 'none';
-        replyForm.style.display = isHidden ? 'block' : 'none';
-        if (isHidden) {
-            replyForm.querySelector('textarea').focus();
+    if (!replyForm) return;
+
+    const isHidden = replyForm.style.display === 'none' || replyForm.style.display === '';
+    
+    // Hide all other reply forms first
+    document.querySelectorAll('.reply-form').forEach(form => {
+        if (form.id !== `reply-form-${commentId}`) {
+            form.style.display = 'none';
         }
+    });
+
+    // Toggle current form with animation
+    replyForm.style.transition = 'opacity 0.3s ease';
+    if (isHidden) {
+        replyForm.style.display = 'block';
+        replyForm.style.opacity = '0';
+        setTimeout(() => {
+            replyForm.style.opacity = '1';
+            replyForm.querySelector('textarea')?.focus();
+        }, 0);
+    } else {
+        replyForm.style.opacity = '0';
+        setTimeout(() => {
+            replyForm.style.display = 'none';
+        }, 300);
     }
 }
-
-
-async function deleteEvent(eventId) {
-    try {
-        const response = await fetch(`/events/${eventId}/delete/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (response.ok) {
-            window.location.href = '/events/';
-        } else {
-            const data = await response.json();
-            showNotification(data.message || "Failed to delete event.", 'error');
-        }
-    } catch (error) {
-        showNotification("Error deleting event.", 'error');
-    }
-}
-
 async function loadMoreComments(eventId) {
     try {
         currentPage += 1;
@@ -406,6 +388,7 @@ async function loadMoreComments(eventId) {
 }
 
 
+
 function handleReplyButtonClick(e) {
     if (e.target.matches('.reply-button')) {
         const commentId = e.target.dataset.commentId;
@@ -413,7 +396,70 @@ function handleReplyButtonClick(e) {
     }
 }
 
+// Reply form visibility state
+let activeReplyForm = null;
+
+// Toggle reply form visibility
+
+// Updated toggle reply form function
+function toggleReplyForm(commentId) {
+    const replyForm = document.getElementById(`reply-form-${commentId}`);
+    if (!replyForm) return;
+
+    const isHidden = replyForm.style.display === 'none' || replyForm.style.display === '';
+    
+    // Hide all other reply forms first
+    document.querySelectorAll('.reply-form').forEach(form => {
+        if (form.id !== `reply-form-${commentId}`) {
+            form.style.display = 'none';
+        }
+    });
+
+    // Toggle current form with animation
+    replyForm.style.transition = 'opacity 0.3s ease';
+    if (isHidden) {
+        replyForm.style.display = 'block';
+        replyForm.style.opacity = '0';
+        setTimeout(() => {
+            replyForm.style.opacity = '1';
+            replyForm.querySelector('textarea')?.focus();
+        }, 0);
+    } else {
+        replyForm.style.opacity = '0';
+        setTimeout(() => {
+            replyForm.style.display = 'none';
+        }, 300);
+    }
+}
+// Helper function to update replies count
+function updateRepliesCount(commentId, change) {
+    const toggleButton = document.querySelector(`[data-comment-id="${commentId}"].toggle-replies`);
+    if (toggleButton) {
+        const currentCount = parseInt(toggleButton.textContent.match(/\d+/)[0]) + change;
+        toggleButton.innerHTML = `
+            <i class="fas fa-chevron-${toggleButton.querySelector('.fa-chevron-down') ? 'down' : 'up'} me-1"></i>
+            Show ${currentCount} repl${currentCount === 1 ? 'y' : 'ies'}
+        `;
+    }
+}
+
+// Event delegation handler
+document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (e) => {
+        const replyButton = e.target.closest('.reply-button');
+        if (replyButton) {
+            const commentId = replyButton.dataset.commentId;
+            if (commentId) {
+                toggleReplyForm(commentId);
+            } else {
+                console.error('No comment ID found on reply button');
+            }
+        }
+    });
+});
+
 // UI Helper Functions
+
 function showLoadingState(button) {
     if (!button) return;
     button.disabled = true;
@@ -447,81 +493,59 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
-// Like System
-const LikeSystem = {
-    init() {
-        // Use event delegation for all like buttons
-        document.addEventListener('click', (e) => {
-            const likeButton = e.target.closest('.like-button');
-            if (likeButton) {
-                e.preventDefault();
-                this.handleLikeClick(likeButton);
+
+
+// Updated delete comment function with DELETE method
+async function deleteComment(commentId, url) {
+    if (!confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'DELETE',  // Changed from POST to DELETE
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
             }
         });
-    },
 
-    async handleLikeClick(button) {
-        const commentId = button.dataset.commentId;
+        if (!response.ok) {
+            throw new Error('Failed to delete comment');
+        }
+
+        const data = await response.json();
         
-        try {
-            // Disable button temporarily to prevent double-clicks
-            button.disabled = true;
+        if (data.status === 'success') {
+            const element = document.getElementById(`comment-${commentId}`) || 
+                          document.getElementById(`reply-${commentId}`);
             
-            const response = await fetch(`/events/comment/${commentId}/like/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': this.getCSRFToken(),
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) throw new Error('Failed to toggle like');
-            
-            const data = await response.json();
-            
-            // Update button state
-            this.updateLikeButton(button, data.likes_count, data.is_liked);
-            
-        } catch (error) {
-            console.error('Like error:', error);
-            this.showError('Error updating like');
-        } finally {
-            button.disabled = false;
+            if (element) {
+                // Add fade-out animation
+                element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(-20px)';
+                
+                // Remove element after animation
+                setTimeout(() => {
+                    if (element.classList.contains('reply-card')) {
+                        const parentId = element.closest('.replies-container').id.split('-')[1];
+                        updateRepliesCount(parentId, -1);
+                    }
+                    element.remove();
+                }, 300);
+                
+                showNotification('Comment deleted successfully', 'success');
+            }
         }
-    },
-
-    updateLikeButton(button, likesCount, isLiked) {
-        // Update like count
-        const likesCountElement = button.querySelector('.likes-count');
-        likesCountElement.textContent = likesCount;
-
-        // Update button appearance
-        if (isLiked) {
-            button.classList.remove('btn-outline-danger');
-            button.classList.add('btn-danger');
-            button.dataset.liked = 'true';
-        } else {
-            button.classList.remove('btn-danger');
-            button.classList.add('btn-outline-danger');
-            button.dataset.liked = 'false';
-        }
-    },
-
-    getCSRFToken() {
-        return document.querySelector('meta[name="csrf-token"]')?.content || 
-               document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    },
-
-    showError(message) {
-        // Your existing notification code
+    } catch (error) {
+        showNotification(error.message || 'Error deleting comment', 'error');
+        console.error('Delete error:', error);
     }
-};
+}
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => LikeSystem.init());
 
-// Usage example:
-const debouncedToggleLike = debounce(toggleLike, 300);
 // Make functions available globally
 window.toggleReplyForm = toggleReplyForm;
 window.toggleReplies = toggleReplies;
