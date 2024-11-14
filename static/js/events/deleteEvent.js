@@ -1,4 +1,3 @@
-// Add this to your JavaScript file
 document.addEventListener('DOMContentLoaded', function() {
     // Delegate event listener for delete buttons
     document.querySelectorAll('.delete-event-btn').forEach(button => {
@@ -44,8 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to show notifications
     function showNotification(message, type) {
-        // You can implement this based on your UI framework
-        // Example using bootstrap toast or alert
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
         alertDiv.role = 'alert';
