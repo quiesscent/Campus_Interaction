@@ -77,13 +77,14 @@ class EventRegistration(models.Model):
         if self.event.max_participants and EventRegistration.objects.filter(event=self.event).count() >= self.event.max_participants:
             raise ValueError("Cannot register: event has reached maximum participants")
         super().save(*args, **kwargs)
+        
 class Comment(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='user_comments')  # Profile is used here
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='comment_replies')
     likes = models.ManyToManyField(Profile, through='CommentLike', related_name='liked_comments')  # Profile is used here
     level = models.PositiveIntegerField(default=0)
     is_edited = models.BooleanField(default=False)
@@ -111,24 +112,35 @@ class CommentLike(models.Model):
     def __str__(self):
         return f"{self.user} likes {self.comment}"
 
-class EventReaction(models.Model):
-    REACTION_CHOICES = [
-        ('like', '👍'),
-        ('love', '❤️'),
-        ('laugh', '😄'),
-        ('wow', '😮'),
-        ('sad', '😢'),
-    ]
 
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reactions')
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE)  # Use Profile here
-    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+class Reply(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='replies')
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='user_replies')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    likes = models.ManyToManyField(Profile, through='ReplyLike', related_name='liked_replies')
+    is_edited = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['created_at']
+        
+    def save(self, *args, **kwargs):
+        if self.pk:  # If reply exists (being updated)
+            self.is_edited = True
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Reply by {self.user} on {self.created_at}"
+
+
+class ReplyLike(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    reply = models.ForeignKey(Reply, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['event', 'user', 'reaction_type'], name='unique_event_user_reaction')
-        ]
+        unique_together = ['user', 'reply']
 
     def __str__(self):
-        return f"{self.user} reacted with {self.get_reaction_type_display()} on {self.event}"
+        return f"{self.user} likes reply {self.reply.id}"
