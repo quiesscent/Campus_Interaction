@@ -221,7 +221,6 @@ def create_event(request):
         form = EventForm()
 
     return render(request, 'events/create_event.html', {'form': form})
-
 @login_required
 @require_POST
 @require_http_methods(["POST"])
@@ -288,9 +287,9 @@ def add_comment(request, event_id):
                 messages.error(request, 'Please correct the errors below.')
                 return redirect('events:event_detail', event_id=event_id)
 
-    except Exception as e:
-        # Log the exception for debugging purposes
-        logger.error("Error in add_comment view: %s", e, exc_info=True)
+    except Exception:
+        # Log the generic error message
+        logger.error("Unexpected error occurred in add_comment view", exc_info=True)
         
         # Return a generic error message to the user
         generic_error_message = 'An unexpected error occurred. Please try again later.'
@@ -349,16 +348,21 @@ def add_reply(request, comment_id):
                 messages.error(request, 'Please correct the errors below.')
                 return redirect('events:event_detail', event_id=comment.event.id)
                 
-    except Exception as e:
+    except Exception:
+        # Log the generic error message
+        logger.error("Unexpected error occurred in add_reply view", exc_info=True)
+        
+        # Return a generic error message to the user
+        generic_error_message = 'An unexpected error occurred. Please try again later.'
         if is_ajax:
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
+                'message': generic_error_message
             }, status=500)
         else:
-            messages.error(request, 'An error occurred while processing your request')
+            messages.error(request, generic_error_message)
             return redirect('events:event_detail', event_id=comment.event.id)
-        
+
 @login_required
 @require_http_methods(["DELETE"])
 def delete_comment(request, comment_id):
