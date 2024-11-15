@@ -177,24 +177,6 @@ def create_event(request):
 
 
 @login_required
-def load_more_comments(request, event_id):
-    event = get_object_or_404(Event, id=event_id)
-    page = request.GET.get('page', 1)
-    comments = Comment.objects.filter(event=event).order_by('-created_at')
-    paginator = Paginator(comments, 5)  # Display 5 comments per page
-
-    # If the page requested exceeds available pages, return empty HTML
-    if int(page) > paginator.num_pages:
-        return JsonResponse({'comments_html': ''})
-
-    comments_page = paginator.get_page(page)
-    comments_html = render(request, 'events/partials/comments_pagination.html', {
-        'comments': comments_page,
-    }).content.decode('utf-8')
-
-    return JsonResponse({'comments_html': comments_html})
-
-@login_required
 @transaction.atomic
 def create_event(request):
     user_profile = get_object_or_404(Profile, user=request.user)
