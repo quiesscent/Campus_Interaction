@@ -95,7 +95,37 @@
             Alpine.store('showFilters', false);
         }
     }
-    
+        // Function to handle visibility of the top create event button
+    function handleCreateButtonVisibility() {
+        const topCreateButton = document.querySelector('.top-create-btn');
+        const eventsContainer = document.getElementById('events-container');
+        const emptyState = eventsContainer.querySelector('.empty-state');
+        
+        if (topCreateButton) {
+            topCreateButton.style.display = emptyState ? 'none' : 'inline-flex';
+        }
+    }
+
+    // Function to reset filters
+    function resetFilters() {
+        // Reset select elements
+        document.getElementById('campus').value = '';
+        document.getElementById('status').value = '';
+        
+        // Trigger HTMX request on campus select
+        document.getElementById('campus').dispatchEvent(new Event('change'));
+        
+        // Close filters panel if using Alpine.js
+        if (typeof Alpine !== 'undefined') {
+            Alpine.store('showFilters', false);
+        }
+    }
+
+    // Initialize button visibility
+    document.addEventListener('DOMContentLoaded', handleCreateButtonVisibility);
+
+    // Handle HTMX after-swap event to update button visibility
+    document.body.addEventListener('htmx:afterSwap', handleCreateButtonVisibility);
 </script>
 {% endblock %}
 {% endblock %}
