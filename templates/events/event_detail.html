@@ -115,14 +115,11 @@
                             </div>
                         {% endif %}
 
-                         {# Event deletion button #}
-    {% if request.user == event.organizer.user or request.user.is_staff %}
-    <button type="button" 
-            class="btn btn-outline-danger w-100 delete-event-btn" 
-            data-event-id="{{ event.id }}">
-        <i class="fas fa-trash"></i> Delete Event
-    </button>
-{% endif %}
+                        {% if request.user == event.organizer.user %}
+                            <button type="button" class="btn btn-outline-danger w-100 delete-event-btn" data-event-id="{{ event.id }}">
+                                <i class="fas fa-trash"></i> Delete Event
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -158,8 +155,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/events/deleteEvent.js' %}"></script>
-<script src="{% static 'js/events/likeSystem.js' %}"></script>
-<script src="{% static 'js/events/commentSystem.js' %}"></script>
+<script src="{% static 'js/events/event-detail.js' %}"></script>
 {% endblock %}
 {% endblock %}
