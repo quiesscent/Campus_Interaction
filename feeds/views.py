@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import F
 from django.db import models
 import json
+import logging
 from .models import Post, PostView, PostLike, Comment
 from .forms import PostForm, CommentForm, ReportForm
 
@@ -232,7 +233,8 @@ def add_comment(request, post_id):
             'comments_count': post.comments_count
         })
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        logging.error("An error occurred while adding a comment: %s", str(e))
+        return JsonResponse({'error': 'An internal error has occurred!'}, status=500)
 
 @login_required
 @require_POST
