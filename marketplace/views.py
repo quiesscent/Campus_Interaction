@@ -30,10 +30,10 @@ from django.db.models import Avg
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 import json
-
-
+import logging
+from django.http import JsonResponse
 from django.db.models import F, Count, Q
-
+logger = logging.getLogger(__name__)
 
 # All Items
 def item_list(request):
@@ -365,19 +365,23 @@ def rate_item(request, item_id):
     item = get_object_or_404(Item, id=item_id)
 
     try:
+        # Attempt to parse the JSON body
         data = json.loads(request.body)
         stars = data.get("stars")
         comment = data.get("comment", "")
 
+        # Validate the stars rating
         if not stars or not isinstance(stars, (int, str)) or not (1 <= int(stars) <= 5):
             return JsonResponse({"error": "Invalid star rating"}, status=400)
 
         stars = int(stars)
 
+        # Save or update the user rating
         user_rating, created = UserRating.objects.update_or_create(
             item=item, user=request.user, defaults={"stars": stars, "comment": comment}
         )
 
+        # Calculate the average rating
         average_rating = UserRating.objects.filter(item=item).aggregate(Avg("stars"))[
             "stars__avg"
         ]
@@ -392,9 +396,16 @@ def rate_item(request, item_id):
         )
 
     except json.JSONDecodeError:
+        logger.error("Failed to decode JSON data")  # Log the error
         return JsonResponse({"error": "Invalid JSON data"}, status=400)
+    
+    except ValueError as e:
+        logger.error(f"ValueError: {str(e)}")  # Log the error
+        return JsonResponse({"error": "Invalid value provided"}, status=400)
+    
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error(f"Unexpected error: {str(e)}")  # Log the error
+        return JsonResponse({"error": "An internal error occurred"}, status=500)
 
 
 # Add to Cart
