@@ -74,10 +74,7 @@ class Event(models.Model):
     def is_full(self):
         return self.max_participants is not None and self.spots_left <= 0
         
-from django.db import models
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
-from django.db.models import Max
+
 
 class EventRegistration(models.Model):
     REGISTRATION_STATUS = (
@@ -117,9 +114,11 @@ class EventRegistration(models.Model):
         help_text=_("Contact email for the registration")
     )
     name = models.CharField(
-        max_length=255,
-        help_text=_("Full name of the participant")
-    )
+    max_length=255, 
+    help_text=_("Full name of the participant"),
+    null=False,  # Ensure this is set
+    blank=False  # This prevents empty strings
+)
     waitlist_position = models.PositiveIntegerField(
         null=True, 
         blank=True,
@@ -155,7 +154,10 @@ class EventRegistration(models.Model):
             raise ValidationError({
                 'waitlist_position': _('Waitlist position should only be set for waitlisted registrations.')
             })
-
+    def validate(self, data):
+        if not data.get('name'):
+            raise serializers.ValidationError({"name": "Name cannot be blank"})
+        return data
     def save(self, *args, **kwargs):
         self.full_clean()
         
