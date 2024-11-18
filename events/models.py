@@ -74,7 +74,10 @@ class Event(models.Model):
     def is_full(self):
         return self.max_participants is not None and self.spots_left <= 0
         
-
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+from django.db.models import Max
 
 class EventRegistration(models.Model):
     REGISTRATION_STATUS = (
@@ -114,11 +117,9 @@ class EventRegistration(models.Model):
         help_text=_("Contact email for the registration")
     )
     name = models.CharField(
-    max_length=255, 
-    help_text=_("Full name of the participant"),
-    null=False,  # Ensure this is set
-    blank=False  # This prevents empty strings
-)
+        max_length=255,
+        help_text=_("Full name of the participant")
+    )
     waitlist_position = models.PositiveIntegerField(
         null=True, 
         blank=True,
@@ -127,6 +128,10 @@ class EventRegistration(models.Model):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'participant'], 
+                name='unique_event_participant'
+            )
             models.UniqueConstraint(
                 fields=['event', 'participant'], 
                 name='unique_event_participant'
@@ -150,10 +155,7 @@ class EventRegistration(models.Model):
             raise ValidationError({
                 'waitlist_position': _('Waitlist position should only be set for waitlisted registrations.')
             })
-    def validate(self, data):
-        if not data.get('name'):
-            raise serializers.ValidationError({"name": "Name cannot be blank"})
-        return data
+
     def save(self, *args, **kwargs):
         self.full_clean()
         
@@ -175,7 +177,76 @@ class EventRegistration(models.Model):
         if self.status != 'waitlist':
             self.waitlist_position = None
             
+        self.full_clean()
+        
+        if not self.pk:  # New registration
+            current_registrations = EventRegistration.objects.filter(
+                event=self.event, 
+                status='registered'
+            ).count()
+            
+            if self.event.max_participants and current_registrations >= self.event.max_participants:
+                self.status = 'waitlist'
+                last_position = EventRegistration.objects.filter(
+                    event=self.event,
+                    status='waitlist'
+                ).aggregate(Max('waitlist_position'))['waitlist_position__max'] or 0
+                self.waitlist_position = last_position + 1
+        
+        # Clear waitlist position if status is not waitlist
+        if self.status != 'waitlist':
+            self.waitlist_position = None
+            
         super().save(*args, **kwargs)
+
+    def move_from_waitlist(self):
+        """
+        Attempt to move a waitlisted registration to registered status if space is available.
+        """
+        if self.status != 'waitlist':
+            return False
+            
+        current_registrations = EventRegistration.objects.filter(
+            event=self.event, 
+            status='registered'
+        ).count()
+            
+        if not self.event.max_participants or current_registrations < self.event.max_participants:
+            self.status = 'registered'
+            self.waitlist_position = None
+            self.save()
+            
+            # Reorder remaining waitlist
+            waitlist_registrations = EventRegistration.objects.filter(
+                event=self.event,
+                status='waitlist'
+            ).order_by('waitlist_position')
+            
+            for i, registration in enumerate(waitlist_registrations, 1):
+                registration.waitlist_position = i
+                registration.save()
+                
+            return True
+        return False
+
+    def cancel_registration(self):
+        """
+        Cancel this registration and move up waitlisted registrations if applicable.
+        """
+        was_registered = self.status == 'registered'
+        self.status = 'cancelled'
+        self.waitlist_position = None
+        self.save()
+        
+        if was_registered:
+            # Try to move the first waitlisted person to registered
+            next_waitlisted = EventRegistration.objects.filter(
+                event=self.event,
+                status='waitlist'
+            ).order_by('waitlist_position').first()
+            
+            if next_waitlisted:
+                next_waitlisted.move_from_waitlist()
 
     def move_from_waitlist(self):
         """
