@@ -12,12 +12,19 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from profiles.models import Profile
-from .models import Event, EventRegistration, Comment, EventReaction
-from .forms import EventForm, CommentForm, EventRegistrationForm
+from .models import Event, EventRegistration, Comment, ReplyLike, Reply
+from .forms import EventForm, CommentForm, EventRegistrationForm, ReplyForm
+from .serializers import ReplySerializer, CommentSerializer
 import json
 from django.core.paginator import EmptyPage, InvalidPage
 from django.template.loader import render_to_string
 from django.db.models import Count
+from django.utils.html import strip_tags
+from django.core.mail import send_mail
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseForbidden
+from django.conf import settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -29,14 +36,10 @@ def event_list(request):
     status_filter = request.GET.get('status')
     campus_filter = request.GET.get('campus')
 
-    events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
-
-
     # Fetch all events and related data
     events = Event.objects.all().order_by('-start_date').prefetch_related('comments')
 
     # Apply status filter if present
-
     if status_filter:
         now = timezone.now()
         if status_filter == 'upcoming':
@@ -45,27 +48,12 @@ def event_list(request):
             events = events.filter(start_date__lte=now, end_date__gte=now)
         elif status_filter == 'completed':
             events = events.filter(end_date__lt=now)
-            
+    
+    # Apply campus filter if present
     if campus_filter:
         events = events.filter(campus__campus=campus_filter)
 
-    # Get unique campus values from Profile model
-    campuses = Profile.objects.values_list('campus', flat=True).distinct()
-
-    paginator = Paginator(events, 12)
-    page = request.GET.get('page')
-    events = paginator.get_page(page)
-
-    for event in events:
-        event.comments_count = event.comments.count()
-
-    return render(request, 'events/event_list.html')
-
-    # Apply campus filter if present
-    if campus_filter:
-        events = events.filter(campus=campus_filter)
-
-    # Get unique campuses for the filter form
+    # Get unique campus values for the filter form
     campuses = Profile.objects.values_list('campus', flat=True).distinct()
 
     # Pagination setup
@@ -91,33 +79,39 @@ def event_list(request):
 
 @login_required
 def event_detail(request, event_id):
+    """Display event details and handle registration."""
     event = get_object_or_404(Event, id=event_id)
-    user_profile, created = Profile.objects.get_or_create(user=request.user)
-    user_registered = EventRegistration.objects.filter(event=event, participant=user_profile).exists()
-
-    # Fetch top-level comments only and prefetch related replies and likes
+    user_profile = request.user.profile
+    
+    # Get current registration status
+    registration = EventRegistration.objects.filter(
+        event=event,
+        participant=user_profile,
+        status__in=['registered', 'waitlist']
+    ).first()
     comments = event.comments.filter(parent=None).prefetch_related('replies', 'likes')
     comment_form = CommentForm()
-
-    if request.method == 'POST':
-        # Handle registration
-        if 'register' in request.POST:
-            registration_form = EventRegistrationForm(data=request.POST, event=event)
-            if registration_form.is_valid():
-                EventRegistration.objects.create(event=event, participant=user_profile)
-                messages.success(request, "Successfully registered for the event!")
-                return redirect('event_detail', event_id=event_id)
-            else:
-                messages.error(request, "Invalid registration details. Please try again.")
-
+    user_registered = registration is not None
+    
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Delegate to register_for_event view
+        return register_for_event(request, event_id)
+    
     context = {
         'event': event,
         'user_registered': user_registered,
+        'registration': registration,
         'comment_form': comment_form,
         'comments': comments,
-        'registration_form': EventRegistrationForm(event=event)
+        'form': EventRegistrationForm(initial={
+            'name': request.user.get_full_name() or request.user.username,
+            'email': request.user.email
+        }),
+        # 'spots_left': event.spots_left(),
+        'is_waitlist_open': event.is_waitlist_open() if hasattr(event, 'is_waitlist_open') else True
     }
     return render(request, 'events/event_detail.html', context)
+
 
 @login_required
 @transaction.atomic
@@ -146,23 +140,6 @@ def create_event(request):
         form = EventForm()
 
     return render(request, 'events/create_event.html', {'form': form})
-@login_required
-def load_more_comments(request, event_id):
-    event = get_object_or_404(Event, id=event_id)
-    page = request.GET.get('page', 1)
-    comments = Comment.objects.filter(event=event).order_by('-created_at')
-    paginator = Paginator(comments, 5)  # Display 5 comments per page
-
-    if int(page) > paginator.num_pages:
-        return JsonResponse({'comments_html': ''})  # No more pages
-
-    comments_page = paginator.get_page(page)
-    comments_html = render(request, 'events/partials/comments_pagination.html', {
-        'comments': comments_page,
-    }).content.decode('utf-8')
-
-
-# views.py
 @login_required
 @require_POST
 @require_http_methods(["POST"])
@@ -229,22 +206,88 @@ def add_comment(request, event_id):
                 messages.error(request, 'Please correct the errors below.')
                 return redirect('events:event_detail', event_id=event_id)
 
-    except Exception as e:
-        print(f"Error in add_comment: {str(e)}")  # Add logging for debugging
+    except Exception:
+        # Log the generic error message
+        logger.error("Unexpected error occurred in add_comment view", exc_info=True)
+        
+        # Return a generic error message to the user
+        generic_error_message = 'An unexpected error occurred. Please try again later.'
         if is_ajax:
             return JsonResponse({
                 'status': 'error',
-                'message': 'An error occurred while processing your request'
+                'message': generic_error_message
             }, status=500)
         else:
-            messages.error(request, 'An error occurred while processing your request')
+            messages.error(request, generic_error_message)
             return redirect('events:event_detail', event_id=event_id)
+
+
+@login_required
+@require_POST
+@require_http_methods(["POST"])
+def add_reply(request, comment_id):
+    """Add a new reply to a comment."""
+    try:
+        # Get the comment
+        comment = get_object_or_404(Comment, id=comment_id)
+        
+        # Create a form instance with the POST data
+        form = ReplyForm(request.POST)
+        
+        # Check if it's an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        if form.is_valid():
+            # Create reply instance but don't save yet
+            reply = form.save(commit=False)
+            reply.comment = comment
+            reply.user = request.user.profile
+            
+            # Save the reply
+            reply.save()
+            
+            if is_ajax:
+                # Serialize the reply
+                serializer = ReplySerializer(reply, context={'request': request})
+                return JsonResponse({
+                    'status': 'success',
+                    'reply': serializer.data
+                })
+            else:
+                messages.success(request, 'Reply added successfully!')
+                return redirect('events:event_detail', event_id=comment.event.id)
+        else:
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid form data',
+                    'errors': form.errors
+                }, status=400)
+            else:
+                messages.error(request, 'Please correct the errors below.')
+                return redirect('events:event_detail', event_id=comment.event.id)
+                
+    except Exception:
+        # Log the generic error message
+        logger.error("Unexpected error occurred in add_reply view", exc_info=True)
+        
+        # Return a generic error message to the user
+        generic_error_message = 'An unexpected error occurred. Please try again later.'
+        if is_ajax:
+            return JsonResponse({
+                'status': 'error',
+                'message': generic_error_message
+            }, status=500)
+        else:
+            messages.error(request, generic_error_message)
+            return redirect('events:event_detail', event_id=comment.event.id)
 
 @login_required
 @require_http_methods(["DELETE"])
 def delete_comment(request, comment_id):
     """Delete a comment or reply."""
     try:
+        # Attempt to fetch the comment
         comment = get_object_or_404(Comment, id=comment_id)
         
         # Check if the user is the owner of the comment
@@ -254,18 +297,27 @@ def delete_comment(request, comment_id):
                 'message': 'You do not have permission to delete this comment'
             }, status=403)
         
+        # Delete the comment
         comment.delete()
         
         return JsonResponse({
             'status': 'success',
             'message': 'Comment deleted successfully'
-        })
+        }, status=200)
+        
+    except Comment.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Comment does not exist'
+        }, status=404)
         
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'message': 'An error occurred while deleting the comment'
-        }, status=500)@login_required
+        }, status=500)
+
+@login_required
 def load_more_comments(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     page = int(request.GET.get('page', 1))
@@ -301,20 +353,43 @@ def load_more_comments(request, event_id):
 @require_POST
 def toggle_comment_like(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
-    user_profile = request.user.profile
-
-    if user_profile in comment.likes.all():  # Check if user already liked the comment
-        comment.likes.remove(user_profile)
-        liked = False
+    if request.user.profile in comment.likes.all():
+        comment.likes.remove(request.user.profile)
+        is_liked = False
     else:
-        comment.likes.add(user_profile)
-        liked = True
-
+        comment.likes.add(request.user.profile)
+        is_liked = True
+    
     return JsonResponse({
         'status': 'success',
-        'liked': liked,
-        'likes_count': comment.likes.count()
+        'likes_count': comment.likes.count(),
+        'is_liked': is_liked
+        
+    
     })
+# Update your view to use the new model
+@login_required
+@require_POST
+def toggle_reply_like(request, reply_id):
+    reply = get_object_or_404(Reply, id=reply_id)
+    like, created = ReplyLike.objects.get_or_create(
+        user=request.user.profile,
+        reply=reply,
+        defaults={} if created else None
+    )
+    
+    if not created:
+        like.delete()
+        is_liked = False
+    else:
+        is_liked = True
+    
+    return JsonResponse({
+        'status': 'success',
+        'likes_count': reply.likes_count,
+        'is_liked': is_liked
+    })
+
 
 @login_required
 @require_http_methods(["POST", "DELETE"])
@@ -346,33 +421,6 @@ def delete_event(request, event_id):
     messages.success(request, "Event deleted successfully.")
     return JsonResponse({"status": "success", "message": "Event deleted successfully."})
 
-@login_required
-@require_POST
-def toggle_reaction(request, event_id):
-    if request.method == 'POST':
-        event = get_object_or_404(Event, id=event_id)
-        reaction_type = request.POST.get('reaction_type')
-
-        if reaction_type not in dict(EventReaction.REACTION_CHOICES):
-            return JsonResponse({'status': 'error', 'message': 'Invalid reaction type'}, status=400)
-
-        reaction, created = EventReaction.objects.get_or_create(
-            event=event,
-            user=request.user.profile,
-            defaults={'reaction_type': reaction_type}
-        )
-
-        if not created:
-            if reaction.reaction_type == reaction_type:
-                reaction.delete()
-                return JsonResponse({'status': 'removed', 'reaction_type': reaction_type})
-            else:
-                reaction.reaction_type = reaction_type
-                reaction.save()
-
-        return JsonResponse({'status': 'success', 'reaction_type': reaction_type})
-
-    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def campus_autocomplete(request):
@@ -389,3 +437,225 @@ def campus_autocomplete(request):
         return JsonResponse(results, safe=False)
 
     return JsonResponse([], safe=False)
+
+def send_registration_email(registration):
+    """Send registration confirmation or waitlist email to participant."""
+    try:
+        # Construct the subject based on the event title
+        subject = f"Registration Update - {registration.event.title}"
+        
+        # Prepare the context for email template rendering
+        context = {
+            'registration': registration,
+            'event': registration.event,
+            'name': registration.name,  # Include name for personalized email
+        }
+
+        # Select the appropriate email template based on registration status
+        template = ('events/emails/registration_confirmation.html' 
+                    if registration.status == 'registered' 
+                    else 'events/emails/waitlist_confirmation.html')
+        
+        # Render the email content (HTML and plain text)
+        html_message = render_to_string(template, context)
+        plain_message = strip_tags(html_message)
+
+        # Send the email using the send_mail function
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,  # Use the default email from settings
+            recipient_list=[registration.email],
+            html_message=html_message,
+            fail_silently=False  # Set to False to raise errors if any occur
+        )
+
+        # Log successful email sending
+        logger.info(f"Registration email sent successfully to {registration.email} for event {registration.event.title}")
+
+    except Exception as e:
+        # Log the error if something goes wrong
+        logger.error(f"Error sending registration email to {registration.email} for event {registration.event.title}: {e}")
+        raise  # Re-raise the error to allow higher-level handling (if necessary)
+
+@login_required
+def register_for_event(request, event_id):
+    """Handle event registration with proper transaction handling."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+    
+    event = get_object_or_404(Event, id=event_id)
+    user_profile = request.user.profile
+    # Check registration conditions
+    if event.max_participants is not None and event.spots_left <= 0:
+        return JsonResponse({
+            'success': False, 
+            'error': 'No spots available. Join the waitlist.',
+            'spots_left': 0
+        })
+    
+    # Check if already registered
+    existing_registration = EventRegistration.objects.filter(
+        event=event,
+        participant=user_profile,
+        status__in=['registered', 'waitlist']
+    ).first()
+    
+    if existing_registration:
+        return JsonResponse({
+            'error': f'Already {existing_registration.get_status_display().lower()} for this event'
+        }, status=400)
+    
+    form = EventRegistrationForm(request.POST, event=event, user=request.user)
+    if not form.is_valid():
+        return JsonResponse({'error': form.errors}, status=400)
+        
+    try:
+        with transaction.atomic():
+            registration = form.save(commit=False)
+            registration.event = event
+            registration.participant = user_profile
+            registration.name = form.cleaned_data.get('name', request.user.get_full_name())
+            registration.email = form.cleaned_data.get('email', request.user.email)
+            registration.save()
+            
+            send_registration_email(registration)
+            
+            return JsonResponse({
+                'success': True,
+                'status': registration.status,
+                'message': ('Successfully registered' if registration.status == 'registered' 
+                          else f'Added to waitlist (Position: {registration.waitlist_position})'),
+                'waitlist_position': registration.waitlist_position,
+                'spots_left': event.spots_left()
+            })
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'Registration failed. Please try again.'}, status=500)
+
+@login_required
+def cancel_registration(request, event_id):
+    """Handle registration cancellation with waitlist promotion."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+        
+    registration = get_object_or_404(
+        EventRegistration,
+        event_id=event_id,
+        participant=request.user.profile
+    )
+    
+    try:
+        with transaction.atomic():
+            # Use the model's cancel_registration method
+            registration.cancel_registration()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Registration cancelled successfully',
+                'spots_left': registration.event.spots_left()
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# If you want to implement the attendees view later, here it is:
+@login_required
+def event_attendees(request, event_id):
+    """
+    Display list of attendees for an event
+    Only accessible by event organizers or admins
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if user is authorized to view attendees
+    if not (request.user.is_staff or event.organizer == request.user):
+        return HttpResponseForbidden("You don't have permission to view attendees.")
+    
+    registrations = EventRegistration.objects.filter(
+        event=event
+    ).select_related('participant').order_by('registration_date')
+    
+    context = {
+        'event': event,
+        'registrations': registrations,
+    }
+    return render(request, 'events/event_attendees.html', context)
+
+
+@login_required
+def waitlist_position(request, event_id):
+    """
+    Get current waitlist position for a user in an event
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    try:
+        registration = EventRegistration.objects.get(
+            event=event,
+            participant=request.user.profile,
+            status='waitlist'
+        )
+        return JsonResponse({
+            'success': True,
+            'position': registration.waitlist_position,
+            'total_waitlist': EventRegistration.objects.filter(
+                event=event,
+                status='waitlist'
+            ).count()
+        })
+    except EventRegistration.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Not on waitlist'
+        }, status=404)
+
+@login_required
+def event_status(request, event_id):
+    """
+    Get current event status including spots left and waitlist info
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Get user's registration if exists
+    registration = EventRegistration.objects.filter(
+        event=event,
+        participant=request.user.profile
+    ).first()
+    
+    # Count registrations
+    registered_count = EventRegistration.objects.filter(
+        event=event,
+        status='registered'
+    ).count()
+    
+    waitlist_count = EventRegistration.objects.filter(
+        event=event,
+        status='waitlist'
+    ).count()
+    
+    response_data = {
+        'success': True,
+        'total_spots': event.max_participants,
+        'spots_left': event.max_participants - registered_count if event.max_participants else None,
+        'registered_count': registered_count,
+        'waitlist_count': waitlist_count,
+        'is_full': event.max_participants and registered_count >= event.max_participants,
+        'user_status': {
+            'is_registered': False,
+            'status': None,
+            'waitlist_position': None
+        }
+    }
+    
+    if registration:
+        response_data['user_status'] = {
+            'is_registered': True,
+            'status': registration.status,
+            'waitlist_position': registration.waitlist_position if registration.status == 'waitlist' else None
+        }
+    
+    return JsonResponse(response_data)
