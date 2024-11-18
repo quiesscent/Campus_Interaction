@@ -1,5 +1,169 @@
-{% extends "base.html" %} {% block content %} {% load static %}
+{% extends "base.html" %} {% block title %}MarketPlace | Seller Dashboard{% endblock %}
+ {% block content %} {% load static %}
 <link rel="stylesheet" href="{% static '/css/marketplace/add_items.css' %}" />
+<style>
+  .notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 530px;
+  }
+
+  .notification {
+    display: flex;
+    align-items: center;
+    background-color: #4caf50;
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    animation: slideIn 0.5s ease, slideOut 0.5s ease 4s forwards;
+    position: relative;
+    overflow: hidden;
+  }
+  .icon {
+    display: flex;
+    align-items: center;
+    padding-right: 12px; /* Space between icon and border */
+    margin-right: 12px; /* Space between border and message */
+    border-right: 2px solid #ccc; /* Visible border */
+  }
+
+  .icon i {
+    font-size: 1.5em;
+    color: white; /* Icon color */
+  }
+  .notification .icon {
+    font-size: 1.5em;
+    margin-right: 10px;
+  }
+
+  .notification .message {
+    flex-grow: 1;
+    font-size: 1em;
+  }
+
+  /* Close Button */
+  .close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    font-size: 1.5em;
+    color: white;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: color 0.3s ease;
+  }
+
+  .close-button i {
+    color: white;
+  }
+
+  .close-button:hover i {
+    color: #ff6666;
+  }
+
+  .notification .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.8);
+    width: 100%;
+  }
+
+  @keyframes slideIn {
+    0% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideOut {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes progress {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .notification-container {
+      top: 10px;
+      right: 10px;
+      width: 90%;
+    }
+
+    .notification {
+      padding: 12px;
+    }
+
+    .notification .icon {
+      font-size: 1.3em;
+    }
+
+    .notification .close-button {
+      font-size: 1em;
+      margin-left: 8px;
+    }
+  }
+</style>
+
+{% if success_message %}
+<div class="notification-container">
+  <div class="notification">
+    <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="message">{{ success_message }}</div>
+    <div
+      class="close-button"
+      onclick="this.parentElement.style.display='none';"
+    >
+      <i class="fa-solid fa-circle-xmark"></i>
+    </div>
+    <div class="progress-bar"></div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const notification = document.querySelector(".notification");
+    const progressBar = document.querySelector(".progress-bar");
+
+    // Auto-fade out after 4 seconds
+    setTimeout(() => {
+      notification.classList.add("fade-out");
+    }, 4000);
+
+    // Shrink progress bar over time
+    progressBar.style.animation = "progress 4s linear forwards";
+
+    // Remove the notification from DOM after fade out
+    notification.addEventListener("animationend", () => {
+      if (notification.classList.contains("fade-out")) {
+        notification.remove();
+      }
+    });
+  });
+</script>
 
 <div class="breadcrumb-option">
   <div class="container">
@@ -7,7 +171,7 @@
       <div class="col-lg-12">
         <div class="breadcrumb__links">
           <a href="{% url 'marketplace:item_list' %}"
-            ><i class="fa fa-shopping-bag" aria-hidden="true"></i> See Items</a
+            ><i class="fa fa-shopping-bag" aria-hidden="true"></i> All Items</a
           >
           <span>Seller Dashboard</span>
         </div>
@@ -15,25 +179,6 @@
     </div>
   </div>
 </div>
-<section>
-  {% if success_message %}
-  <div class="container-fluid text-center">
-    <div class="row">
-      <div class="col-xs-12 col-sm-6 col-sm-offset-3">
-        <div class="new-message-box">
-          <div class="new-message-box-alert">
-            <div class="info-tab tip-icon-alert" title="error"><i></i></div>
-            <div class="tip-box-alert">
-              <p>{{ success_message }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-</section>
-
 <section class="shop-cart spad">
   <div class="container">
     <div class="row">
@@ -55,6 +200,7 @@
                 class="cart-item"
                 data-price="{{ item.price }}"
                 data-sold="{{ item.sold }}"
+                data-new-price="{{ item.new_price }}"
               >
                 <td class="cart__product__item">
                   <img
@@ -93,11 +239,8 @@
                   </div>
                 </td>
                 <td class="cart__price">
-                  {% if item.new_price %}
-                    Ksh {{ item.new_price }}
-                  {% else %}
-                    Ksh {{ item.price }}
-                  {% endif %}
+                  {% if item.new_price %} Ksh {{ item.new_price }} {% else %}
+                  Ksh {{ item.price }} {% endif %}
                 </td>
                 <td class="cart__quantity">
                   <style>
@@ -214,7 +357,10 @@
                       "
                     >
                       <span class="icon_close"
-                        ><i class="fa fa-times" aria-hidden="true"></i
+                        ><i
+                          class="fa-solid fa-circle-xmark"
+                          aria-hidden="true"
+                        ></i
                       ></span>
                     </button>
                   </form>
@@ -250,7 +396,7 @@
           <h6>Product Interest Alerts</h6>
           <p>
             Stay updated with the latest notifications regarding the products
-            you are interested in.
+            you are selling.
           </p>
 
           <!-- Section: New Product Interest Notifications -->
@@ -299,14 +445,6 @@
               margin-bottom: 20px;
             "
           />
-
-          <!-- Section: Following Product Notifications -->
-          <h6>Following Product Notifications</h6>
-          <hr style="border-top: 2px solid #28a745" />
-          <div class="alert alert-success" role="alert">
-            <strong>Success!</strong> You are now following
-            <strong>Product Title</strong> for future updates.
-          </div>
         </div>
       </div>
       <style>
@@ -378,78 +516,87 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-      let subtotal = 0;
-      let total = 0;
+    let subtotal = 0;
+    let total = 0;
 
-      document.querySelectorAll('.cart-item').forEach(item => {
-          let price = parseFloat(item.getAttribute('data-price'));
-          let sold = item.getAttribute('data-sold') === 'True';
+    // Loop through each cart item
+    document.querySelectorAll('.cart-item').forEach(item => {
+        // Get price and new price data attributes
+        let price = parseFloat(item.getAttribute('data-price'));
+        let newPrice = parseFloat(item.getAttribute('data-new-price')) || price;  // Use new_price if exists, otherwise use price
+        let sold = item.getAttribute('data-sold') === 'True';
 
-          if (!sold) {
-              subtotal += price;
-          }
-      });
+        // If item is not sold, calculate with the appropriate price
+        if (!sold) {
+            subtotal += newPrice;
+        }
+    });
 
-      document.getElementById('subtotal').textContent = `Ksh ${subtotal.toFixed(2)}`;
-      document.getElementById('total').textContent = `Ksh ${subtotal.toFixed(2)}`;
+    // Update the subtotal and total on the page
+    document.getElementById('subtotal').textContent = `Ksh ${subtotal.toFixed(2)}`;
+    document.getElementById('total').textContent = `Ksh ${subtotal.toFixed(2)}`;
 
-      let months = {{ months|safe }};
-      let totalSales = {{ total_sales|safe }};
+    // Fetch months and total_sales data from Django template context
+    let months = {{ months|safe }};
+    let totalSales = {{ total_sales|safe }};
 
-      document.getElementById('showGraphBtn').addEventListener('click', function(e) {
-          e.preventDefault();
-          let graphCanvas = document.getElementById('salesGraph');
-          let graphContainer = document.getElementById('salesGraphContainer');
+    // Set up the graph when button is clicked
+    document.getElementById('showGraphBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        let graphCanvas = document.getElementById('salesGraph');
+        let graphContainer = document.getElementById('salesGraphContainer');
 
-          graphContainer.style.display = graphContainer.style.display === 'none' ? 'block' : 'none';
+        // Toggle the graph visibility
+        graphContainer.style.display = graphContainer.style.display === 'none' ? 'block' : 'none';
 
-          if (graphContainer.style.display === 'block') {
-              new Chart(graphCanvas, {
-                  type: 'line',
-                  data: {
-                      labels: months,
-                      datasets: [{
-                          label: 'Total Sales per Month (Ksh)',
-                          data: totalSales,
-                          borderColor: 'rgba(75, 192, 192, 1)',
-                          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                          fill: true,
-                          borderWidth: 2
-                      }]
-                  },
-                  options: {
-                      responsive: true,
-                      scales: {
-                          y: {
-                              beginAtZero: true,
-                              ticks: {
-                                  callback: function(value) { return 'Ksh ' + value.toFixed(2); }
-                              }
-                          },
-                          x: {
-                              title: {
-                                  display: true,
-                                  text: 'Month'
-                              }
-                          }
-                      },
-                      plugins: {
-                          legend: {
-                              display: false
-                          },
-                          tooltip: {
-                              callbacks: {
-                                  label: function(tooltipItem) {
-                                      return 'Ksh ' + tooltipItem.raw.toFixed(2);
-                                  }
-                              }
-                          }
-                      }
-                  }
-              });
-          }
-      });
-  });
+        // If graph is shown, render the chart
+        if (graphContainer.style.display === 'block') {
+            new Chart(graphCanvas, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Total Sales per Month (Ksh)',
+                        data: totalSales,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return 'Ksh ' + value.toFixed(2); }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return 'Ksh ' + tooltipItem.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+});
+
 </script>
-
 {% endblock %}
