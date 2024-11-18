@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from django.contrib import messages
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,6 +32,7 @@ INSTALLED_APPS = [
     "feeds",
     "forums",
     "rest_framework",
+    "resources",
     'django_filters',
 ]
 
@@ -152,3 +154,10 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}

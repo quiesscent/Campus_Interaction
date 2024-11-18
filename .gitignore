@@ -12,6 +12,8 @@ env/
 .env/
 .venv/
 ENV/
+lib/
+bin/
 
 # Django-specific
 *.sqlite3
