@@ -1,4 +1,5 @@
-{% extends 'base.html' %} {% load static %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}CampHub |
+MarketPlace{% endblock %}{% block content %}
 <!-- <link rel="stylesheet" href="{% static '/css/marketplace/add_items.css' %}" /> -->
 <link
   rel="stylesheet"
@@ -11,20 +12,7 @@
       no-repeat center center;
     background-size: cover;
     margin-top: -6.2%;
-    position: relative; /* Added for better layering */
-  }
-
-  /* Additional Responsiveness for smaller screens */
-  @media (max-width: 576px) {
-    #header {
-      margin-top: -11.7%;
-    }
-    .carousel-inner h1 {
-      font-size: 36px; /* Reduce title size for smaller screens */
-    }
-    .carousel-inner h2 {
-      font-size: 28px; /* Reduce subtitle size for smaller screens */
-    }
+    position: relative;
   }
 
   .carousel-inner h1 {
@@ -37,14 +25,12 @@
     transition: all 0.3s ease;
   }
 
-  /* Hover effect for buttons */
   .carousel-item .btn:hover {
     border-color: var(--pink) !important;
-    background-color: var(--pink); /* Adds a hover effect */
-    color: #fff; /* Text color on hover */
+    background-color: var(--pink);
+    color: #fff;
   }
 
-  /* Title styling */
   .title h2::before {
     position: absolute;
     content: "";
@@ -53,8 +39,6 @@
     background-color: var(--pink);
     left: -20px;
     top: 50%;
-    -webkit-transform: translateY(-50%);
-    -ms-transform: translateY(-50%);
     transform: translateY(-50%);
   }
 
@@ -69,40 +53,230 @@
     padding: 10px 20px;
   }
 
-  /* Font Import */
-  @import url("https://fonts.googleapis.com/css2?family=Anton&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Rubik+Wet+Paint&family=Sour+Gummy:ital,wght@0,100..900;1,100..900&display=swap");
-
-  /* Custom Font for Title */
-  #header .title1 {
-    font-family: "Anton", sans-serif;
-    font-weight: 600;
-    font-style: normal;
-    font-size: 34px;
-  }
-
-  /* Add additional styling for smaller screens */
   @media (max-width: 768px) {
+    #header {
+      margin-top: -5%;
+    }
+
     .carousel-inner h1 {
-      font-size: 48px; /* Adjust font size for medium screens */
+      font-size: 48px;
     }
+
     .carousel-inner h2 {
-      font-size: 36px; /* Adjust font size for medium screens */
+      font-size: 36px;
+    }
+
+    .carousel-item .btn {
+      font-size: 18px;
+      padding: 8px 15px;
     }
   }
 
-  /* Button Styles */
-  .btn-outline-light {
-    color: #fff;
-    border-color: #fff;
-    transition: all 0.3s ease;
+  @media (max-width: 576px) {
+    #header {
+      margin-top: -11.7%;
+    }
+
+    .carousel-inner h1 {
+      font-size: 36px;
+    }
+
+    .carousel-inner h2 {
+      font-size: 28px;
+    }
+
+    .carousel-item .btn {
+      font-size: 16px;
+      padding: 8px 12px;
+    }
+
+    .text-center .title1 {
+      font-size: 28px;
+    }
   }
 
-  .btn-outline-light:hover {
-    background-color: #fff;
-    color: var(--pink);
-    border-color: var(--pink);
+  @media (max-width: 480px) {
+    .carousel-inner h1 {
+      font-size: 30px;
+    }
+
+    .carousel-inner h2 {
+      font-size: 24px;
+    }
+
+    .carousel-item .btn {
+      font-size: 14px;
+      padding: 6px 10px;
+    }
+
+    .text-center .title1 {
+      font-size: 24px;
+    }
   }
 </style>
+
+<style>
+  .notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 530px;
+  }
+
+  .notification {
+    display: flex;
+    align-items: center;
+    background-color: #4caf50;
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    animation: slideIn 0.5s ease, slideOut 0.5s ease 4s forwards;
+    position: relative;
+    overflow: hidden;
+  }
+  .icon {
+    display: flex;
+    align-items: center;
+    padding-right: 12px; /* Space between icon and border */
+    margin-right: 12px; /* Space between border and message */
+    border-right: 2px solid #ccc; /* Visible border */
+  }
+
+  .icon i {
+    font-size: 1.5em;
+    color: white; /* Icon color */
+  }
+  .notification .icon {
+    font-size: 1.5em;
+    margin-right: 10px;
+  }
+
+  .notification .message {
+    flex-grow: 1;
+    font-size: 1em;
+  }
+
+  /* Close Button */
+  .close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    font-size: 1.5em;
+    color: white;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: color 0.3s ease;
+  }
+
+  .close-button i {
+    color: white;
+  }
+
+  .close-button:hover i {
+    color: #ff6666;
+  }
+
+  .notification .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.8);
+    width: 100%;
+  }
+
+  @keyframes slideIn {
+    0% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideOut {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes progress {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .notification-container {
+      top: 10px;
+      right: 10px;
+      width: 90%;
+    }
+
+    .notification {
+      padding: 12px;
+    }
+
+    .notification .icon {
+      font-size: 1.3em;
+    }
+
+    .notification .close-button {
+      font-size: 1em;
+      margin-left: 8px;
+    }
+  }
+</style>
+{% if success_message %}
+<div class="notification-container">
+  <div class="notification">
+    <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="message">{{ success_message }}</div>
+    <div
+      class="close-button"
+      onclick="this.parentElement.style.display='none';"
+    >
+      <i class="fa-solid fa-circle-xmark"></i>
+    </div>
+    <div class="progress-bar"></div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const notification = document.querySelector(".notification");
+    const progressBar = document.querySelector(".progress-bar");
+
+    // Auto-fade out after 4 seconds
+    setTimeout(() => {
+      notification.classList.add("fade-out");
+    }, 4000);
+
+    // Shrink progress bar over time
+    progressBar.style.animation = "progress 4s linear forwards";
+
+    // Remove the notification from DOM after fade out
+    notification.addEventListener("animationend", () => {
+      if (notification.classList.contains("fade-out")) {
+        notification.remove();
+      }
+    });
+  });
+</script>
 <!-- header -->
 <header
   id="header"
@@ -168,7 +342,7 @@
     right: 20px;
     display: flex;
     z-index: 1000;
-    gap: 10px; /* Space between the buttons */
+    gap: 10px;
   }
 
   .floating-buttons .btn {
@@ -183,11 +357,37 @@
   }
 
   .floating-buttons .btn-add {
-    background-color: #28a745; /* Green for Add Items */
+    background-color: #28a745;
   }
 
   .floating-buttons .btn-dashboard {
-    background-color: #ffc107; /* Yellow for Dashboard */
+    background-color: #ffc107;
+  }
+
+  @media (max-width: 768px) {
+    .floating-buttons {
+      bottom: 15px;
+      right: 15px;
+      gap: 8px;
+    }
+
+    .floating-buttons .btn {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .floating-buttons {
+      bottom: 10px;
+      right: 10px;
+      gap: 6px;
+    }
+
+    .floating-buttons .btn {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 </style>
 <div class="floating-buttons">
@@ -305,7 +505,7 @@
             src="{% static 'images/default_marketplace/electronics.jpg' %}"
             alt="Electronics Category"
           />
-          <a href="product.html" class="block1-txt">
+          <a href="#shopSection" class="block1-txt">
             <div class="block1-txt-child1">
               <span class="block1-name"> Electronics </span>
               <span class="block1-info"> Latest Gadgets </span>
@@ -323,7 +523,7 @@
             src="{% static 'images/default_marketplace/fashion.jpg' %}"
             alt="Fashion Category"
           />
-          <a href="product.html" class="block1-txt">
+          <a href="#shopSection" class="block1-txt">
             <div class="block1-txt-child1">
               <span class="block1-name"> Fashion </span>
               <span class="block1-info"> Trending Styles </span>
@@ -341,7 +541,7 @@
             src="{% static 'images/default_marketplace/books.jpg' %}"
             alt="Books Collection"
           />
-          <a href="product.html" class="block1-txt">
+          <a href="#shopSection" class="block1-txt">
             <div class="block1-txt-child1">
               <span class="block1-name"> Books & Literature </span>
               <span class="block1-info"> Find Your Next Read </span>
@@ -363,9 +563,11 @@
       outline: none;
       gap: 20px;
     }
+
     .category-button:hover {
       border-bottom: 1px solid #ccc;
     }
+
     .p-b-10 {
       padding-bottom: 10px;
     }
@@ -448,6 +650,7 @@
     .pointer {
       cursor: pointer;
     }
+
     .hov-btn3 {
       border: 1px solid #ccc;
     }
@@ -474,6 +677,7 @@
     .dis-none {
       display: none;
     }
+
     .bor8 {
       border: 1px solid #e6e6e6;
       border-radius: 4px;
@@ -510,17 +714,19 @@
     .p-r-15 {
       padding-right: 15px;
     }
+
     .headline {
       text-transform: uppercase;
       color: #000;
       font-size: 34px;
       font-weight: 800;
     }
+
     .category-button.active {
       border-bottom: 1px solid #000;
       color: #000;
     }
-    /* Container styling */
+
     .panel-search {
       display: none;
       width: 100%;
@@ -528,7 +734,6 @@
       padding-bottom: 15px;
     }
 
-    /* Search bar container */
     .panel-search .bor8 {
       border: 1px solid #ddd;
       border-radius: 4px;
@@ -540,7 +745,6 @@
       background-color: transparent;
     }
 
-    /* Search button/icon */
     .panel-search .size-113 {
       font-size: 14px;
       color: #333;
@@ -551,7 +755,6 @@
       align-items: center;
     }
 
-    /* Search input */
     .panel-search .mtext-107 {
       border: none;
       outline: none;
@@ -563,14 +766,14 @@
     }
 
     .panel-search .mtext-107::placeholder {
-      color: #666; /* Slightly darker placeholder color */
+      color: #666;
     }
+
     .panel-search .size-113 i {
       margin-right: 8px;
     }
-    
   </style>
-  <section class="bg0 p-t-23 p-b-140" style="margin-top: 40px;" id="shopSection">
+  <section class="bg0 p-t-23 p-b-140" style="margin-top: 40px" id="shopSection">
     <div class="container">
       <div class="p-b-10">
         <h3 class="ltext-103 cl5 headline">Product Overview</h3>
@@ -807,10 +1010,10 @@
           vertical-align: middle;
         }
         .product-price {
-  font-family: 'Roboto', sans-serif;
-  color: #666;
-  font-size: 14px;
-}
+          font-family: "Roboto", sans-serif;
+          color: #666;
+          font-size: 14px;
+        }
 
         @media (max-width: 1200px) {
           .product-grid {
@@ -936,10 +1139,7 @@
         </div>
         {% endfor %}
       </div>
-      <div
-        id="no-products-message"
-        style="display: none; text-align: center; margin-top: 20px"
-      >
+      <div id="no-products-message" style="display: none; text-align: center">
         <p>
           No products available in this category.
           <a href="{% url 'marketplace:add_item' %}">Add a product</a>
@@ -1181,12 +1381,13 @@
     .all-in-on {
       background-color: #fff;
       padding: 10px;
+      margin-bottom: 30px;
     }
 
     /* Trend Section Styles */
     .spad {
-      padding: 80px 0;
-      border-bottom: 1px solid #ccc;
+      padding: 10px 20px;
+      /* border-bottom: 1px solid #ccc; */
     }
 
     .section-title {
@@ -1324,8 +1525,14 @@
     }
   </style>
   <div class="all-in-on">
-    <section class="trend spad">
+    {% if hot_trend_items or best_seller_items or feature_items %}
+    <section class="trend spad" style="border-bottom: 1px solid #ccc">
       <div class="container">
+        <!-- <div class="section-header text-center">
+          <h2 class="services-title">Featured & Top Products</h2>
+          <p class="services-subtitle">Explore trending and top-rated items.</p>
+        </div> -->
+
         <div class="row">
           {% if hot_trend_items %}
           <div class="col-lg-4 col-md-4 col-sm-6">
@@ -1412,12 +1619,14 @@
         </div>
       </div>
     </section>
+    {% endif %}
 
     <!-- Services Section Begin -->
     <style>
       /* Services Section Styles */
       .services {
-        padding: 80px 0;
+        padding: 15px 10px;
+        margin-bottom: 20px;
       }
 
       .services__item {
@@ -1447,6 +1656,41 @@
         margin-bottom: 0;
       }
 
+      @media (max-width: 767px) {
+        .services {
+          padding: 60px 0;
+        }
+
+        .services__item {
+          padding: 20px 15px;
+          flex: 0 0 48%;
+          margin-bottom: 20px;
+        }
+
+        .services__item i {
+          font-size: 30px;
+          margin-bottom: 12px;
+        }
+
+        .services__item h6 {
+          font-size: 15px;
+        }
+
+        .services__item p {
+          font-size: 13px;
+        }
+
+        .services {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+        }
+
+        .services__item:nth-child(odd) {
+          margin-right: 4%;
+        }
+      }
+
       /* Responsive Styles */
       @media (max-width: 767px) {
         .services {
@@ -1470,10 +1714,70 @@
           font-size: 13px;
         }
       }
+      .section-header {
+        margin-bottom: 40px;
+        text-align: center;
+      }
+
+      .services-title {
+        font-size: 36px;
+        font-weight: bold;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+      }
+
+      .services-subtitle {
+        font-size: 18px;
+        color: #777;
+        font-style: italic;
+        margin-bottom: 30px;
+      }
+
+      @media (max-width: 768px) {
+        .services-title {
+          font-size: 28px;
+          letter-spacing: 1px;
+        }
+
+        .services-subtitle {
+          font-size: 16px;
+          margin-bottom: 20px;
+        }
+
+        .section-header {
+          margin-bottom: 20px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .services-title {
+          font-size: 24px;
+          letter-spacing: 0;
+        }
+
+        .services-subtitle {
+          font-size: 14px;
+          margin-bottom: 15px;
+        }
+
+        .section-header {
+          margin-bottom: 10px;
+        }
+      }
     </style>
     <!-- Services Section HTML -->
     <section class="services spad">
       <div class="container">
+        <div class="section-header text-center">
+          <h2 class="services-title">Our Key Services</h2>
+          <p class="services-subtitle">
+            We offer a wide range of services to make buying and selling easy,
+            secure, and efficient.
+          </p>
+        </div>
+
         <div class="row">
           <div class="col-lg-3 col-md-4 col-sm-6">
             <div class="services__item">
