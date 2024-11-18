@@ -1,6 +1,6 @@
 #events/forms.py
 from django import forms
-from .models import Event, Comment, EventRegistration
+from .models import Event, Comment, EventRegistration,Reply
 
 
 class EventForm(forms.ModelForm):
@@ -90,16 +90,30 @@ class CommentForm(forms.ModelForm):
             raise forms.ValidationError("Comment content cannot be empty.")
         return content.strip()
 
+class ReplyForm(forms.ModelForm):
+    class Meta:
+        model = Reply
+        fields = ['content']
 
 
 class EventRegistrationForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        # Extract custom arguments
+        event = kwargs.pop('event', None)
+        user = kwargs.pop('user', None)
+          # Call the parent class's __init__
+        super().__init__(*args, **kwargs)
+        
+        # Add any custom initialization logic using event and user
+        if event:
+            self.event = event
+        if user:
+            self.user = user
     class Meta:
         model = EventRegistration
         fields = []
 
-    def __init__(self, *args, **kwargs):
-        self.event = kwargs.pop('event', None)
-        super().__init__(*args, **kwargs)
+   
 
     def clean(self):
         if self.event and self.event.max_participants:
