@@ -1,6 +1,6 @@
 #events/forms.py
 from django import forms
-from .models import Event, Comment, EventRegistration,Reply
+from .models import Event, Comment, EventRegistration
 
 
 class EventForm(forms.ModelForm):
@@ -90,10 +90,6 @@ class CommentForm(forms.ModelForm):
             raise forms.ValidationError("Comment content cannot be empty.")
         return content.strip()
 
-class ReplyForm(forms.ModelForm):
-    class Meta:
-        model = Reply
-        fields = ['content']
 
 
 class EventRegistrationForm(forms.ModelForm):
