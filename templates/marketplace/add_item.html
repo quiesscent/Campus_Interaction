@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block content %} {% load static %}
+{% extends "base.html" %}  {% block title %} MarketPlace | Add Item{% endblock %} {% block content %} {% load static %}
 <link rel="stylesheet" href="{% static '/css/marketplace/add_items.css' %}" />
 <div class="breadcrumb-option">
   <div class="container">
@@ -18,214 +18,165 @@
   .showcase {
     margin-top: 5%;
   }
-  @media (max-width: 768px) {
-    .showcase {
-      margin-top: 10%;
-    }
-  }
-  @media only screen and (min-width: 320px) {
-  }
+  .notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 530px;
+}
 
-  @media only screen and (min-width: 480px) {
-  }
+.notification {
+  display: flex;
+  align-items: center;
+  background-color: #ff6666;
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  animation: slideIn 0.5s ease, slideOut 0.5s ease 4s forwards;
+  position: relative;
+  overflow: hidden;
+}
+.icon {
+  display: flex;
+  align-items: center;
+  padding-right: 12px; /* Space between icon and border */
+  margin-right: 12px; /* Space between border and message */
+  border-right: 2px solid #ccc; /* Visible border */
+}
 
-  @media only screen and (min-width: 768px) {
-  }
+.icon i {
+  font-size: 1.5em;
+  color: white; /* Icon color */
+}
+.notification .icon {
+  font-size: 1.5em;
+  margin-right: 10px;
+}
 
-  @media only screen and (min-width: 992px) {
-  }
+.notification .message {
+  flex-grow: 1;
+  font-size: 1em;
+}
 
-  @media only screen and (min-width: 1200px) {
-  }
+/* Close Button */
+.close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-size: 1.5em;
+  color: white;
+  cursor: pointer;
+  margin-left: 12px;
+  transition: color 0.3s ease;
+}
 
-  @media only screen and (max-width: 1200px) {
-  }
+.close-button i {
+  color: white; 
+}
 
-  @media only screen and (max-width: 992px) {
-  }
+.close-button:hover i {
+  color: #fcff66; 
+}
 
-  @media only screen and (max-width: 768px) {
-  }
+.notification .progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+  width: 100%;
+}
 
-  @media only screen and (max-width: 480px) {
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
   }
-
-  @media only screen and (max-width: 320px) {
+  100% {
+    opacity: 1;
+    transform: translateX(0);
   }
+}
 
-  @media only screen and (max-width: 1200px) {
+@keyframes slideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
   }
-
-  @media only screen and (max-width: 979px) {
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
   }
+}
 
-  @media only screen and (max-width: 767px) {
+@keyframes progress {
+  from {
+    width: 100%;
   }
-
-  @media only screen and (max-width: 480px) {
-  }
-
-  @media only screen and (max-width: 320px) {
-  }
-
-  @media only screen and (min-width: 960px) {
-  }
-
-  @media only screen and (min-width: 1440px) {
-  }
-
-  @media only screen and (min-width: 2000px) {
-  }
-
-  @media only screen and (max-device-width: 480px) {
-  }
-
-  @media only screen and (device-width: 768px) {
-  }
-
-  @media only screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation: portrait) {
-  }
-
-  @media only screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation: landscape) {
-  }
-
-  .new-message-box {
-    margin: 15px 0;
-    padding-left: 20px;
-    margin-bottom: 25px !important;
-  }
-
-  .new-message-box p {
-    font-size: 1.15em;
-    font-weight: 600;
-  }
-
-  .info-tab {
-    width: 40px;
-    height: 40px;
-    display: inline-block;
-    position: relative;
-    top: 8px;
-  }
-
-  .info-tab {
-    float: left;
-    margin-left: -23px;
-  }
-
-  .info-tab i::before {
-    width: 24px;
-    height: 24px;
-    box-shadow: inset 12px 0 13px rgba(0, 0, 0, 0.5);
-  }
-
-  .info-tab i::after {
+  to {
     width: 0;
-    height: 0;
-    border: 12px solid transparent;
-    border-bottom-color: #fff;
-    border-left-color: #fff;
-    bottom: -18px;
   }
+}
 
-  .info-tab i::before,
-  .info-tab i::after {
-    content: "";
-    display: inline-block;
-    position: absolute;
-    left: 0;
-    bottom: -17px;
-    transform: rotateX(60deg);
-  }
-
-  .note-box,
-  .warning-box,
-  .tip-box-success,
-  .tip-box-danger,
-  .tip-box-warning,
-  .tip-box-info,
-  .tip-box-alert {
-    padding: 12px 8px 3px 26px;
-  }
-
-  .new-message-box-alert {
-    background: #ff6f00;
-    padding: 3px;
-    margin: 10px 0;
-    position: fixed; /* Fixed positioning to place it at the top */
-    top: 30px;
+@media (max-width: 767px) {
+  .notification-container {
+    top: 10px;
     right: 10px;
-    z-index: 1000;
-    width: auto;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5); /* Optional: shadow for better visibility */
+    width: 90%;
   }
 
-  .tip-box-alert {
-    color: #212121;
-    background: #fff8e1;
+  .notification {
+    padding: 12px;
   }
 
-  .tip-icon-alert {
-    background: #ff6f00;
+  .notification .icon {
+    font-size: 1.3em;
   }
 
-  .tip-icon-alert::before {
-    font-size: 25px;
-    content: "\f06a";
-    top: 8px;
-    left: 11px;
-    font-family: FontAwesome;
-    position: absolute;
-    color: white;
+  .notification .close-button {
+    font-size: 1em;
+    margin-left: 8px;
   }
+}
 
-  .tip-icon-alert i::before {
-    background: #ff6f00;
-  }
+
 </style>
-<section>
-  {% if error_message %}
-  <div class="container-fluid text-center">
-    <div class="row">
-      <div class="col-xs-12 col-sm-6 col-sm-offset-3">
-        <div class="new-message-box">
-          <div class="new-message-box-alert">
-            <div class="info-tab tip-icon-alert" title="error"><i></i></div>
-            <div class="tip-box-alert">
-              <!--<p><strong>Tip:</strong> If you want to enable the fading transition effect while closing the alert boxes, apply the classes <code>.fade</code> and <code>.in</code> to them along with the contextual class.</p>-->
-              <p>{{ error_message }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+{% if error_message %}
+  <div class="notification-container">
+    <div class="notification">
+      <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+      <div class="message">{{ error_message }}</div>
+      <div class="close-button" onclick="this.parentElement.style.display='none';"><i class="fa-solid fa-circle-xmark"></i></div>
+      <div class="progress-bar"></div>
     </div>
   </div>
-  {% endif %}
-</section>
+{% endif %}
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const errorMessage = document.querySelector(".new-message-box-alert");
+  document.addEventListener("DOMContentLoaded", function() {
+    const notification = document.querySelector(".notification");
+    const progressBar = document.querySelector(".progress-bar");
 
-    if (errorMessage) {
-      // Make the error message disappear on click
-      errorMessage.addEventListener("click", function () {
-        errorMessage.style.transition = "opacity 0.5s ease-out";
-        errorMessage.style.opacity = "0";
+    // Auto-fade out after 4 seconds
+    setTimeout(() => {
+      notification.classList.add("fade-out");
+    }, 4000);
 
-        errorMessage.addEventListener("transitionend", function () {
-          errorMessage.remove();
-        });
-      });
+    // Shrink progress bar over time
+    progressBar.style.animation = "progress 4s linear forwards";
 
-      // Optionally, automatically hide the message after a timeout (like 5 seconds)
-      setTimeout(function () {
-        errorMessage.style.transition = "opacity 0.5s ease-out";
-        errorMessage.style.opacity = "0";
-      }, 5000);
-    }
+    // Remove the notification from DOM after fade out
+    notification.addEventListener("animationend", () => {
+      if (notification.classList.contains("fade-out")) {
+        notification.remove();
+      }
+    });
   });
 </script>
+
 
 <section>
   <div class="container showcase">
