@@ -70,21 +70,34 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error updating status display:', error);
         }
     }
-
     async function handleRegistration(e) {
         e.preventDefault();
+        
+        // Prevent multiple submissions
         if (isRegistrationInProgress) return;
         
+        // Clear previous alerts
         clearAlerts();
-        isRegistrationInProgress = true;
         
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        }
+        // Disable submit button and show loading state
+        isRegistrationInProgress = true;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         
         try {
+            // Validate form data client-side
+            const nameInput = document.getElementById('id_name');
+            const emailInput = document.getElementById('id_email');
+            
+            if (!nameInput.value.trim() || !emailInput.value.trim()) {
+                throw new Error('Please fill in all required fields');
+            }
+            
             const formData = new FormData(form);
+            
+            // Add additional debugging information
+            formData.append('debug', 'frontend_submission');
+            
             const response = await fetch(`/events/event/${eventId}/register/`, {
                 method: 'POST',
                 body: formData,
@@ -94,28 +107,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
+            // Parse response
             const data = await response.json();
             
+            // Handle response
             if (data.success) {
+                // Immediate success handling
                 showAlert('success', data.message);
-                await checkEventStatus(); // Update UI with new status
+                
+                // Reload page or update UI
                 setTimeout(() => {
                     registrationModal.hide();
-                    location.reload(); // Reload to get fresh registration status
+                    location.reload(); // Ensures fresh state
                 }, 1500);
             } else {
-                handleErrors(data.error);
+                // Handle specific error
+                throw new Error(data.error || 'Registration failed');
             }
         } catch (error) {
-            showAlert('danger', 'An error occurred. Please try again.');
+            // Show error message
+            showAlert('danger', error.message || 'An unexpected error occurred');
+            
+            // Log error for debugging
+            console.error('Registration error:', error);
         } finally {
+            // Reset button state
             isRegistrationInProgress = false;
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = 'Register';
-            }
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Register';
         }
     }
+
 
     async function handleCancellation(e) {
         e.preventDefault();
