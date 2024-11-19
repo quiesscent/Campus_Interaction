@@ -144,9 +144,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-DEFAULT_FROM_EMAIL = ''
+EMAIL_HOST_USER = "camphub.ke@gmail.com"
+EMAIL_HOST_PASSWORD = "daqz qzkm ximp xpiy"
+DEFAULT_FROM_EMAIL = "camphub.ke@gmail.com"
 
 # Authentication Backend
 AUTHENTICATION_BACKENDS = [
@@ -154,6 +154,12 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 MESSAGE_TAGS = {
     messages.DEBUG: 'secondary',
     messages.INFO: 'info',
