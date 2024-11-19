@@ -65,7 +65,7 @@ class Event(models.Model):
             self.campus = self.organizer
         super().save(*args, **kwargs)
     @property
-    def spots_remaining(self):
+    def spots_left(self):
         if self.max_participants is None:
             return None
         registered_count = self.registrations.filter(status='registered').count()
@@ -129,8 +129,9 @@ class EventRegistration(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['event', 'participant'], 
-                name='unique_event_participant'
+                fields=['event', 'participant'],
+                condition=models.Q(status__in=['registered', 'waitlisted']),  # Only active registrations need to be unique
+                name='unique_active_registration'
             )
         ]
         ordering = ['registration_date']
