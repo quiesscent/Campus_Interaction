@@ -110,7 +110,7 @@ def event_detail(request, event_id):
             'name': request.user.get_full_name() or request.user.username,
             'email': request.user.email
         }),
-        'spots_left': event.spots_remaining,  # Fixed
+        'spots_left': event.spots_left,  # Fixed
         'is_waitlist_open': event.is_waitlist_open if hasattr(event, 'is_waitlist_open') else True  # Fixed
     }
     return render(request, 'events/event_detail.html', context)
@@ -443,6 +443,7 @@ def campus_autocomplete(request):
 
 # Update the registration view to handle name validation properly
 
+
 @login_required
 @require_http_methods(["POST"])
 def register_for_event(request, event_id):
@@ -450,42 +451,41 @@ def register_for_event(request, event_id):
     try:
         event = get_object_or_404(Event, id=event_id)
         user_profile = request.user.profile
-        
+
         # Check existing registration
         existing_registration = EventRegistration.objects.filter(
             event=event,
             participant=user_profile,
             status__in=['registered', 'waitlist']
         ).first()
-        
+
         if existing_registration:
-            return JsonResponse({
-                'error': f'Already {existing_registration.get_status_display().lower()} for this event'
-            }, status=400)
-        
+            # If it exists but was cancelled, delete it
+            existing_registration.delete()
+
         # Create and validate form
         form = EventRegistrationForm(
             request.POST,
             event=event,
             user=request.user
         )
-        
+
         if not form.is_valid():
+            logger.warning(f"Validation errors: {form.errors}")  # Log detailed validation errors
             return JsonResponse({
-                'error': dict(form.errors.items())
+                'error': "Invalid input. Please correct the errors and try again."
             }, status=400)
-            
+
         with transaction.atomic():
             registration = form.save(commit=False)
             registration.event = event
             registration.participant = user_profile
             registration.name = form.cleaned_data['name']
             registration.email = form.cleaned_data['email']
-            
+
             # Set status based on availability
             if event.is_full:
                 registration.status = 'waitlist'
-                # Get next waitlist position
                 last_position = EventRegistration.objects.filter(
                     event=event,
                     status='waitlist'
@@ -493,18 +493,18 @@ def register_for_event(request, event_id):
                 registration.waitlist_position = last_position + 1
             else:
                 registration.status = 'registered'
-            
+
             registration.save()
-            
+
             # Clear status cache
             cache.delete(f'event_status_{event_id}')
-            
+
             # Send confirmation email
             try:
                 send_registration_email(registration)
             except Exception as e:
                 logger.error(f"Failed to send email to {registration.email}: {str(e)}")
-            
+
             return JsonResponse({
                 'success': True,
                 'status': registration.status,
@@ -513,12 +513,14 @@ def register_for_event(request, event_id):
                 'waitlist_position': registration.waitlist_position,
                 'spots_left': event.spots_left
             })
-            
+
     except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        logger.error(f"Validation error: {str(e)}")  # Log exact error
+        return JsonResponse({'error': 'There was an issue with your request. Please check your input.'}, status=400)
     except Exception as e:
-        logger.error(f"Registration failed: {str(e)}")
-        return JsonResponse({'error': 'Registration failed. Please try again.'}, status=500)
+        logger.exception("Unhandled exception occurred during event registration")  # Use exception logging for stack trace
+        return JsonResponse({'error': 'An unexpected error occurred. Please try again later.'}, status=500)
+
 
 # Update the email sending function to handle name properly
 def send_registration_email(registration):
@@ -589,9 +591,10 @@ def cancel_registration(request, event_id):
             
             # Cancel the registration
             registration.cancel_registration()
-            
+            # Actually delete the registration
+            registration.delete()
             # Get updated spots count using the new method name
-            spots_remaining = event.spots_remaining,
+            spots_remaining = event.spots_left,
             
             return JsonResponse({
                 'success': True,
