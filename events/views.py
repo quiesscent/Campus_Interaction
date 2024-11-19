@@ -27,6 +27,7 @@ from django.http import HttpResponseForbidden
 from django.conf import settings
 from django.db.models import Max
 from django.core.cache import cache
+import logging
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -605,13 +606,15 @@ def cancel_registration(request, event_id):
             'error': 'Event not found'
         }, status=404)
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())  # Log the full error
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-# If you want to implement the attendees view later, here it is:
+        logger = logging.getLogger(__name__)
+        logger.error("An error occurred during registration cancellation", exc_info=True)  # Logs full stack trace for debugging
+    
+    # Return a generic error message to the user
+    return JsonResponse({
+        'success': False,
+        'error': 'An unexpected error occurred. Please try again later.'
+    }, status=500)
+
 @login_required
 def event_attendees(request, event_id):
     """
