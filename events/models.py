@@ -6,6 +6,7 @@ from profiles.models import Profile  # Use the Profile model from profiles app
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Max
 from rest_framework import serializers
+from django.db import transaction
 
 class EventCategory(models.Model):
     name = models.CharField(max_length=100, help_text="Enter the event category name.")
@@ -64,7 +65,7 @@ class Event(models.Model):
             self.campus = self.organizer
         super().save(*args, **kwargs)
     @property
-    def spots_left(self):
+    def spots_remaining(self):
         if self.max_participants is None:
             return None
         registered_count = self.registrations.filter(status='registered').count()
@@ -131,10 +132,6 @@ class EventRegistration(models.Model):
                 fields=['event', 'participant'], 
                 name='unique_event_participant'
             )
-            models.UniqueConstraint(
-                fields=['event', 'participant'], 
-                name='unique_event_participant'
-            )
         ]
         ordering = ['registration_date']
         indexes = [
@@ -179,125 +176,66 @@ class EventRegistration(models.Model):
         if self.status != 'waitlist':
             self.waitlist_position = None
             
-        self.full_clean()
+        super().save(*args, **kwargs)
+
+    
+    def cancel_registration(self):
+        """
+        Cancel this registration and move up waitlisted registrations if applicable.
+        """
+        with transaction.atomic():
+            was_registered = self.status == 'registered'
+            self.status = 'cancelled'
+            self.waitlist_position = None
+            self.save()
+            
+            if was_registered:
+                # Try to move the first waitlisted person to registered
+                next_waitlisted = EventRegistration.objects.filter(
+                    event=self.event,
+                    status='waitlist'
+                ).order_by('waitlist_position').first()
+                
+                if next_waitlisted:
+                    next_waitlisted.move_from_waitlist()
+            
+            return True
         
-        if not self.pk:  # New registration
+        def move_from_waitlist(self):
+            """
+            Attempt to move a waitlisted registration to registered status if space is available.
+            """
+            if self.status != 'waitlist':
+                return False
+                
             current_registrations = EventRegistration.objects.filter(
                 event=self.event, 
                 status='registered'
             ).count()
+                
+            # if not self.event.max_participants or current_registrations < self.event.max_participants:
+            #     self.status = 'registered'
+            #     self.waitlist_position = None
+            #     self.save()
+            spots_remaining = self.event.get_spots_remaining()
             
-            if self.event.max_participants and current_registrations >= self.event.max_participants:
-                self.status = 'waitlist'
-                last_position = EventRegistration.objects.filter(
+            if spots_remaining is None or spots_remaining > 0:
+                self.status = 'registered'
+                self.waitlist_position = None
+                self.save()  
+                # Reorder remaining waitlist
+                waitlist_registrations = EventRegistration.objects.filter(
                     event=self.event,
                     status='waitlist'
-                ).aggregate(Max('waitlist_position'))['waitlist_position__max'] or 0
-                self.waitlist_position = last_position + 1
-        
-        # Clear waitlist position if status is not waitlist
-        if self.status != 'waitlist':
-            self.waitlist_position = None
-            
-        super().save(*args, **kwargs)
-
-    def move_from_waitlist(self):
-        """
-        Attempt to move a waitlisted registration to registered status if space is available.
-        """
-        if self.status != 'waitlist':
-            return False
-            
-        current_registrations = EventRegistration.objects.filter(
-            event=self.event, 
-            status='registered'
-        ).count()
-            
-        if not self.event.max_participants or current_registrations < self.event.max_participants:
-            self.status = 'registered'
-            self.waitlist_position = None
-            self.save()
-            
-            # Reorder remaining waitlist
-            waitlist_registrations = EventRegistration.objects.filter(
-                event=self.event,
-                status='waitlist'
-            ).order_by('waitlist_position')
-            
-            for i, registration in enumerate(waitlist_registrations, 1):
-                registration.waitlist_position = i
-                registration.save()
+                ).order_by('waitlist_position')
                 
-            return True
-        return False
-
-    def cancel_registration(self):
-        """
-        Cancel this registration and move up waitlisted registrations if applicable.
-        """
-        was_registered = self.status == 'registered'
-        self.status = 'cancelled'
-        self.waitlist_position = None
-        self.save()
-        
-        if was_registered:
-            # Try to move the first waitlisted person to registered
-            next_waitlisted = EventRegistration.objects.filter(
-                event=self.event,
-                status='waitlist'
-            ).order_by('waitlist_position').first()
-            
-            if next_waitlisted:
-                next_waitlisted.move_from_waitlist()
-
-    def move_from_waitlist(self):
-        """
-        Attempt to move a waitlisted registration to registered status if space is available.
-        """
-        if self.status != 'waitlist':
+                for i, registration in enumerate(waitlist_registrations, 1):
+                    registration.waitlist_position = i
+                    registration.save()
+                    
+                return True
             return False
-            
-        current_registrations = EventRegistration.objects.filter(
-            event=self.event, 
-            status='registered'
-        ).count()
-            
-        if not self.event.max_participants or current_registrations < self.event.max_participants:
-            self.status = 'registered'
-            self.waitlist_position = None
-            self.save()
-            
-            # Reorder remaining waitlist
-            waitlist_registrations = EventRegistration.objects.filter(
-                event=self.event,
-                status='waitlist'
-            ).order_by('waitlist_position')
-            
-            for i, registration in enumerate(waitlist_registrations, 1):
-                registration.waitlist_position = i
-                registration.save()
-                
-            return True
-        return False
 
-    def cancel_registration(self):
-        """
-        Cancel this registration and move up waitlisted registrations if applicable.
-        """
-        was_registered = self.status == 'registered'
-        self.status = 'cancelled'
-        self.waitlist_position = None
-        self.save()
-        
-        if was_registered:
-            # Try to move the first waitlisted person to registered
-            next_waitlisted = EventRegistration.objects.filter(
-                event=self.event,
-                status='waitlist'
-            ).order_by('waitlist_position').first()
-            
-            if next_waitlisted:
-                next_waitlisted.move_from_waitlist()
 class Comment(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='user_comments')  # Profile is used here
