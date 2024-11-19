@@ -33,6 +33,9 @@ import json
 import logging
 from django.http import JsonResponse
 from django.db.models import F, Count, Q
+from django.core.exceptions import ObjectDoesNotExist
+import os
+
 logger = logging.getLogger(__name__)
 
 # All Items
@@ -107,6 +110,7 @@ def item_list(request):
     best_seller_items = Item.objects.filter(seller__in=best_seller_sellers, sold=False)[
         :3
     ]
+    success_message = request.session.pop('success_message', None)
 
     return render(
         request,
@@ -120,6 +124,7 @@ def item_list(request):
             "best_seller_items": best_seller_items,
             "liked_items": liked_items,  # Pass liked items to the template
             "cart_count": cart_count,
+            "success_message": success_message,
         },
     )
 
@@ -159,6 +164,8 @@ def item_detail(request, item_id):
     liked_items = set(
         Like.objects.filter(user=request.user).values_list("item_id", flat=True)
     )
+    
+    is_in_cart = CartItem.objects.filter(cart__user=request.user, item=item).exists()
 
     if request.user.is_authenticated:
         SearchHistory.objects.get_or_create(user=request.user, query=item.title)
@@ -174,6 +181,7 @@ def item_detail(request, item_id):
             "average_rating": item.average_rating,
             "related_items": related_items,
             "liked_items": liked_items,
+            "is_in_cart": is_in_cart,
         },
     )
 
@@ -201,7 +209,7 @@ def add_item(request):
             item = form.save(commit=False)
             item.seller = request.user
             item.save()
-            messages.success(request, "Your item has been successfully listed!")
+            request.session['success_message'] = "Your item has been successfully listed!"      
             return redirect("marketplace:item_list")
         else:
             # If the form has other validation errors, we can add a general error message
@@ -244,6 +252,12 @@ def seller_dashboard(request):
             months.append(month_name)
             total_sales.append(data["total_sales"])
 
+        Notification.objects.filter(
+        recipient=request.user,
+        created_at__lt=timezone.now() - timedelta(hours=24)
+        ).delete()
+
+
         # Fetch unread notifications for the seller without marking as read
         unread_notifications = Notification.objects.filter(
             recipient=request.user,
@@ -254,8 +268,15 @@ def seller_dashboard(request):
         # Determine which products are popular (more than 1 like)
         popular_items = []
         for item in user_items:
-            if item.likes.count() > 10 and not item.sold:
+            if item.likes.count() >= 5 and not item.sold:
                 popular_items.append(item)
+
+        # Check if any item price has been lowered, remove from popular_items
+        for item in popular_items:
+            if item.new_price and item.new_price < item.price:
+                popular_items.remove(item)
+
+        success_message = request.session.pop('success_message', None)
 
         return render(
             request,
@@ -266,6 +287,7 @@ def seller_dashboard(request):
                 "total_sales": json.dumps(total_sales),
                 "unread_notifications": unread_notifications,
                 "popular_items": popular_items,  # Pass the popular items to the template
+                "success_message": success_message,
             },
         )
     else:
@@ -276,26 +298,31 @@ def mark_as_sold(request, item_id):
     item = get_object_or_404(Item, id=item_id)
     if request.method == "POST" and request.user == item.seller:
         item.sold = True
+        item_name = item.title
         item.save()
-        messages.success(request, "Item marked as sold.")
+        request.session['success_message'] = f'"{item_name}" has been market as sold.'
         return redirect("marketplace:seller_dashboard")
     return redirect("marketplace:item_detail", item_id=item.id)
 
 
 def delete_item(request, item_id):
-    success_message = None
     item = get_object_or_404(Item, id=item_id)
-
     if request.method == "POST" and request.user == item.seller:
+        item_name = item.title
+        
+        if item.image:
+            try:
+                if os.path.isfile(item.image.path):
+                    os.remove(item.image.path)
+            except (AttributeError, ObjectDoesNotExist, FileNotFoundError):
+                pass
+        
         item.delete()
-        success_message = "Item deleted successfully"
-        if not Item.objects.filter(seller=request.user).exists():
-            return redirect("item_list")
 
+        request.session['success_message'] = f'"{item_name}" has been successfully deleted from your listings.'
         return redirect("marketplace:seller_dashboard")
-
+    
     return redirect("marketplace:item_detail", item_id=item.id)
-
 
 @require_POST
 def like_item(request, item_id):
@@ -305,6 +332,7 @@ def like_item(request, item_id):
 
     if not created:
         # If the item was already liked, the user is un liking it
+
         like.delete()
         liked = False
     else:
@@ -451,12 +479,19 @@ def cart_page(request):
     cart_count = CartItem.objects.filter(
         cart__user=request.user, item__sold=False
     ).count()
+    deal_items = Item.objects.filter(
+        new_price__lt=F("original_price"),
+        new_price__isnull=False,
+        original_price__isnull=False,
+        sold=False,
+    )
 
     # Pass the cart items, total price, and count to the template
     context = {
         "cart_items": cart_items,
         "total_price": total_price,
         "cart_count": cart_count,
+        "deal_items" : deal_items,
     }
     return render(request, "marketplace/cart_page.html", context)
 

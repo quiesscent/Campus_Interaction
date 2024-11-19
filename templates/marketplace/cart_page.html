@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block content %} {% load static %}
+{% extends "base.html" %}  {% block title %} MarketPlace | Cart {% endblock %}{% block content %} {% load static %}
 <link rel="stylesheet" href="{% static '/css/marketplace/add_items.css' %}" />
 <link
   href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
@@ -285,10 +285,7 @@
               <td>Ksh {{ cart_item.item.price }}</td>
               <td>
                 <!-- Disable the remove button if sold -->
-                <button
-                  onclick="removeCartItem('{{ cart_item.id }}')"
-                
-                >
+                <button onclick="removeCartItem('{{ cart_item.id }}')">
                   <i
                     class="fa fa-times-circle"
                     aria-hidden="true"
@@ -498,17 +495,130 @@
           </div>
         </div>
         <!-- Checkout button for each item -->
-        <button class="checkout-btn">
+        <button class="checkout-btn" data-item-id="{{ cart_item.item.id }}" data-seller="{{ cart_item.item.seller.username }}">
           Checkout Item {{ forloop.counter }}
-        </button>
+      </button>  
       </div>
       {% endif %} {% endfor %}
     </div>
   </div>
 </div>
-<div class="container">
-    <p>Check More Amazing Items</p>
-</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      // Listen for clicks on the checkout buttons
+      document.querySelectorAll('.checkout-checkbox').forEach(function(checkbox) {
+          checkbox.addEventListener('change', function() {
+              const itemId = this.id.split('-')[2];  // Extract item ID from the checkbox ID
+              const itemElement = document.querySelector(`#checkout-item-${itemId}`);
+              const sellerUsername = itemElement.getAttribute('data-seller');
+              const itemTitle = itemElement.previousElementSibling.querySelector('span').textContent;
+              const itemDescription = itemElement.previousElementSibling.nextElementSibling.querySelector('.item-price').textContent;
+
+              if (this.checked) {
+                  // Redirect to the chat page with pre-filled details
+                  window.location.href = `/messaging/chat/${sellerUsername}/?item_title=${encodeURIComponent(itemTitle)}&item_description=${encodeURIComponent(itemDescription)}`;
+              }
+          });
+      });
+
+      // Listen for clicks on the checkout buttons directly (if no checkbox is needed)
+      document.querySelectorAll('.checkout-btn').forEach(function(button) {
+          button.addEventListener('click', function(event) {
+              event.preventDefault();
+              
+              const itemId = this.getAttribute('data-item-id');
+              const sellerUsername = this.getAttribute('data-seller');
+              const itemTitle = this.closest('.cart-item-info').querySelector('span').textContent;
+              const itemDescription = this.closest('.cart-item-info').querySelector('.item-price').textContent;
+
+              // Redirect to the chat page with pre-filled details
+              window.location.href = `/messaging/chat/${sellerUsername}/?item_title=${encodeURIComponent(itemTitle)}&item_description=${encodeURIComponent(itemDescription)}`;
+          });
+      });
+  });
+</script>
+
+<section class="listing-tips py-5 bg-light">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h6 class="coupon__link">
+          <span class="icon_tag_alt"></span>
+          <a href="{% url 'marketplace:add_item' %}" style="color: #0056b3"
+            >Ready to Sell?</a
+          >
+          Add your items here to start selling.
+        </h6>
+      </div>
+    </div>
+    <h3 class="mb-4 text-center" style="font-size: 18px;"><b>Tips for a Successful Listing</b></h3>
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex align-items-start">
+            <i class="fas fa-camera-retro fa-2x text-primary me-3"></i>
+            <div>
+              <strong>Use High-Quality Photos:</strong>
+              <p class="mb-0">
+                Clear, well-lit images attract more buyers. Aim for good
+                lighting, ideally in natural light, and avoid cluttered
+                backgrounds.
+              </p>
+              <small class="text-muted"
+                >Tip: Capture multiple angles of the item to give buyers a
+                complete view.</small
+              >
+            </div>
+          </li>
+
+          <li class="list-group-item d-flex align-items-start">
+            <i class="fas fa-edit fa-2x text-success me-3"></i>
+            <div>
+              <strong>Write an Accurate Description:</strong>
+              <p class="mb-0">
+                Include essential details, such as size, condition, brand, and
+                any defects, to help buyers make an informed decision.
+              </p>
+              <small class="text-muted"
+                >Tip: Use bullet points for easier readability.</small
+              >
+            </div>
+          </li>
+
+          <li class="list-group-item d-flex align-items-start">
+            <i class="fas fa-tag fa-2x text-warning me-3"></i>
+            <div>
+              <strong>Price Competitively:</strong>
+              <p class="mb-0">
+                Research similar items on the platform to set a fair price.
+                Competitive pricing can help you sell faster.
+              </p>
+              <small class="text-muted"
+                >Tip: Consider using promotional pricing for the first few items
+                to build reviews.</small
+              >
+            </div>
+          </li>
+
+          <li class="list-group-item d-flex align-items-start">
+            <i class="fas fa-comments fa-2x text-info me-3"></i>
+            <div>
+              <strong>Be Responsive:</strong>
+              <p class="mb-0">
+                Reply quickly to messages from potential buyers to build trust
+                and improve your chances of making a sale.
+              </p>
+              <small class="text-muted"
+                >Tip: Enable notifications to respond promptly.</small
+              >
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <script>
   function removeCartItem(itemId) {
     fetch("{% url 'marketplace:remove_cart_item' %}", {
