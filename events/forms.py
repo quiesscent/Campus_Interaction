@@ -97,24 +97,36 @@ class ReplyForm(forms.ModelForm):
 
 
 class EventRegistrationForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        # Extract custom arguments
-        event = kwargs.pop('event', None)
-        user = kwargs.pop('user', None)
-          # Call the parent class's __init__
-        super().__init__(*args, **kwargs)
-        
-        # Add any custom initialization logic using event and user
-        if event:
-            self.event = event
-        if user:
-            self.user = user
+    name = forms.CharField(
+        max_length=255,
+        required=True,
+        error_messages={'required': 'Please enter your name'}
+    )
+    email = forms.EmailField(
+        required=True,
+        error_messages={'required': 'Please enter your email'}
+    )
+
     class Meta:
         model = EventRegistration
-        fields = []
+        fields = ['name', 'email']
 
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop('event', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.user:
+            self.fields['name'].initial = self.user.get_full_name() or self.user.username
+            self.fields['email'].initial = self.user.email
+    
    
 
+    def clean(self):
+        name = self.cleaned_data.get('name')
+        if not name or name.strip() == '':
+            raise forms.ValidationError("Name is required.")
+        return name.strip()
     def clean(self):
         if self.event and self.event.max_participants:
             current_registrations = EventRegistration.objects.filter(event=self.event).count()
