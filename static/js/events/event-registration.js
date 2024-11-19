@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const alertsContainer = document.getElementById('registration-alerts');
     const statusContainer = document.getElementById('registration-status-container');
     const registerButton = document.getElementById('registerButton');
+    const submitButton = document.getElementById('submitRegistration');
     
     // Track registration state
     let isRegistrationInProgress = false;
@@ -58,7 +59,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 spotsCounter.textContent = data.spots_left === null ? 'Unlimited' : data.spots_left;
             }
             
-            // Only update waitlist if the data exists
             if (waitlistCounter && typeof data.waitlist_count !== 'undefined') {
                 waitlistCounter.textContent = `${data.waitlist_count} people`;
                 if (waitlistCounter.parentElement) {
@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', function() {
         clearAlerts();
         isRegistrationInProgress = true;
         
-        const submitButton = document.getElementById('submitRegistration');
         if (submitButton) {
             submitButton.disabled = true;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -99,9 +98,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success) {
                 showAlert('success', data.message);
-                await updateUI(data);
+                await checkEventStatus(); // Update UI with new status
                 setTimeout(() => {
                     registrationModal.hide();
+                    location.reload(); // Reload to get fresh registration status
                 }, 1500);
             } else {
                 handleErrors(data.error);
@@ -144,6 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.success) {
                 showAlert('success', 'Registration cancelled successfully');
+                // Clear any cached registration data
+                clearRegistrationState();
                 setTimeout(() => {
                     location.reload();
                 }, 1500);
@@ -155,6 +157,26 @@ document.addEventListener('DOMContentLoaded', function() {
             showAlert('danger', error.message || 'An error occurred while cancelling registration');
             cancelButton.disabled = false;
             cancelButton.innerHTML = '<i class="fas fa-times"></i> Cancel Registration';
+        }
+    }
+
+    // New function to clear registration state
+    function clearRegistrationState() {
+        // Reset form if it exists
+        if (form) {
+            form.reset();
+        }
+        
+        // Clear any error messages
+        clearAlerts();
+        
+        // Remove any invalid states from form fields
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        
+        // Reset registration button state
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Register';
         }
     }
 
@@ -195,6 +217,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event Listeners
     form?.addEventListener('submit', handleRegistration);
+    
+    // Add click handler for submit button
+    submitButton?.addEventListener('click', () => {
+        form?.dispatchEvent(new Event('submit'));
+    });
+    
+    // Add modal hidden event listener to clear state
+    document.getElementById('registrationModal')?.addEventListener('hidden.bs.modal', clearRegistrationState);
     
     // Attach cancel button listener
     const cancelButton = document.getElementById('cancelRegistrationBtn');
