@@ -12,18 +12,12 @@
 
   <div class="container">
 
-    <div class="isotope-layout" data-default-filter="*" data-layout="masonry" data-sort="original-order">
 
-      <ul class="portfolio-filters isotope-filters" data-aos="fade-up" data-aos-delay="100">
-        <li data-filter="*" class="filter-active">All</li>
-        <li data-filter=".filter-files" class="filter-files">Files</li>
-        <li data-filter=".filter-documents" class="filter-documents">Documents</li>
-      </ul><!-- End Portfolio Filters -->
+        <div class="row gy-4   resources-row " data-aos="fade-up" data-aos-delay="200">
 
 
-
-        <div class="row gy-4   resources-row isotope-container" data-aos="fade-up" data-aos-delay="200">
-          <div class="col-lg-5 portfolio-item isotope-item filter-files resources-section  shadow-lg" data-aos="fade-up" data-aos-delay="200">
+          {% for link in  links %}
+          <div class="col-lg-5 portfolio-item  ms-1 me-2 resources-section  shadow-lg" data-aos="fade-up" data-aos-delay="200">
             <div class="resouces-data">
               <h3 class="text-center">Mercy August</h3>
               <h4>BBIT</h4>
@@ -37,9 +31,12 @@
               </p>
             </div>
           </div><!-- End testimonial item -->
-          
-          
-          <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
+          {% endfor %}
+
+
+
+          {% for document in  documents %}
+           <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
             <div class="resouces-data">
               <h3 class="text-center">Julian August</h3>
               <h4>BBIT</h4>
@@ -54,36 +51,10 @@
             </div>
           </div><!-- End testimonial item -->
           
-          <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
-            <div class="resouces-data">
-              <h3 class="text-center">Julian August</h3>
-              <h4>BBIT</h4>
-              <div class="stars">
-                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-              </div>
-              <p>
-                <i class="bi bi-quote quote-icon-left"></i>
-                <span>If you combine some features into multipurpose pages, you might end up with fewer pages. This setup ensures the project is organized and scalable.</span>
-                <i class="bi bi-quote quote-icon-right"></i>
-              </p>
-            </div>
-          </div><!-- End testimonial item -->
+          {% endfor %}
           
           
-          <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
-            <div class="resouces-data">
-              <h3 class="text-center">Julian August</h3>
-              <h4>BBIT</h4>
-              <div class="stars">
-                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-              </div>
-              <p>
-                <i class="bi bi-quote quote-icon-left"></i>
-                <span>If you combine some features into multipurpose pages, you might end up with fewer pages. This setup ensures the project is organized and scalable.</span>
-                <i class="bi bi-quote quote-icon-right"></i>
-              </p>
-            </div>
-          </div><!-- End testimonial item -->
+        
 
 
         </div>
