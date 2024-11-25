@@ -16,6 +16,17 @@
     margin-top: 4px;
     border-radius: 0px  0px 8px 8px;
 }
-
-
+.resources-link{
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+.resources-link:hover{
+    transform: scale(1.2);
+}
+.resources-button{
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+display: block;
+margin: 0 auto;
+}
 

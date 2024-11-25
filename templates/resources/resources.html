@@ -19,14 +19,15 @@
           {% for link in  links %}
           <div class="col-lg-5 portfolio-item  ms-1 me-2 resources-section  shadow-lg" data-aos="fade-up" data-aos-delay="200">
             <div class="resouces-data">
-              <h3 class="text-center">Mercy August</h3>
-              <h4>BBIT</h4>
+              <h3 class="text-center">{{link.name}}</h3>
+              <h4>{{link.course}}</h4>
               <div class="stars">
                 <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
               </div>
               <p>
                 <i class="bi bi-quote quote-icon-left"></i>
-                <span>If you combine some features into multipurpose pages, you might end up with fewer pages. This setup ensures the project is organized and scalable.</span>
+                Course: 
+               <a href="{{link.link}}" class="resources-link">{{link.link}}</a>
                 <i class="bi bi-quote quote-icon-right"></i>
               </p>
             </div>
@@ -38,19 +39,38 @@
           {% for document in  documents %}
            <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
             <div class="resouces-data">
-              <h3 class="text-center">Julian August</h3>
-              <h4>BBIT</h4>
+              <h3 class="text-center">Course document</h3>
+              <h4>Course : {{document.course}}</h4>
+              <h5>Name : {{document.name}}</h5>
               <div class="stars">
                 <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
               </div>
               <p>
                 <i class="bi bi-quote quote-icon-left"></i>
-                <span>If you combine some features into multipurpose pages, you might end up with fewer pages. This setup ensures the project is organized and scalable.</span>
+                <span>{{document.description}}</span>
+                <i class="bi bi-quote quote-icon-right"></i>
+              </p>
+              <button type="button" class="btn btn-primary text-center resources-button">Currently enrolled</button>
+            </div>
+          </div><!-- End testimonial item -->
+          {% empty %}
+          
+          <div class="col-lg-5 resources-section shadow-lg" data-aos="fade-up" data-aos-delay="200">
+            <div class="resouces-data">
+              <h3 class="text-center">Course enrolment info</h3>
+              <h4>You have not yet applied to our courses</h4>
+              <div class="stars">
+                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+              </div>
+              <p>
+                <i class="bi bi-quote quote-icon-left"></i>
+                <span>Find the course of your interest and start your learning now!</span>
+                <a href="" />
                 <i class="bi bi-quote quote-icon-right"></i>
               </p>
             </div>
           </div><!-- End testimonial item -->
-          
+
           {% endfor %}
           
           
